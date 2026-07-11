@@ -1,0 +1,4 @@
+/* Global stylesheet — single Tailwind v4 entry point, loaded from src/main.ts.
+   SFC <style> blocks must not use @apply by default; the documented exception
+   requires `@reference` to this file (docs/conventions.md → Estilos/UI). */
+@import 'tailwindcss';

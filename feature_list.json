@@ -74,7 +74,6 @@
       "id": 3,
       "name": "tailwind-setup",
       "title": "Instalación y configuración de Tailwind CSS",
-      "_intent_nota": "BORRADOR redactado por el agente a partir de lo que pediste; revísalo y edítalo: el QUÉ es tuyo. Borra esta nota cuando lo des por bueno.",
       "intent": {
         "que_quiero": "Tener Tailwind CSS instalado y configurado en el proyecto, listo para estilar con clases de utilidad, de forma que cualquier feature de UI lo use sin tener que montar el tooling de CSS.",
         "por_que": "Ya decidí Tailwind como sistema de estilos del proyecto; quiero que quede instalado y funcionando de una vez, para que las features de UI solo se preocupen de maquetar y no reinventen la configuración.",
@@ -100,7 +99,7 @@
         "pnpm build y ./init.sh terminan en verde",
         "Se respeta la política de @apply de docs/conventions.md (sin @apply salvo el caso excepción documentado)"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

@@ -45,10 +45,13 @@
   El cliente base vive en `src/services/http.ts` (feature #2): `createHttp()`
   con config inyectada + cliente `http` por defecto ligado a `appConfig`;
   normaliza fallos HTTP/red a `ApiError`.
-- **Estilos:** **Tailwind CSS v4** (utility-first) — elegido el 2026-07-08 como
-  sistema de estilos del proyecto. **Aún no instalado**; la instalación y
-  configuración (plugin oficial `@tailwindcss/vite` + CSS global) se hace en su
-  feature de setup (`feature_list.json`). La versión exacta se fija al instalar.
+- **Estilos:** **Tailwind CSS v4** (utility-first) — instalado en la feature #3
+  (2026-07-10). Versiones exactas (lockfile): `tailwindcss` **4.3.2** +
+  `@tailwindcss/vite` **4.3.2** (rango `^4.3.2` en `package.json`, dev deps).
+  Configuración según la doc oficial de v4: plugin `tailwindcss()` registrado en
+  `vite.config.ts` y CSS global `src/assets/main.css` con `@import 'tailwindcss'`,
+  cargada como primera import de `src/main.ts`. **Sin** `tailwind.config.js` ni
+  PostCSS (v4 no los necesita con el plugin de Vite).
   Política de uso y de `@apply`: `docs/conventions.md` → *Estilos / UI*.
 - **Test utils:** `@vue/test-utils` `^2.4.11`.
 
