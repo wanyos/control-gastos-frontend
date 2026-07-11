@@ -60,7 +60,7 @@ pnpm build && pnpm preview   # sirve el build en http://localhost:4173
 Cada `R<n>` de `specs/<name>/requirements.md` debe poder mapearse a al
 menos un test concreto. El reviewer rechaza si falta cobertura.
 
-El implementer documenta el mapa en `progress/impl_<name>.md`:
+El implementer documenta el mapa en `progress/implementation/<name>.md`:
 
 ```markdown
 ## Trazabilidad

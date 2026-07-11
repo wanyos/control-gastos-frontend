@@ -113,7 +113,7 @@ Lo que en el spec estaba marcado como `(delegado)` o `(añadido)`:
   validar datos de la API cuando se consuman.
 - Tests E2E nuevos: no tocaba; el E2E existente no se ejecutó porque no hay
   navegadores de Playwright instalados en esta máquina (documentado en
-  `progress/impl_fundamentos.md`).
+  `progress/implementation/fundamentos.md`).
 
 ## Notas para el futuro (opcional)
 

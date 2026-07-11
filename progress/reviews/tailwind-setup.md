@@ -6,7 +6,7 @@
 - **Agente:** reviewer
 - **Base de revisión:** feature no SDD → bloque `intent` + `acceptance` de la
   feature 3 en `feature_list.json`, `docs/` y `CHECKPOINTS.md`. Informe del
-  implementer: `progress/impl_tailwind-setup.md` (fiel al código real).
+  implementer: `progress/implementation/tailwind-setup.md` (fiel al código real).
 
 ## Trazabilidad requirements ↔ tests (solo SDD)
 
@@ -55,7 +55,7 @@ No aplica — feature de flujo simple, sin `tasks.md`.
   (`<RouterView />` + clases de shell). Sin `fetch(` en ningún `.vue`.
 - [x] Ubicación de la CSS global en `src/assets/` correcta: es un asset de
   app, no código; no encaja en `features/`, `shared/` ni `services/`.
-  Decisión razonada en `progress/impl_tailwind-setup.md`.
+  Decisión razonada en `progress/implementation/tailwind-setup.md`.
 - [x] Dependencias nuevas justificadas: autorizadas por el propio intent
   (`delego_en_agente`), registradas en `docs/stack.md` y en la bitácora.
   Diff de `package.json` verificado: **solo** +`tailwindcss` y
@@ -99,18 +99,18 @@ No aplica — feature de flujo simple, sin `tasks.md`.
   setup de tooling sin lógica condicional (nota: la cobertura visual que jsdom
   no da se cubre con build + smoke, documentado).
 - [x] C5 — Sesión: sin archivos sin trackear sospechosos (`src/assets/` y
-  `progress/impl_tailwind-setup.md` pertenecen a la feature). La entrada de
+  `progress/implementation/tailwind-setup.md` pertenecen a la feature). La entrada de
   `history.md` de esta sesión se añade al cierre (sesión aún abierta;
   `current.md` al día). Status `in_progress` correcto hasta el `done` del
   implementer.
 - [x] C6 — Proyectos hermanos: la feature no toca el contrato de la API; no
   hay endpoints ni tipos inventados.
 - [x] C7 — SDD: no aplica (feature sin `"sdd": true`).
-- [x] C8 — Resumen de cierre escrito: `progress/resumen_tailwind-setup.md`.
+- [x] C8 — Resumen de cierre escrito: `progress/summaries/tailwind-setup.md`.
 
 ## Resumen de cierre (si APPROVED)
 
-- Escrito en `progress/resumen_tailwind-setup.md` → **sí**
+- Escrito en `progress/summaries/tailwind-setup.md` → **sí**
 
 ## Cambios requeridos (si aplica)
 

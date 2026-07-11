@@ -56,7 +56,7 @@ Por cada punto del `como_se_que_esta_bien` del `intent`:
 - ✅ **"pnpm build y ./init.sh siguen en verde tras añadir Tailwind"** → se
   cumple; el reviewer los volvió a ejecutar en la revisión: `./init.sh`
   terminó verde (type-check OK, 27/27 tests) y `pnpm build` compiló sin
-  errores. Evidencia en `progress/review_tailwind-setup.md`.
+  errores. Evidencia en `progress/reviews/tailwind-setup.md`.
 
 ## Decisiones que se tomaron por ti
 

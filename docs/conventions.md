@@ -8,9 +8,12 @@
 > opiniones; cámbialas solo si cambias la config. El resto son decisiones ya
 > confirmadas por el humano.
 
-## Idioma del código — confirmado
+## Idioma — confirmado
 
-Todo el proyecto se escribe **siempre en inglés**, sin mezcla de idiomas:
+**Regla general (confirmada el 2026-07-11): los NOMBRES van siempre en inglés;
+el CONTENIDO de los documentos en texto plano va en español.**
+
+### Código: todo en inglés
 
 - **Identificadores:** variables, funciones, métodos, clases, tipos/interfaces y
   nombres de fichero.
@@ -20,9 +23,24 @@ Todo el proyecto se escribe **siempre en inglés**, sin mezcla de idiomas:
   `Ingreso`/`ingresos`.
 - **Texto de cara al usuario** (labels, mensajes, botones): también en inglés.
 
+### Nombres de archivos y carpetas: en inglés en TODO el repo
+
+No solo en `src/`: también en `docs/`, `progress/`, `specs/` y cualquier
+archivo o carpeta nuevos (p. ej. `docs/summary-template.md`,
+`progress/summaries/`). Los slugs de feature (`name` en `feature_list.json`)
+también en inglés, porque acaban siendo nombres de archivo
+(`progress/summaries/<feature>.md`). Excepción histórica: la feature #2
+`fundamentos` conserva su nombre.
+
+### Documentos en texto plano: contenido en español
+
+El **contenido** de `docs/`, `progress/`, `specs/` y de los bloques `intent` /
+`title` de `feature_list.json` se escribe en español, para lectura rápida del
+humano. El nombre del archivo, en inglés (regla anterior).
+
 > Excepción: los nombres ya existentes de repos y rutas del workspace
 > (`control-gastos`, `gastos-frontend`, `gastos-backend`) no se renombran; la
-> regla aplica al código que se escribe dentro.
+> regla aplica a lo que se crea dentro.
 
 ## Estilo del lenguaje — DESCUBIERTO
 
@@ -129,7 +147,7 @@ class ApiError extends AppError {}
 
 ## Comentarios
 
-- **En inglés** (ver «Idioma del código»).
+- **En inglés** (ver «Idioma»).
 - **Cortos y simples.** Un comentario es una línea breve al grano; si necesitas
   un párrafo, suele ser señal de que el código debería simplificarse.
 - **Solo lo relevante.** Se comenta lo que aporta —el *por qué* de una decisión

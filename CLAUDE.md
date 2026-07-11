@@ -44,8 +44,8 @@ implementar.
 ### Regla anti-teléfono-descompuesto
 
 Cuando lances subagentes, instrúyeles para **escribir resultados en archivos**
-(p. ej. `specs/<feature>/requirements.md`, `progress/explore_<tema>.md`,
-`progress/impl_<feature>.md`, `progress/review_<feature>.md`) y devolverte
+(p. ej. `specs/<feature>/requirements.md`, `progress/exploration/<tema>.md`,
+`progress/implementation/<feature>.md`, `progress/reviews/<feature>.md`) y devolverte
 solo la referencia, no el contenido. Esto preserva contexto y deja
 trazabilidad en disco.
 

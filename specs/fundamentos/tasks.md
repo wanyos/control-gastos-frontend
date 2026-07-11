@@ -65,6 +65,6 @@
   instalados (el e2e existente debe seguir verde). Cubre: R14 (y regresión
   de R1–R12).
 
-- [x] T13 — Documentar en `progress/impl_fundamentos.md` el mapa de
+- [x] T13 — Documentar en `progress/implementation/fundamentos.md` el mapa de
   trazabilidad `R<n> → test` (Nivel 4 de `docs/verification.md`) y el
   resumen de lo hecho. Cubre: trazabilidad de R1–R14.

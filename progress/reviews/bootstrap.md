@@ -114,7 +114,7 @@ Desde `gastos-frontend/`. Todos exit 0.
 
 ## Resumen de cierre
 
-- Escrito en `progress/resumen_bootstrap.md` → **sí**.
+- Escrito en `progress/summaries/bootstrap.md` → **sí**.
 
 ## Cambios requeridos
 

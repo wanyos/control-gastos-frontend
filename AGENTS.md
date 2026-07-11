@@ -23,6 +23,10 @@
 | `feature_list.json`           | Lista de tareas con estado (`pending` / `spec_ready` / `in_progress` / `done` / `blocked`)                | Siempre, al empezar |
 | `progress/current.md`         | Estado de la sesión actual                                                                                | Siempre, al empezar |
 | `progress/history.md`         | Bitácora append-only de sesiones anteriores                                                               | Si necesitas contexto histórico |
+| `progress/summaries/<feature>.md` | Resumen de cierre por feature: qué se hizo y dónde está el código (archivo:línea)                     | Para revisar una feature cerrada |
+| `progress/implementation/<feature>.md` | Informe técnico del implementer                                                                  | Trazabilidad de una feature |
+| `progress/reviews/<feature>.md` | Veredicto y evidencia del reviewer                                                                       | Trazabilidad de una feature |
+| `progress/exploration/<tema>.md` | Investigaciones previas de los explorers                                                                | Si orquestas trabajo |
 | `specs/<feature>/`            | `requirements.md` + `design.md` + `tasks.md` (Kiro-style)                                                 | Antes de implementar cualquier feature con `"sdd": true` |
 | `docs/stack.md`               | Lenguaje, framework, librerías, versiones                                                                 | Antes de tocar dependencias |
 | `docs/architecture.md`        | Qué significa "hacer un buen trabajo" en este proyecto                                                    | Antes de implementar |

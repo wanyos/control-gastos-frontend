@@ -166,12 +166,12 @@ D  src/stores/counter.ts
 
 **Siguiente paso:** lanzar `reviewer` para validar contra `acceptance` y
 `CHECKPOINTS.md`. NO marcar `done` hasta veredicto `APPROVED` + existencia de
-`progress/resumen_bootstrap.md`.
+`progress/summaries/bootstrap.md`.
 
 ---
 
 **CIERRE (2026-07-08):** reviewer `APPROVED` (sin cambios requeridos) y
-`progress/resumen_bootstrap.md` presente. `./init.sh` reejecutado en el cierre →
+`progress/summaries/bootstrap.md` presente. `./init.sh` reejecutado en el cierre →
 **exit 0**. Feature #1 `bootstrap` marcada `status: "done"` en
 `feature_list.json`; resumen de cierre movido a `progress/history.md`;
 `progress/current.md` vaciado a la plantilla. Sesión cerrada.

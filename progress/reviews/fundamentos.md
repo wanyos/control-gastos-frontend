@@ -4,7 +4,7 @@
 
 - **Fecha:** 2026-07-10
 - **Agente:** reviewer
-- **Insumos:** `specs/fundamentos/{requirements,design,tasks}.md`, `progress/impl_fundamentos.md`, docs del harness, código y tests leídos en su totalidad, `./init.sh` + `pnpm type-check` + `pnpm lint` ejecutados por el reviewer.
+- **Insumos:** `specs/fundamentos/{requirements,design,tasks}.md`, `progress/implementation/fundamentos.md`, docs del harness, código y tests leídos en su totalidad, `./init.sh` + `pnpm type-check` + `pnpm lint` ejecutados por el reviewer.
 
 ## Trazabilidad requirements ↔ tests (solo SDD)
 
@@ -40,8 +40,8 @@ Todas marcadas `[x]` en `specs/fundamentos/tasks.md`:
 - T9: [x] (`package.json:10` → script `test`; único cambio en package.json, sin dependencias nuevas — diff verificado)
 - T10: [x] (`.gitkeep` de `shared/` y `services/` eliminados; `src/features/.gitkeep` conservado — verificado con `ls -a`)
 - T11: [x] (docs actualizados, ver R13)
-- T12: [x] (gate reproducido por el reviewer: `./init.sh` exit 0, `pnpm type-check` OK, `pnpm lint` exit 0; e2e omitido legítimamente según la condición del propio T12 "si hay navegadores instalados" — no los hay, justificado en `progress/impl_fundamentos.md`)
-- T13: [x] (mapa de trazabilidad completo en `progress/impl_fundamentos.md`)
+- T12: [x] (gate reproducido por el reviewer: `./init.sh` exit 0, `pnpm type-check` OK, `pnpm lint` exit 0; e2e omitido legítimamente según la condición del propio T12 "si hay navegadores instalados" — no los hay, justificado en `progress/implementation/fundamentos.md`)
+- T13: [x] (mapa de trazabilidad completo en `progress/implementation/fundamentos.md`)
 
 ## Criterios de aceptación (siempre)
 
@@ -84,11 +84,11 @@ Todas marcadas `[x]` en `specs/fundamentos/tasks.md`:
 - [x] C5 — Sesión cerrada bien: sin temporales sospechosos (`dist/` cubierto por `.gitignore`; los untracked son el harness y los módulos nuevos, pendientes del commit del humano); `progress/history.md` tiene la entrada de la última sesión cerrada (feature 1); la feature 2 está en su estado correcto (`in_progress` hasta que el implementer cierre tras este APPROVED).
 - [x] C6 — Coherencia con proyectos hermanos: ningún endpoint inventado (el cliente HTTP no conoce rutas de la API); el puerto de `VITE_API_URL` queda anotado como "a confirmar contra el backend" en `docs/stack.md:126-127`; `docs/related-projects.md` no requería cambios.
 - [x] C7 — SDD: `specs/fundamentos/` con los 3 archivos; EARS estricto (CUANDO / SI…ENTONCES / DEBE, un DEBE por requirement); sección de Procedencia completa con los 14 R clasificados (humano/delegado/añadido; los añadidos R3, R14 y `VITE_API_URL` marcados "REVISAR EN APROBACIÓN" y aprobados por el humano el 2026-07-10, ver `progress/current.md:31-33`); todas las tasks `[x]`; cada R con test o excepción documentada (R13).
-- [x] C8 — Resumen de cierre escrito: `progress/resumen_fundamentos.md`.
+- [x] C8 — Resumen de cierre escrito: `progress/summaries/fundamentos.md`.
 
 ## Resumen de cierre (si APPROVED)
 
-- Escrito en `progress/resumen_fundamentos.md` → **sí**
+- Escrito en `progress/summaries/fundamentos.md` → **sí**
 
 ## Cambios requeridos (si aplica)
 

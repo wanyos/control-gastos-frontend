@@ -48,9 +48,9 @@ Plantilla para cada entrada nueva:
   bloqueante y preexistente: pnpm avisa `[WARN] Unsupported engine` (node
   v24.11.0 vs `>=24.12.0`).
 - **Cierre:** feature #1 `bootstrap` → **done**. Reviewer: **APPROVED**, sin
-  cambios requeridos (`progress/review_bootstrap.md`). Trazabilidad conservada en
-  `progress/impl_bootstrap.md`, `progress/review_bootstrap.md` y
-  `progress/resumen_bootstrap.md`. Próxima feature: #2 `fundamentos` (`pending`,
+  cambios requeridos (`progress/reviews/bootstrap.md`). Trazabilidad conservada en
+  `progress/implementation/bootstrap.md`, `progress/reviews/bootstrap.md` y
+  `progress/summaries/bootstrap.md`. Próxima feature: #2 `fundamentos` (`pending`,
   SDD — requiere spec antes de implementar).
 
 ## 2026-07-10 — Feature 2: fundamentos
@@ -93,11 +93,11 @@ Plantilla para cada entrada nueva:
   `pnpm type-check`, `pnpm lint` y `pnpm build` en verde. E2E omitido
   legítimamente (sin navegadores de Playwright instalados; condición prevista
   en T12). Trazabilidad completa R1–R14 → tests en
-  `progress/impl_fundamentos.md`.
+  `progress/implementation/fundamentos.md`.
 - **Cierre:** feature #2 `fundamentos` → **done**. Reviewer: **APPROVED**
-  (`progress/review_fundamentos.md`); resumen humano en
-  `progress/resumen_fundamentos.md`. Trazabilidad conservada en
-  `progress/impl_fundamentos.md`. Próxima feature: #3 `tailwind-setup`
+  (`progress/reviews/fundamentos.md`); resumen humano en
+  `progress/summaries/fundamentos.md`. Trazabilidad conservada en
+  `progress/implementation/fundamentos.md`. Próxima feature: #3 `tailwind-setup`
   (`pending`, flujo simple).
 
 ## 2026-07-10 — Feature 3: tailwind-setup
@@ -134,7 +134,7 @@ Plantilla para cada entrada nueva:
   `pnpm type-check`, `pnpm lint` y `pnpm build` en verde. Preexistente y no
   bloqueante: peer-dep `eslint-plugin-oxlint@1.72.0` vs `oxlint 1.73.0`.
 - **Cierre:** feature #3 `tailwind-setup` → **done**. Reviewer: **APPROVED**
-  (`progress/review_tailwind-setup.md`); resumen humano en
-  `progress/resumen_tailwind-setup.md`. Trazabilidad conservada en
-  `progress/impl_tailwind-setup.md`. No quedan features `pending` en
+  (`progress/reviews/tailwind-setup.md`); resumen humano en
+  `progress/summaries/tailwind-setup.md`. Trazabilidad conservada en
+  `progress/implementation/tailwind-setup.md`. No quedan features `pending` en
   `feature_list.json`.
