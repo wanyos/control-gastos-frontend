@@ -90,7 +90,7 @@
 - **No aplica en el frontend.** No hay ORM ni acceso directo a datos. La
   persistencia vive en el backend hermano (**gastos-backend**: Fastify +
   Prisma + PostgreSQL) y se consume **solo por la API**.
-- Fuente de verdad del contrato: `gastos-backend/BACKEND/docs/api-contract.md`
+- Fuente de verdad del contrato: `gastos-backend/docs/api-contract.md`
   (ver `docs/related-projects.md`).
 
 ## Restricciones / decisiones de versionado

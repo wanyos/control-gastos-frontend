@@ -28,7 +28,7 @@
 
 4. **Los tipos del frontend son propios.**
    El frontend define sus interfaces a partir del contrato
-   (`gastos-backend/BACKEND/docs/api-contract.md`), no copia tipos del backend.
+   (`gastos-backend/docs/api-contract.md`), no copia tipos del backend.
    La respuesta cruda de la API se mapea a la forma que usa la UI en la capa
    `services/`; no se pasea el JSON del backend por los componentes.
 

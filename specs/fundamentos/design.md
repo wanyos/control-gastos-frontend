@@ -11,7 +11,7 @@
   de errores + manejador global, cliente HTTP base y consolidación de la
   estructura feature-based. **Nada de lógica de negocio.**
 - **No se define ningún endpoint.** El contrato de la API vive en
-  `gastos-backend/BACKEND/docs/api-contract.md` (ver
+  `gastos-backend/docs/api-contract.md` (ver
   `docs/related-projects.md`); cada feature futura definirá su `service.ts`
   contra ese contrato usando este cliente base.
 - Sin dependencias nuevas (ver "Alternativas descartadas"). Todo se hace con
