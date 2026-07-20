@@ -1,4 +1,111 @@
 /* Global stylesheet — single Tailwind v4 entry point, loaded from src/main.ts.
    SFC <style> blocks must not use @apply by default; the documented exception
    requires `@reference` to this file (docs/conventions.md → Estilos/UI). */
+
+/* Webfonts first, and it must stay first: fonts.css only holds a remote
+   @import, and a remote @import survives the build only while nothing else
+   precedes it. Move this below and the fonts silently stop loading. */
+@import './styles/fonts.css';
+
 @import 'tailwindcss';
+
+/* design-system/ is reference material we port from, not code we ship. Left in
+   Tailwind's auto-detected sources it emits ~3KB of utilities the app never
+   uses, harvested from its JSX/HTML specimens. */
+@source not '../../design-system';
+
+/* Design system tokens, copied verbatim from design-system/ (see docs/stack.md).
+   Order matters: these :root blocks must come AFTER Tailwind so they override
+   its default theme values (--text-base 14px, --radius-md 10px, --font-sans…). */
+@import './styles/tokens/colors.css';
+@import './styles/tokens/typography.css';
+@import './styles/tokens/spacing.css';
+@import './styles/tokens/base.css';
+
+/* Bridge: exposes the design system's semantic aliases as Tailwind utilities.
+   `inline` makes utilities resolve to the token vars above instead of copying
+   values, so re-copying design-system/ is enough to pick up new values.
+
+   Only semantic aliases are exposed, not the raw scales (--green-300,
+   --neutral-700…): the design system says UI must consume the aliases.
+   Reach for var(--green-300) directly in the rare case you need a raw step. */
+@theme inline {
+  /* --- Fonts -----------------------------------------------------------
+     --font-sans / --font-mono already exist in Tailwind's theme and are
+     overridden by tokens/typography.css, so they need no entry here.
+     --font-display is new, hence the mapping. */
+  --font-display: var(--font-display);
+
+  /* --- Type scale ------------------------------------------------------
+     --text-xs…--text-5xl override Tailwind's natively. Only the two steps
+     Tailwind has no slot for need mapping. */
+  --text-2xs: var(--text-2xs);
+  --text-md: var(--text-md);
+
+  /* --- Radii --- */
+  --radius-pill: var(--radius-pill);
+
+  /* --- Shadows ---------------------------------------------------------
+     WHY every step is listed: Tailwind bakes its own shadow values into the
+     utility instead of reading var(--shadow-*), so a plain :root override is
+     ignored. These mappings are what make shadow-sm render the design
+     system's shadow and not Tailwind's. */
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-xl: var(--shadow-xl);
+  --shadow-brand: var(--shadow-brand);
+  --shadow-inset: var(--shadow-inset);
+
+  /* --- Brand --- */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-active: var(--brand-active);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-subtle-2: var(--brand-subtle-2);
+  --color-accent: var(--accent);
+
+  /* --- Surfaces --- */
+  --color-surface-app: var(--surface-app);
+  --color-surface-card: var(--surface-card);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-inverse: var(--surface-inverse);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-overlay: var(--surface-overlay);
+
+  /* --- Ink (text colors; --ink-* here, --text-* in design-system/) --- */
+  --color-ink-strong: var(--ink-strong);
+  --color-ink-body: var(--ink-body);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-ink-on-brand: var(--ink-on-brand);
+  --color-ink-on-dark: var(--ink-on-dark);
+  --color-ink-link: var(--ink-link);
+
+  /* --- Lines (the design system's --border-* aliases) --- */
+  --color-line-subtle: var(--border-subtle);
+  --color-line-default: var(--border-default);
+  --color-line-strong: var(--border-strong);
+  --color-line-brand: var(--border-brand);
+
+  /* --- Finance signals --- */
+  --color-positive: var(--positive);
+  --color-positive-subtle: var(--positive-subtle);
+  --color-negative: var(--negative);
+  --color-negative-subtle: var(--negative-subtle);
+  --color-warning: var(--warning);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+
+  /* --- Chart palette (one hue per category, stable across the app) --- */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-chart-6: var(--chart-6);
+  --color-chart-7: var(--chart-7);
+  --color-chart-8: var(--chart-8);
+}

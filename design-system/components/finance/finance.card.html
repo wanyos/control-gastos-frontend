@@ -1,0 +1,49 @@
+<!-- @dsCard group="Components" viewport="700x340" name="Finanzas" subtitle="StatCard · AccountCard · TransactionRow · CategoryBar" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style> body { margin: 0; padding: 22px; background: var(--surface-app); } .ico { width: 16px; height: 16px; } </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { StatCard, AccountCard, TransactionRow, CategoryBar, Card } = window.ControlCuentasDesignSystem_7df875;
+const I = ({ n }) => <i data-lucide={n} className="ico"></i>;
+function Demo() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        <StatCard label="Saldo total" value={12480.55} delta={4.2} deltaLabel="vs. mes ant." icon={<I n="wallet" />} />
+        <StatCard label="Ingresos" value={3120} delta={1.8} icon={<I n="trending-up" />} />
+        <StatCard label="Gastos" value={1844.20} delta={-2.1} accent="var(--negative)" icon={<I n="trending-down" />} />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, alignItems: 'start' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <AccountCard name="BBVA Nómina" type="Cuenta corriente" last4="4471" balance={3204.18} color="var(--chart-3)" />
+          <AccountCard name="Visa Oro" type="Tarjeta de crédito" last4="0092" balance={-512.40} color="var(--chart-7)" />
+        </div>
+        <Card padding={6}>
+          <TransactionRow merchant="Mercadona" category="Comida" categoryColor="var(--chart-6)" date="Hoy · 14:32" amount={-42.18} icon={<I n="shopping-cart" />} />
+          <TransactionRow merchant="Nómina ACME" category="Ingresos" categoryColor="var(--chart-1)" date="1 oct" amount={2100} icon={<I n="banknote" />} />
+          <TransactionRow merchant="Netflix" category="Suscripciones" categoryColor="var(--chart-7)" date="3 oct" amount={-13.99} pending icon={<I n="repeat" />} />
+        </Card>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <CategoryBar category="Vivienda" color="var(--chart-4)" spent={950} budget={1000} icon={<I n="home" />} />
+        <CategoryBar category="Ocio" color="var(--chart-5)" spent={310} budget={250} icon={<I n="party-popper" />} />
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+setTimeout(() => window.lucide && window.lucide.createIcons(), 60);
+</script>
+</body>
+</html>

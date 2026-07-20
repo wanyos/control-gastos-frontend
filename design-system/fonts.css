@@ -1,0 +1,5 @@
+/* control·cuentas — Webfonts
+   Loaded from Google Fonts CDN. To ship fully offline, download the woff2
+   binaries into assets/fonts/ and swap these @import lines for local @font-face. */
+
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Schibsted+Grotesk:wght@500;600;700;800;900&display=swap');

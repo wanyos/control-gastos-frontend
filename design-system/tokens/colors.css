@@ -1,0 +1,106 @@
+/* control·cuentas — Color tokens
+   A confident emerald-green personal-finance palette. Light-first, data-dense.
+   Base scales below; semantic aliases at the bottom are what UI should consume. */
+
+:root {
+  /* ---- Brand green (primary) ---- */
+  --green-50:  #ECFBF4;
+  --green-100: #D2F5E5;
+  --green-200: #A6ECCD;
+  --green-300: #6FDDB0;
+  --green-400: #34C68C;
+  --green-500: #12B886; /* mint accent */
+  --green-600: #0A8F5F; /* PRIMARY brand */
+  --green-700: #07744E;
+  --green-800: #075C3F;
+  --green-900: #064a34;
+  --green-950: #032b1f;
+
+  /* ---- Neutrals (cool slate ink) ---- */
+  --neutral-0:   #FFFFFF;
+  --neutral-50:  #F7F9FB;
+  --neutral-100: #F0F3F6;
+  --neutral-200: #E3E8ED;
+  --neutral-300: #CDD5DD;
+  --neutral-400: #9BA6B2;
+  --neutral-500: #6B7785;
+  --neutral-600: #4E5B69;
+  --neutral-700: #38434F;
+  --neutral-800: #232C36;
+  --neutral-900: #141B22;
+  --neutral-950: #0B1116;
+
+  /* ---- Semantic finance hues ---- */
+  --red-50:   #FDECEC;
+  --red-100:  #FBD5D6;
+  --red-500:  #E5484D;  /* expense / negative */
+  --red-600:  #CE2C31;
+  --red-700:  #A81E22;
+
+  --amber-50:  #FEF4E6;
+  --amber-100: #FCE6C2;
+  --amber-500: #F59E0B;  /* warning / pending */
+  --amber-600: #D98509;
+
+  --blue-50:  #EAF2FE;
+  --blue-100: #CFE0FC;
+  --blue-500: #2E6BE6;  /* info / links */
+  --blue-600: #1E55C4;
+
+  /* ---- Categorical chart palette ---- */
+  --chart-1: #0A8F5F; /* green   — ingresos / principal */
+  --chart-2: #12B886; /* mint    — ahorros */
+  --chart-3: #2E9BD6; /* blue    — inversiones */
+  --chart-4: #6366F1; /* indigo  — vivienda */
+  --chart-5: #F59E0B; /* amber   — ocio */
+  --chart-6: #EF6C5A; /* coral   — comida */
+  --chart-7: #8B5CF6; /* purple  — suscripciones */
+  --chart-8: #14B8C4; /* teal    — transporte */
+
+  /* =====================================================
+     SEMANTIC ALIASES — consume these in UI, not raw scales
+     ===================================================== */
+
+  /* Brand */
+  --brand:           var(--green-600);
+  --brand-hover:     var(--green-700);
+  --brand-active:    var(--green-800);
+  --brand-subtle:    var(--green-50);
+  --brand-subtle-2:  var(--green-100);
+  --brand-on:        var(--neutral-0);
+  --accent:          var(--green-500);
+
+  /* Surfaces */
+  --surface-app:     var(--neutral-50);   /* page background */
+  --surface-card:    var(--neutral-0);    /* cards, panels */
+  --surface-sunken:  var(--neutral-100);  /* wells, table headers */
+  --surface-inverse: var(--neutral-900);  /* dark sidebar / nav */
+  --surface-hover:   var(--neutral-100);
+  --surface-overlay: rgba(11, 17, 22, 0.48);
+
+  /* Text */
+  --text-strong:   var(--neutral-900);  /* headings, key figures */
+  --text-body:     var(--neutral-700);  /* body copy */
+  --text-muted:    var(--neutral-500);  /* labels, captions */
+  --text-faint:    var(--neutral-400);  /* placeholders, disabled */
+  --text-on-brand: var(--neutral-0);
+  --text-on-dark:  var(--neutral-50);
+  --text-link:     var(--blue-500);
+
+  /* Borders */
+  --border-subtle: var(--neutral-200);
+  --border-default: var(--neutral-300);
+  --border-strong: var(--neutral-400);
+  --border-brand:  var(--green-600);
+  --ring-brand:    rgba(10, 143, 95, 0.30);
+
+  /* Finance signals */
+  --positive:        var(--green-600);
+  --positive-subtle: var(--green-50);
+  --negative:        var(--red-500);
+  --negative-subtle: var(--red-50);
+  --warning:         var(--amber-500);
+  --warning-subtle:  var(--amber-50);
+  --info:            var(--blue-500);
+  --info-subtle:     var(--blue-50);
+}

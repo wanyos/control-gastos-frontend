@@ -1,0 +1,23 @@
+<!-- @dsCard group="Type" viewport="700x300" name="Escala tipográfica" subtitle="2xs → 4xl ramp with role labels" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px 24px; background: var(--surface-card); }
+  .r { display: flex; align-items: baseline; gap: 16px; padding: 5px 0; border-bottom: 1px solid var(--neutral-100); }
+  .r:last-child { border: 0; }
+  .t { color: var(--text-strong); font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); width: 132px; flex: none; }
+</style>
+</head>
+<body>
+  <div class="r"><div class="tag">4xl · 48</div><div class="t" style="font-size:40px">Saldo total</div></div>
+  <div class="r"><div class="tag">2xl · 28</div><div class="t" style="font-size:26px">Resumen del mes</div></div>
+  <div class="r"><div class="tag">xl · 22</div><div class="t" style="font-size:22px">Cuentas y tarjetas</div></div>
+  <div class="r"><div class="tag">lg · 18</div><div class="t" style="font-size:18px">Detalle del movimiento</div></div>
+  <div class="r"><div class="tag">base · 14</div><div class="t" style="font-size:14px;font-family:var(--font-sans);font-weight:400;color:var(--text-body)">Texto de interfaz y cuerpo</div></div>
+  <div class="r"><div class="tag">xs · 12</div><div class="t" style="font-size:12px;font-family:var(--font-sans);font-weight:400;color:var(--text-muted)">Etiquetas, metadatos y notas</div></div>
+</body>
+</html>

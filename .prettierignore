@@ -1,0 +1,7 @@
+# Design system token files, copied verbatim from design-system/ (see docs/stack.md).
+# Formatting them would break byte-identity with the source and turn every
+# re-copy into a diff. Only their --text-* → --ink-* rename is ours.
+src/assets/styles/
+
+# Read-only reference material we port components from, not code we ship.
+design-system/

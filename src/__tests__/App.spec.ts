@@ -16,13 +16,18 @@ describe('App', () => {
     expect(wrapper.find('[data-test="router-view"]').exists()).toBe(true)
   })
 
-  it('applies Tailwind utility classes on the app shell root', () => {
+  it('dresses the app shell with design system tokens, not Tailwind defaults', () => {
     // jsdom does not compute Tailwind styles; this asserts class presence.
-    // Visual rendering is covered by the manual smoke test (pnpm dev).
+    // That the utilities exist and resolve is covered by assets/__tests__/
+    // styles.spec.ts and by the manual smoke test (pnpm dev).
     const wrapper = mount(App, { global: routerViewStub })
 
     expect(wrapper.classes()).toContain('min-h-screen')
-    expect(wrapper.classes()).toContain('bg-gray-50')
+    expect(wrapper.classes()).toContain('bg-surface-app')
+    expect(wrapper.classes()).toContain('text-ink-body')
+    // Guards the regression this feature exists to prevent: the shell must not
+    // fall back to Tailwind's stock palette.
+    expect(wrapper.classes()).not.toContain('bg-gray-50')
   })
 
   it('keeps the router outlet inside the styled shell wrapper', () => {

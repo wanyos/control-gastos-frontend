@@ -1,0 +1,38 @@
+<!-- @dsCard group="Colors" viewport="700x190" name="Señales financieras" subtitle="Ingreso, gasto, aviso, info — positive/negative/warning/info" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface-card); display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+  .tile { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: 14px; }
+  .dot { width: 30px; height: 30px; border-radius: var(--radius-pill); }
+  .lab { font-weight: 700; color: var(--text-strong); font-size: 13px; margin-top: 12px; }
+  .desc { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .val { font-family: var(--font-mono); font-size: 16px; font-weight: 600; margin-top: 10px; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <div class="tile">
+    <div class="dot" style="background:var(--positive)"></div>
+    <div class="lab">Ingreso</div><div class="desc">--positive</div>
+    <div class="val" style="color:var(--positive)">+1.240,00 €</div>
+  </div>
+  <div class="tile">
+    <div class="dot" style="background:var(--negative)"></div>
+    <div class="lab">Gasto</div><div class="desc">--negative</div>
+    <div class="val" style="color:var(--negative)">−86,50 €</div>
+  </div>
+  <div class="tile">
+    <div class="dot" style="background:var(--warning)"></div>
+    <div class="lab">Aviso</div><div class="desc">--warning</div>
+    <div class="val" style="color:var(--warning)">Pendiente</div>
+  </div>
+  <div class="tile">
+    <div class="dot" style="background:var(--info)"></div>
+    <div class="lab">Info</div><div class="desc">--info</div>
+    <div class="val" style="color:var(--info)">Programado</div>
+  </div>
+</body>
+</html>

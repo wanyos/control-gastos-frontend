@@ -1,0 +1,30 @@
+<!-- @dsCard group="Brand" viewport="700x230" name="Logo y marca" subtitle="Mark + wordmark, on light and dark" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; background: var(--surface-card); display: grid; grid-template-columns: 1fr 1fr; }
+  .panel { padding: 30px; display: flex; align-items: center; gap: 14px; }
+  .dark { background: var(--neutral-950); }
+  .mark { width: 46px; height: 46px; }
+  .wm { font-family: var(--font-display); font-weight: 800; font-size: 26px; letter-spacing: -0.02em; }
+  .wm .dot { color: var(--green-600); }
+  .light .wm { color: var(--neutral-900); }
+  .dark .wm { color: #fff; }
+  .dark .wm .dot { color: var(--green-400); }
+  .tag { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+</style>
+</head>
+<body>
+  <div class="panel light">
+    <img class="mark" src="../assets/logo-mark.svg" alt="">
+    <div><div class="wm">control<span class="dot">·</span>cuentas</div></div>
+  </div>
+  <div class="panel dark">
+    <img class="mark" src="../assets/logo-mark-dark.svg" alt="">
+    <div><div class="wm">control<span class="dot">·</span>cuentas</div></div>
+  </div>
+</body>
+</html>

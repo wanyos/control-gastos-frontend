@@ -1,0 +1,32 @@
+<!-- @dsCard group="Colors" viewport="700x150" name="Marca · Verde" subtitle="Primary emerald scale — --green-50…950, brand = 600" -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body { margin: 0; padding: 20px; background: var(--surface-card); }
+  .row { display: flex; gap: 6px; }
+  .sw { flex: 1; }
+  .chip { height: 64px; border-radius: var(--radius-md); box-shadow: var(--shadow-xs); border: 1px solid rgba(11,17,22,.06); }
+  .name { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); margin-top: 7px; }
+  .hex { font-family: var(--font-mono); font-size: 10px; color: var(--text-faint); }
+  .star { position: relative; }
+  .star .chip::after { content: "brand"; position: absolute; top: 6px; left: 8px; font-family: var(--font-sans); font-size: 9px; font-weight: 700; color: #fff; letter-spacing: .04em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:var(--green-50)"></div><div class="name">50</div><div class="hex">ECFBF4</div></div>
+    <div class="sw"><div class="chip" style="background:var(--green-100)"></div><div class="name">100</div><div class="hex">D2F5E5</div></div>
+    <div class="sw"><div class="chip" style="background:var(--green-200)"></div><div class="name">200</div><div class="hex">A6ECCD</div></div>
+    <div class="sw"><div class="chip" style="background:var(--green-300)"></div><div class="name">300</div><div class="hex">6FDDB0</div></div>
+    <div class="sw"><div class="chip" style="background:var(--green-400)"></div><div class="name">400</div><div class="hex">34C68C</div></div>
+    <div class="sw"><div class="chip" style="background:var(--green-500)"></div><div class="name">500</div><div class="hex">12B886</div></div>
+    <div class="sw star"><div class="chip" style="background:var(--green-600)"></div><div class="name">600</div><div class="hex">0A8F5F</div></div>
+    <div class="sw"><div class="chip" style="background:var(--green-700)"></div><div class="name">700</div><div class="hex">07744E</div></div>
+    <div class="sw"><div class="chip" style="background:var(--green-800)"></div><div class="name">800</div><div class="hex">075C3F</div></div>
+    <div class="sw"><div class="chip" style="background:var(--green-950)"></div><div class="name">950</div><div class="hex">032B1F</div></div>
+  </div>
+</body>
+</html>

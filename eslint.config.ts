@@ -17,7 +17,10 @@ export default defineConfigWithVueTs(
     files: ['**/*.{vue,ts,mts,tsx}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  // design-system/ is read-only reference material (React/JSX), not app code.
+  // Moving it out of src/ took it off the type-check, but ESLint globs from the
+  // repo root, so its .d.ts files still need excluding here.
+  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', 'design-system/**']),
 
   ...pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
