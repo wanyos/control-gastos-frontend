@@ -138,3 +138,95 @@ Plantilla para cada entrada nueva:
   `progress/summaries/tailwind-setup.md`. Trazabilidad conservada en
   `progress/implementation/tailwind-setup.md`. No quedan features `pending` en
   `feature_list.json`.
+
+## 2026-07-20 — Feature 4: design-tokens
+
+- **Agente:** `implementer` (orquestado por `leader`) + `reviewer`. Flujo simple
+  (no SDD): se trabajó a partir del `intent` + `acceptance`.
+- **Plan:** cargar los tokens del design system **control·cuentas** y exponerlos
+  como utilidades de Tailwind v4, con el enfoque **híbrido** decidido por el
+  humano — copia literal de los CSS de tokens a `src/assets/styles/` (re-copiable
+  si el design system se regenera) + una capa `@theme inline` encima en
+  `src/assets/main.css` que los mapea a los namespaces de Tailwind. La carpeta de
+  referencia se mueve fuera de `src/` y se conserva íntegra. Sin portar ningún
+  componente de React ni maquetar pantallas. **Cero dependencias nuevas.**
+- **Cambios:**
+  - Movido `src/design-system-source/` → `design-system/` (raíz, 83 archivos,
+    íntegra; estaba untracked → `mv`). Queda fuera del type-check
+    (`tsconfig.app.json` incluye solo `src/**/*`), del lint (`eslint.config.ts`
+    `globalIgnores` + `.oxlintrc.json` `ignorePatterns`), de Prettier
+    (`.prettierignore`, nuevo) y del escaneo de Tailwind (`@source not`).
+  - Creados: `src/assets/styles/fonts.css`, `src/assets/styles/tokens/`
+    (`colors.css`, `typography.css`, `spacing.css`, `base.css`) — copias de la
+    fuente sin alterar **ningún valor**; el único cambio son los 7 alias de color
+    `--text-*` → `--ink-*` en `colors.css` y sus usos en `base.css`.
+  - `src/assets/main.css`: `fonts.css` primero de todo, luego
+    `@import 'tailwindcss'`, luego los tokens, y una capa `@theme inline` de 47
+    entradas que mapea cada alias a `var(--token)` (nunca a un valor literal).
+  - `src/App.vue`: `bg-gray-50 text-gray-900` → `bg-surface-app text-ink-body`.
+  - Tests: `src/assets/__tests__/styles.spec.ts` (10 tests nuevos) y
+    `src/__tests__/App.spec.ts` reescrito (afirma los tokens + aserción negativa
+    contra el retorno de `bg-gray-50`).
+  - Docs: `docs/stack.md` (sección *Design system y tokens*, tabla de
+    equivalencias de los 7 renombrados, mapa de utilidades) y
+    `docs/conventions.md` (*Estilos / UI*: se maqueta con los alias semánticos;
+    la guía de CONTENIDO del design system **no** se adopta).
+- **Decisiones:**
+  - **D1** — bordes expuestos como `--color-line-*` → `border-line-subtle`, no
+    `border-*`. Aplanar a `--color-strong` habría generado `text-strong` como
+    color de *borde*, colisionando con `text-ink-strong` (color de *texto*).
+    Aprobada por el reviewer. No toca la copia: los tokens siguen llamándose
+    `--border-*`.
+  - **D2** — copia con la estructura espejo de la fuente (`tokens/`), para que
+    re-copiar sea un `cp -r` y comprobar un `diff -r`.
+  - **D3** — `.prettierignore` nuevo: `pnpm format` reformateaba las copias y
+    rompía la identidad byte a byte con la fuente.
+  - **Hallazgo 1** — `--shadow-*` **no** encajaba solo: Tailwind incrusta sus
+    propios valores de sombra e ignora el `:root`. Mapeadas las 7 explícitamente.
+  - **Hallazgo 2** — las webfonts no se cargaban: un `@import` remoto solo
+    sobrevive al build si no le precede nada → `fonts.css` va el primero.
+  - **Cierre (2026-07-20)** — restaurado `vueDevTools()` en `vite.config.ts`.
+    Arrastraba una eliminación sin commitear ajena a esta feature (nota 2 del
+    reviewer); decisión del humano: revertir. `vite.config.ts` queda **sin diff
+    contra HEAD**. Se deja la llamada desnuda a propósito: el botón flotante de
+    las DevTools no tiene opción de plugin para ocultarse (verificado en la doc
+    oficial); se alterna con `Alt+Shift+D` y existe la ventana aparte en
+    `/__devtools__/`. Es preferencia de runtime, no configuración.
+- **Verificación:** gate completo re-ejecutado en el cierre, los cuatro en verde:
+  `./init.sh` → **exit 0** (type-check OK, Vitest **37/37**, 5 archivos);
+  `pnpm type-check` → exit 0; `pnpm lint` → exit 0 (oxlint + eslint, y `--fix` no
+  cambia nada); `pnpm build` → exit 0 (`dist/assets/index-DkEZ2Yoc.css` 15.76 kB
+  │ gzip 4.27 kB). Tests: 27 → **37**. La prueba real de una feature de CSS no la
+  dan los unit tests (jsdom no computa Tailwind) sino el navegador: verificado
+  por el implementer **y reproducido por el reviewer** en Chromium sobre estilos
+  computados — `body` con `--surface-app` (`rgb(247,249,251)`), `--font-sans`
+  (Hanken Grotesk) y 14px; `shadow-sm` con la sombra del diseño; `bg-brand`
+  `#0A8F5F`; las 3 webfonts en `document.fonts`.
+- **Deuda técnica pendiente (detectada por el reviewer, NO arreglada aquí):**
+  el CSS de producción sale en **15.76 kB en vez de los 9.79 kB** que medía el
+  implementer a mitad de feature. No es un fallo del cableado: es la detección
+  automática de fuentes de Tailwind v4. Al excluir `design-system/` (acertado) se
+  pasó por alto que Tailwind **también escanea los `.md` del arnés**, y esta
+  feature llenó `docs/stack.md` de tablas que enumeran todas las utilidades.
+  Comprobado en `dist/assets/index-*.css`: se emiten `.bg-chart-3`,
+  `.fill-chart-3`, `.text-positive`, `.bg-negative-subtle`, `.border-line-subtle`,
+  `.rounded-pill`, `.text-ink-muted`, `.container` (×6), `.flex`, `.grid`,
+  `.text-red-500` y `.text-gray-900` — **ninguna** se usa en `src/`;
+  `text-red-500` y `bg-gray-50` vienen literalmente de los ejemplos de
+  `docs/conventions.md` y de `App.spec.ts`. No afecta a lo que pinta la app y no
+  estaba en el `acceptance`, pero **crece con cada documento que se escriba**.
+  **La solución pasa por acotar `@source` en `src/assets/main.css`**: limitarlo a
+  `src/`, o añadir `@source not` para `docs/`, `progress/` y `specs/`; después
+  comprobar que el bundle vuelve a la zona de los 10 kB. Merece su propia tarea
+  de mantenimiento.
+- **Otra deuda anotada (preexistente, ajena a esta feature):** `e2e/vue.spec.ts`
+  sigue siendo el scaffold y espera un `<h1>You did it!</h1>` inexistente desde
+  la #1 (no entra en el gate: `init.sh` no corre E2E); `pnpm preview` no monta la
+  app por falta de `.env.production` (fail-fast correcto de la #2); webfonts por
+  CDN sin build offline; iconos Lucide sin instalar; formato de moneda/fechas por
+  decidir.
+- **Cierre:** feature #4 `design-tokens` → **done**. Reviewer: **APPROVED**, sin
+  cambios requeridos (`progress/reviews/design-tokens.md`); resumen humano en
+  `progress/summaries/design-tokens.md`. Trazabilidad conservada en
+  `progress/implementation/design-tokens.md`. No quedan features `pending` en
+  `feature_list.json`.

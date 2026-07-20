@@ -100,6 +100,44 @@
         "Se respeta la política de @apply de docs/conventions.md (sin @apply salvo el caso excepción documentado)"
       ],
       "status": "done"
+    },
+    {
+      "id": 4,
+      "name": "design-tokens",
+      "title": "Integrar los tokens del design system con Tailwind",
+      "intent": {
+        "que_quiero": "He hecho un diseño en Claude con el aspecto que quiero para el frontend. Quiero que los estilos de ese diseño (colores, tipografías, espaciado, radios, sombras) estén cargados en el proyecto y disponibles para cualquier componente, de forma que cuando maquete algo salga ya con el aspecto del diseño y no con los valores por defecto de Tailwind. La carpeta del diseño se queda como referencia para ir portando sus componentes de React a Vue3 poco a poco, conforme los vayamos necesitando.",
+        "por_que": "El diseño ya está decidido; si los tokens no están en el proyecto, cada pantalla que maquete acabará inventando sus propios colores y tamaños y el resultado no se parecerá a lo que diseñé.",
+        "como_se_que_esta_bien": [
+          "Cuando arranco con pnpm dev, la app se ve con el fondo y la tipografía del diseño, no con los por defecto del navegador.",
+          "Cuando maqueto un componente, puedo usar los colores y tamaños del diseño desde clases de Tailwind, sin copiar códigos de color a mano.",
+          "Cuando abro la carpeta del design system, sigue ahí entera y legible como referencia para portar componentes.",
+          "pnpm build y ./init.sh siguen en verde."
+        ],
+        "que_no_quiero": [
+          "No portar todavía ningún componente de React a Vue3; eso se irá haciendo conforme se implementen cosas.",
+          "No maquetar pantallas ni el dashboard todavía.",
+          "No adoptar la guía de CONTENIDO del design system (textos en español, formato 12.480,55 €, voz en tú): manda docs/conventions.md, el texto de cara al usuario va en inglés. Del design system se adopta solo la capa visual."
+        ],
+        "delego_en_agente": [
+          "Cómo se conectan exactamente los tokens con Tailwind v4; decidido con el leader: híbrido — los CSS del design system se copian tal cual y encima va una capa @theme inline que los mapea a los namespaces de Tailwind.",
+          "Dónde vive la carpeta de referencia; decidido con el leader: se mueve fuera de src/ a design-system/ en la raíz, para que no entre en el type-check ni en el lint.",
+          "Cómo resolver la colisión de nombres --text-* (el design system la usa para tamaños Y para colores de texto); cambiar estos nombres en el design system para no colisionar con tailwind. Alcance decidido con el leader (2026-07-14): el renombrado se aplica SOLO a la copia de src/assets/styles/, no a la carpeta de referencia, para que design-system/ siga siendo re-copiable si se regenera."
+        ]
+      },
+      "acceptance": [
+        "Los tokens del design system (colors, typography, spacing, base) viven en src/assets/styles/ copiados sin alterar ninguno de sus valores, y se cargan desde src/assets/main.css junto a Tailwind",
+        "Los 7 alias de color de texto se renombran --text-* → --ink-* en la copia (--ink-strong, --ink-body, --ink-muted, --ink-faint, --ink-link, --ink-on-brand, --ink-on-dark), conservando sus valores. Es el único cambio de nombre permitido; los tamaños --text-2xs…--text-5xl se quedan como están porque ya encajan con el namespace nativo de Tailwind",
+        "src/assets/main.css expone los tokens como utilidades de Tailwind mediante una capa @theme inline",
+        "docs/stack.md incluye una tabla de equivalencias design-system → proyecto → utilidad Tailwind para los 7 tokens renombrados, para poder traducirlos al portar componentes de la referencia",
+        "Las fuentes del design system (Schibsted Grotesk, Hanken Grotesk, JetBrains Mono) se cargan y la app las aplica: body con --font-sans y --surface-app de fondo",
+        "La carpeta de referencia se mueve de src/design-system-source/ a design-system/ en la raíz, íntegra, y deja de entrar en tsconfig.app.json y en ESLint",
+        "docs/stack.md actualizado: de dónde salen los tokens, dónde viven y cómo se consumen desde Tailwind",
+        "docs/conventions.md → Estilos/UI actualizado: se usan los tokens del design system, y consta que su guía de contenido NO se adopta (el texto de cara al usuario sigue en inglés)",
+        "pnpm build, pnpm type-check y ./init.sh terminan en verde",
+        "Se respeta la política de @apply de docs/conventions.md"
+      ],
+      "status": "done"
     }
   ]
 }

@@ -53,7 +53,123 @@
   cargada como primera import de `src/main.ts`. **Sin** `tailwind.config.js` ni
   PostCSS (v4 no los necesita con el plugin de Vite).
   Política de uso y de `@apply`: `docs/conventions.md` → *Estilos / UI*.
+  Los valores del theme (colores, tipografía, radios, sombras) los aporta el
+  design system: ver *Design system y tokens* más abajo.
 - **Test utils:** `@vue/test-utils` `^2.4.11`.
+
+## Design system y tokens
+
+> Feature #4 (`design-tokens`, 2026-07-14). **No se añadió ninguna dependencia.**
+
+### De dónde salen
+
+El design system **control·cuentas** lo generó el humano con Claude. La carpeta
+original vive en **`design-system/`** (raíz del repo, fuera de `src/`), y es
+**material de referencia de solo lectura**: se conserva íntegra y **no se toca**,
+para (a) poder portar sus componentes React a Vue3 poco a poco y (b) poder
+re-copiar los tokens si el design system se regenera. Su guía completa está en
+`design-system/readme.md`.
+
+Está fuera de `src/` a propósito: `tsconfig.app.json` incluye `src/**/*`, así que
+dentro sus `.d.ts` de React entraban en el type-check. Además se excluye
+explícitamente en `eslint.config.ts`, `.oxlintrc.json` (ambos glob-ean desde la
+raíz, así que mudarla no bastaba) y `.prettierignore`.
+
+### Dónde viven en el proyecto
+
+Enfoque **híbrido**: los CSS de tokens se copian **tal cual** (mismos valores,
+misma estructura que la fuente) a `src/assets/styles/`, y encima va una capa
+`@theme inline` en `src/assets/main.css` que los mapea a los namespaces de
+Tailwind. Así, si el design system se regenera, basta **volver a copiar** los
+CSS sin retraducir nada.
+
+| Fuente (`design-system/`) | Copia (`src/assets/`) | Cambios respecto a la fuente |
+|---|---|---|
+| `fonts.css` | `styles/fonts.css` | ninguno (idéntico) |
+| `tokens/typography.css` | `styles/tokens/typography.css` | ninguno (idéntico) |
+| `tokens/spacing.css` | `styles/tokens/spacing.css` | ninguno (idéntico) |
+| `tokens/colors.css` | `styles/tokens/colors.css` | **solo** el renombrado `--text-*` → `--ink-*` (7 alias) |
+| `tokens/base.css` | `styles/tokens/base.css` | **solo** los usos de esos 7 alias |
+| `styles.css` (entry) | — | no se copia; su papel lo hace `main.css` |
+
+`src/assets/__tests__/styles.spec.ts` vigila estas invariantes: si alguien edita
+un valor de la copia o rompe el orden de imports, los tests fallan.
+
+### La colisión `--text-*` y la tabla de equivalencias
+
+El design system usa `--text-*` para **dos** cosas: los **tamaños** de fuente y
+los **colores** de texto. En Tailwind v4 `--text-*` es el namespace de
+*font-size*, así que los colores generarían utilidades rotas (`text-muted` sería
+un tamaño con valor de color).
+
+Los **tamaños** (`--text-2xs`…`--text-5xl`) se quedan igual: encajan con el
+namespace nativo y lo sobreescriben **a propósito** (el diseño quiere
+`text-base` = 14px, no los 16px de Tailwind). Los **7 alias de color** se
+renombran a `--ink-*` **solo en la copia**.
+
+**Tabla de traducción al portar un componente de `design-system/` a `src/`:**
+
+| Design system | Proyecto (`src/assets/styles/`) | Utilidad Tailwind |
+|---|---|---|
+| `var(--text-strong)`   | `var(--ink-strong)`   | `text-ink-strong`   |
+| `var(--text-body)`     | `var(--ink-body)`     | `text-ink-body`     |
+| `var(--text-muted)`    | `var(--ink-muted)`    | `text-ink-muted`    |
+| `var(--text-faint)`    | `var(--ink-faint)`    | `text-ink-faint`    |
+| `var(--text-link)`     | `var(--ink-link)`     | `text-ink-link`     |
+| `var(--text-on-brand)` | `var(--ink-on-brand)` | `text-ink-on-brand` |
+| `var(--text-on-dark)`  | `var(--ink-on-dark)`  | `text-ink-on-dark`  |
+
+> Ojo al portar: en la referencia `--text-muted` es un **color**, pero
+> `--text-base` es un **tamaño**. Solo se renombran los 7 de arriba.
+
+### Cómo se consumen desde Tailwind
+
+**Criterio (decidido en la feature #4): se exponen como utilidad los alias
+semánticos, no las escalas crudas.** El propio design system dice que la UI debe
+consumir los alias (`--brand`, `--surface-app`, `--positive`), no las escalas
+(`--green-300`, `--neutral-700`). Para un caso raro que pida un peldaño crudo,
+sigue estando `var(--green-300)` en CSS.
+
+| Grupo | Utilidades | Ejemplo |
+|---|---|---|
+| Marca | `brand`, `brand-hover`, `brand-active`, `brand-subtle`, `brand-subtle-2`, `accent` | `bg-brand`, `ring-brand/30` |
+| Superficies | `surface-app`, `surface-card`, `surface-sunken`, `surface-inverse`, `surface-hover`, `surface-overlay` | `bg-surface-card` |
+| Texto (ink) | `ink-strong`, `ink-body`, `ink-muted`, `ink-faint`, `ink-link`, `ink-on-brand`, `ink-on-dark` | `text-ink-muted` |
+| Bordes (line) | `line-subtle`, `line-default`, `line-strong`, `line-brand` | `border border-line-subtle` |
+| Señales | `positive`, `negative`, `warning`, `info` (+ `-subtle`) | `text-positive`, `bg-negative-subtle` |
+| Charts | `chart-1`…`chart-8` | `bg-chart-3`, `fill-chart-3` |
+| Tipografía | `font-display`, `font-sans`, `font-mono`; `text-2xs`…`text-5xl` | `font-mono tabular-nums` |
+| Radios / sombras | `rounded-xs`…`rounded-2xl`, `rounded-pill`; `shadow-xs`…`shadow-xl`, `shadow-brand`, `shadow-inset` | `rounded-lg shadow-sm` |
+
+**Espaciado: no se mapea nada.** La rejilla de 4px del design system
+(`--space-1: 0.25rem`…) coincide con el `--spacing: 0.25rem` por defecto de
+Tailwind, que ya genera `p-4`, `gap-6`… dinámicamente. `spacing.css` se copia
+igualmente porque lleva radios, sombras, z-index, motion y layout vars.
+
+**Notas de por qué `main.css` está montado así** (verificado contra el CSS
+servido y contra los estilos computados en Chromium, no solo leído):
+
+1. **`fonts.css` va antes que `@import 'tailwindcss'`.** Solo contiene un
+   `@import` remoto a Google Fonts, y un `@import` remoto sobrevive al build
+   únicamente si no le precede nada. Si se baja de sitio, las webfonts dejan de
+   cargarse **en silencio** y la app cae a `system-ui`.
+2. **Los tokens van después de Tailwind**, para que sus `:root` ganen a los
+   valores por defecto del theme (así `text-base` = 14px y `rounded-md` = 10px).
+3. **Las sombras se mapean una a una en `@theme inline`.** `--font-*`,
+   `--text-*` y `--radius-*` generan utilidades que apuntan a `var(--token)`, así
+   que el override por `:root` les basta; **`--shadow-*` no**: Tailwind incrusta
+   sus propios valores en la utilidad e ignora el `:root`. Sin esos mapeos,
+   `shadow-sm` pintaría la sombra de Tailwind, no la del diseño.
+4. **`@source not '../../design-system'`**: sin ello Tailwind escanea la carpeta
+   de referencia y emite ~3KB de utilidades muertas sacadas de sus JSX/HTML.
+
+**Deuda conocida (heredada del design system, ver `design-system/readme.md`):**
+las webfonts se cargan desde el CDN de Google Fonts (`@import`), así que no hay
+build offline ni `@font-face` local. Si algún día se quiere, hay que bajar los
+woff2 y sustituir el `@import`.
+
+**Fuera de scope (feature #4):** los iconos **Lucide** que el design system asume
+**no están instalados**; se decidirá en su propia feature.
 
 ## Build / Dev tooling
 

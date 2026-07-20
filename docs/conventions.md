@@ -163,6 +163,42 @@ de utilidad directamente en el `<template>` —la forma recomendada por Tailwind
 la de este proyecto—. Los bloques `<style scoped>` pasan a ser la excepción, no
 la norma.
 
+### Se maqueta con los tokens del design system — confirmado (feature #4)
+
+El aspecto visual lo manda el design system **control·cuentas**
+(`design-system/`, referencia de solo lectura). Sus tokens ya están cargados y
+expuestos como utilidades de Tailwind; el mapa completo está en `docs/stack.md`
+→ *Design system y tokens*.
+
+- **Usa los alias semánticos, nunca un valor a mano.** `bg-surface-card`,
+  `text-ink-muted`, `border-line-subtle`, `text-positive`, `bg-chart-3`.
+  **Nada de hex sueltos** (`#0A8F5F`) ni de la paleta de serie de Tailwind
+  (`bg-gray-50`, `text-red-500`): si sale un color por defecto de Tailwind en un
+  diff, está mal.
+- **Los defaults de Tailwind ya están sobreescritos**: `text-base` son 14px y
+  `rounded-md` 10px, los del diseño. Úsalos sin pensar.
+- **Los números van en `font-mono`** con cifras tabulares
+  (`font-mono tabular-nums`): saldos, importes, porcentajes y métricas. Es una
+  regla central de la marca. Los títulos, en `font-display`.
+- **Tarjetas:** `rounded-lg border border-line-subtle bg-surface-card shadow-sm`.
+- Al **portar un componente** de `design-system/` (React) a Vue, traduce sus
+  `var(--text-*)` de color con la tabla de equivalencias de `docs/stack.md`
+  (en el proyecto son `--ink-*`), y **traduce sus textos al inglés**.
+
+> **La guía de CONTENIDO del design system NO se adopta.** El design system está
+> escrito para español es-ES (textos en «tú», moneda `12.480,55 €`). Aquí manda
+> la sección «Idioma» de este documento: **el texto de cara al usuario va en
+> inglés**. Del design system se adopta **solo la capa visual** (colores,
+> tipografía, espaciado, radios, sombras, motion). El formato de moneda/fechas se
+> decidirá en su feature; no copies el de la referencia por inercia.
+
+> **Iconos:** el design system asume Lucide, pero **no está instalado** (fuera del
+> scope de la feature #4). No lo añadas por tu cuenta: es una dependencia nueva.
+
+> **No edites `src/assets/styles/` a mano.** Son copias literales de
+> `design-system/`; se re-copian cuando el design system se regenera y hay tests
+> que vigilan que no se alteren (`src/assets/__tests__/styles.spec.ts`).
+
 Política de `@apply`:
 
 - **Por defecto NO se usa `@apply`.** Las utilidades van en el markup. Si un
@@ -180,4 +216,4 @@ Política de `@apply`:
 > `docs/stack.md` y añadirla en una feature de setup antes de usarla.
 
 Pendientes de definir cuando apliquen: dark mode, accesibilidad (roles/aria),
-responsive (mobile-first).
+responsive (mobile-first), iconos (Lucide) y formato de moneda/fechas.
