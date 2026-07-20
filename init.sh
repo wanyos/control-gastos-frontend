@@ -157,7 +157,7 @@
 #   "$PYBIN" - <<'PY'
 # import json, sys
 # try:
-#     with open("feature_list.json") as fp:
+#     with open("feature_list.json", encoding="utf-8") as fp:
 #         data = json.load(fp)
 #     valid = {"pending", "in_progress", "done", "blocked"}
 #     features = data.get("features", [])
@@ -414,7 +414,10 @@ if [ -n "$PYBIN" ]; then
   "$PYBIN" - <<'PY'
 import json, os, sys
 try:
-    with open("feature_list.json") as fp:
+    # encoding explícito: feature_list.json es UTF-8, pero en Windows el
+    # encoding por defecto de Python es cp1252, que decodifica mal las tildes
+    # en silencio y revienta con las que no están en su tabla (p. ej. la Í).
+    with open("feature_list.json", encoding="utf-8") as fp:
         data = json.load(fp)
     valid = {"pending", "spec_ready", "in_progress", "done", "blocked"}
     features = data.get("features", [])
