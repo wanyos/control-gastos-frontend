@@ -138,6 +138,42 @@
         "Se respeta la política de @apply de docs/conventions.md"
       ],
       "status": "done"
+    },
+    {
+      "id": 5,
+      "name": "tailwind-source-whitelist",
+      "title": "Acotar a lista blanca los ficheros que Tailwind escanea",
+      "intent": {
+        "que_quiero": "Que Tailwind solo mire mi código de aplicación para decidir qué CSS genera, y no el resto del repositorio. Ahora mismo lee también la documentación y los informes del arnés, y como ahí se citan nombres de clases al explicar cosas, se cuela en el CSS de producción CSS que ninguna pantalla usa.",
+        "por_que": "No es por el peso, que hoy es despreciable. Es porque escribir documentación no debería cambiar lo que se compila, porque la contaminación solo crece (progress/history.md nunca se poda) y sobre todo porque me deja sin poder fiarme del bundle para saber qué está vivo: una clase que borre del código seguirá apareciendo si algún informe antiguo la nombra. Además ya me pasó una vez con design-system/ y se parcheó excluyéndola a mano; ir excluyendo lo que descubro que sobra es un juego de topos, prefiero invertirlo y declarar dónde está mi código.",
+        "como_se_que_esta_bien": [
+          "Cuando compilo, el CSS de producción ya no contiene clases que solo aparecen citadas en documentación (bg-chart-3, fill-chart-3, text-red-500, container).",
+          "Cuando compilo, las clases que la app sí usa siguen ahí y la app se sigue viendo exactamente igual que ahora.",
+          "Cuando añada más documentación o más informes en progress/, el CSS de producción no cambia por ello.",
+          "pnpm build y ./init.sh siguen en verde."
+        ],
+        "que_no_quiero": [
+          "No tocar los tokens ni la capa @theme inline: esta feature no cambia ningún valor visual.",
+          "No seguir añadiendo exclusiones sueltas una por una; quiero el enfoque inverso, declarar dónde vive el código.",
+          "No maquetar pantallas todavía."
+        ],
+        "delego_en_agente": [
+          "La forma exacta de acotarlo; contrastado con la doc oficial de Tailwind v4: source() en el @import fija la base del escaneo. Al pasar a lista blanca, la exclusión @source not de design-system/ queda redundante y debería desaparecer.",
+          "Cómo dejar esto protegido con un test para que no se rompa en silencio; que el agente proponga la forma y me la marque.",
+          "Qué hacer con index.html, que hoy no tiene ninguna clase y quedaría fuera del escaneo; que el agente decida si basta con dejarlo documentado o conviene incluirlo explícitamente."
+        ]
+      },
+      "acceptance": [
+        "src/assets/main.css acota el escaneo de Tailwind a la carpeta del código de aplicación mediante source() en el @import de tailwindcss",
+        "La exclusión @source not '../../design-system' se elimina por quedar redundante bajo el nuevo enfoque de lista blanca",
+        "El CSS compilado NO contiene .bg-chart-3, .fill-chart-3, .text-red-500 ni .container, que hoy sí están y proceden de menciones en docs/ y progress/",
+        "El CSS compilado SÍ sigue conteniendo las utilidades que App.vue usa (min-h-screen, bg-surface-app, text-ink-body, antialiased) y la app se ve igual que antes del cambio",
+        "Existe un test que falla si el escaneo vuelve a abarcar ficheros que no son código de aplicación",
+        "docs/stack.md documenta que Tailwind escanea por lista blanca, por qué, y la consecuencia práctica: un fichero con clases fuera de esa carpeta (p. ej. index.html) no se escanea salvo que se declare",
+        "pnpm build, pnpm type-check, pnpm lint y ./init.sh terminan en verde",
+        "No cambia ningún token ni ninguna entrada de @theme inline"
+      ],
+      "status": "pending"
     }
   ]
 }
