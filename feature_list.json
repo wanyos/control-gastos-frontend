@@ -173,7 +173,7 @@
         "pnpm build, pnpm type-check, pnpm lint y ./init.sh terminan en verde",
         "No cambia ningún token ni ninguna entrada de @theme inline"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

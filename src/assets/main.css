@@ -7,12 +7,17 @@
    precedes it. Move this below and the fonts silently stop loading. */
 @import './styles/fonts.css';
 
-@import 'tailwindcss';
+/* source('../') rebases class detection from the repo root to src/, so only
+   application code decides what CSS ships. Scanning the whole repo made docs
+   and progress reports contaminate the bundle: they quote class names while
+   explaining things, and Tailwind reads every file as plain text. Whitelisting
+   also replaces the per-folder exclusions that pattern forced us into. */
+@import 'tailwindcss' source('../');
 
-/* design-system/ is reference material we port from, not code we ship. Left in
-   Tailwind's auto-detected sources it emits ~3KB of utilities the app never
-   uses, harvested from its JSX/HTML specimens. */
-@source not '../../design-system';
+/* index.html is application code too, and it lives outside src/. It carries no
+   classes today; declared so that the day it does, they are not dropped in
+   silence. */
+@source '../../index.html';
 
 /* Design system tokens, copied verbatim from design-system/ (see docs/stack.md).
    Order matters: these :root blocks must come AFTER Tailwind so they override

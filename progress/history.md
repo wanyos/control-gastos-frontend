@@ -219,6 +219,10 @@ Plantilla para cada entrada nueva:
   `src/`, o añadir `@source not` para `docs/`, `progress/` y `specs/`; después
   comprobar que el bundle vuelve a la zona de los 10 kB. Merece su propia tarea
   de mantenimiento.
+  > **RESUELTA por la feature #5 `tailwind-source-whitelist` (2026-07-21).** No la
+  > retomes: el escaneo ya está acotado a `src/` con `source('../')` y el bundle
+  > bajó a 9.67 kB. Anotación añadida al cerrar la #5; el texto original de esta
+  > entrada no se ha modificado. Ver la entrada de la #5 más abajo.
 - **Otra deuda anotada (preexistente, ajena a esta feature):** `e2e/vue.spec.ts`
   sigue siendo el scaffold y espera un `<h1>You did it!</h1>` inexistente desde
   la #1 (no entra en el gate: `init.sh` no corre E2E); `pnpm preview` no monta la
@@ -229,4 +233,108 @@ Plantilla para cada entrada nueva:
   cambios requeridos (`progress/reviews/design-tokens.md`); resumen humano en
   `progress/summaries/design-tokens.md`. Trazabilidad conservada en
   `progress/implementation/design-tokens.md`. No quedan features `pending` en
+  `feature_list.json`.
+
+## 2026-07-21 — Feature 5: tailwind-source-whitelist
+
+- **Agente:** `implementer` (orquestado por `leader`) + `reviewer`. Flujo simple
+  (no SDD): se trabajó a partir del `intent` + los 8 criterios de `acceptance`.
+- **Plan:** invertir el enfoque del escaneo de Tailwind v4 — de ir excluyendo
+  carpetas una a una (juego de topos) a **declarar dónde vive el código**. Base
+  del escaneo reanclada a `src/` con `source()` en el `@import`, más `index.html`
+  declarado a mano; la exclusión de `design-system/` desaparece por redundante.
+  Cero cambios visuales, cero dependencias nuevas, ningún token tocado.
+- **Cambios:**
+  - `src/assets/main.css`: `@import 'tailwindcss' source('../')` (el fichero vive
+    en `src/assets/`, luego `'../'` = `src/`) + `@source '../../index.html'`;
+    eliminado `@source not '../../design-system'` y su comentario. Diff acotado a
+    las líneas 10-20, el bloque del `@import`; `@theme inline` y
+    `src/assets/styles/**` intactos.
+  - Creado `src/assets/__tests__/tailwind-sources.spec.ts` (12 tests): compila el
+    bundle de producción **real** con la API de Vite (`build({ write: false })`) y
+    asevera sobre el CSS emitido, no sobre la configuración.
+  - `docs/stack.md`: nueva sección *Qué ficheros escanea Tailwind (lista blanca)*
+    (mecánica, porqué, la trampa práctica y el aviso de que `src/` se escanea
+    entero, tests incluidos); nota 4 reescrita para no dejar colgando el
+    `@source not` eliminado.
+  - `feature_list.json`: `pending` → `in_progress` → `done`.
+- **Decisiones:**
+  - **D-a** — test de **efecto**, no de configuración. Un `grep` de `source('../')`
+    en `main.css` seguiría verde si el escaneo se ensanchara por otra vía (un
+    `@source` nuevo, un plugin), que es justo el fallo silencioso que la feature
+    evita. Coste medido: ~1 s; la suite entera sigue en 1,7 s.
+  - **D-b** — los nombres de clase del test se **componen en runtime**
+    (`probe('bg-', 'chart-3')`). Escritos literales, Tailwind los emitiría desde
+    el propio spec (que ahora está dentro de la lista blanca) y la aserción «no
+    está en el bundle» no podría fallar nunca.
+  - **D-c** — el test **se autovigila**: cada sonda se valida antes de usarse
+    (sigue citada fuera de `src/`, no se usa dentro), para que no degrade a verde
+    trivial si la documentación deja de nombrarla.
+  - **D-d** — `index.html` **declarado explícitamente**, no solo documentado.
+    Verificado con evidencia: sin la línea, una clase puesta en `<body>` se cae
+    del CSS **sin ningún error de build**. Es una inclusión fija y conocida, no
+    una exclusión reactiva, así que no reabre el juego de topos.
+- **Verificación:** gate completo, ejecutado por el implementer, **reproducido
+  por el reviewer** y re-ejecutado en el cierre; los cuatro en verde: `./init.sh`
+  → **exit 0** (6 test files, **49/49**), `pnpm type-check` → exit 0,
+  `pnpm lint` → exit 0, `pnpm build` → exit 0. Tests: 37 → **49**.
+  **Control negativo ejecutado por las dos partes:** quitando solo `source('../')`
+  de `main.css`, la suite del fichero da 5 fallos (`container leaked into the
+  bundle: the scan widened`). CSS de producción **15.81 kB → 9.67 kB** (gzip
+  4.29 → 3.19) y de **35 a 13 selectores de clase** con el extractor estricto del
+  reviewer (el informe cita 56 → 15 con un contador más laxo que incluye
+  artefactos `.com`/`.googleapis` del `@import` de Google Fonts: mismo hecho,
+  distinto método de conteo). Que la app se ve igual no se dio por bueno con «las
+  4 clases están»: el reviewer comparó los dos bundles capa por capa —`@layer
+  base` **byte-idéntico** (3589 B), todo lo que hay fuera de `@layer`
+  **byte-idéntico** (4967 B), ninguna variable de theme cambia de valor y no queda
+  ni un `var()` roto—; solo desaparece CSS muerto. Capturas de Chromium
+  antes/después con el mismo sha256.
+- **Deuda técnica pendiente (NO arreglada aquí):**
+  - **D1 — `bg-gray-50` sigue viajando a producción.**
+    `src/__tests__/App.spec.ts:30` contiene la cadena literal en la aserción
+    `expect(wrapper.classes()).not.toContain('bg-gray-50')`. Ese fichero vive
+    dentro de `src/`, luego entra en la lista blanca, y Tailwind lo lee como una
+    mención más: **la clase se emite al CSS precisamente porque un test afirma que
+    NO se usa**. Verificado por el reviewer: **1 aparición** de `.bg-gray-50` en
+    el bundle y **ningún componente la usa**; es además el único de los nombres
+    examinados que aparece citado dentro de `src/`. Es una clase de la paleta por
+    defecto que `docs/conventions.md` prohíbe expresamente. **No compromete ningún
+    criterio de la #5** (dictamen del reviewer): el criterio 3 nombra otras cuatro
+    clases y las cuatro han desaparecido, y un test **es** código de aplicación,
+    así que esto es un límite legítimo del enfoque, no un defecto. No se tocó
+    porque `App.spec.ts` es de la feature #4 (AGENTS.md §3: fuera de scope se
+    anota, no se aplica). **Arreglos posibles y coste:**
+    1. Partir el nombre en runtime como hace el spec nuevo (`probe('bg-',
+       'gray-50')`) — **una línea**, mismo valor de test.
+    2. Afirmar sobre las clases **presentes** en vez de sobre una ausente — una
+       línea; además el test deja de depender de un nombre que ya no importa.
+    3. (Del reviewer, más ambiciosa) acotar el escaneo a `src/` **excluyendo los
+       `__tests__/`**: ningún test aporta clases que la app necesite, porque los
+       componentes se escanean solos. Reintroduce una exclusión, así que **merece
+       su propia discusión con el humano**. Las opciones 1 o 2 bastan para saldar
+       D1.
+  - **D2 — fragilidad conocida del test nuevo.**
+    `src/assets/__tests__/tailwind-sources.spec.ts:120` lee **el primer**
+    `class="…"` de `App.vue` para comprobar que sus utilidades siguen en el CSS.
+    Hoy es exacto —el SFC tiene un único atributo `class`— y el
+    `toBeGreaterThan(0)` impide que pase en vacío, pero se queda corto en cuanto
+    el shell crezca (más de un elemento con clases) o use clases dinámicas
+    (`:class`): el positivo cubriría menos de lo que aparenta. **No es un fallo
+    actual, es una caducidad conocida**: ampliar el regex o dejar constancia en un
+    comentario el día que `App.vue` cambie.
+- **Deudas preexistentes, sin cambios:** los selectores `.com` / `.googleapis` del
+  CSS no vienen del escaneo sino del `@import` remoto a Google Fonts (se irán con
+  las webfonts locales, ya anotado en `docs/stack.md`); `e2e/vue.spec.ts` sigue
+  siendo el scaffold; `pnpm preview` no arranca por falta de `.env.production`
+  (fail-fast correcto de la #2), por eso la comprobación de navegador se hizo
+  contra `pnpm dev`.
+- **Cierre:** feature #5 `tailwind-source-whitelist` → **done**. Reviewer:
+  **APPROVED**, sin cambios requeridos (`progress/reviews/tailwind-source-whitelist.md`);
+  resumen humano en `progress/summaries/tailwind-source-whitelist.md`.
+  Trazabilidad conservada en
+  `progress/implementation/tailwind-source-whitelist.md` (corregida al cerrar la
+  imprecisión de estado: el diff real es `pending` → `in_progress`). **Salda la
+  deuda del escaneo de Tailwind anotada en la entrada de la #4**, marcada allí
+  como resuelta. No quedan features `pending` ni `in_progress` en
   `feature_list.json`.

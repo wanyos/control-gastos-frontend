@@ -54,7 +54,8 @@
   PostCSS (v4 no los necesita con el plugin de Vite).
   Política de uso y de `@apply`: `docs/conventions.md` → *Estilos / UI*.
   Los valores del theme (colores, tipografía, radios, sombras) los aporta el
-  design system: ver *Design system y tokens* más abajo.
+  design system: ver *Design system y tokens* más abajo. Qué ficheros mira
+  Tailwind para decidir qué CSS emite: ver *Qué ficheros escanea Tailwind*.
 - **Test utils:** `@vue/test-utils` `^2.4.11`.
 
 ## Design system y tokens
@@ -160,8 +161,55 @@ servido y contra los estilos computados en Chromium, no solo leído):
    que el override por `:root` les basta; **`--shadow-*` no**: Tailwind incrusta
    sus propios valores en la utilidad e ignora el `:root`. Sin esos mapeos,
    `shadow-sm` pintaría la sombra de Tailwind, no la del diseño.
-4. **`@source not '../../design-system'`**: sin ello Tailwind escanea la carpeta
-   de referencia y emite ~3KB de utilidades muertas sacadas de sus JSX/HTML.
+4. **El escaneo va por lista blanca** (`source('../')`): ver *Qué ficheros
+   escanea Tailwind* más abajo.
+
+### Qué ficheros escanea Tailwind (lista blanca)
+
+> Feature #5 (`tailwind-source-whitelist`, 2026-07-20). Sin dependencias nuevas.
+
+Tailwind v4 decide qué CSS emite **leyendo ficheros como texto plano** y
+extrayendo lo que parezca un nombre de clase. Por defecto parte del directorio
+de trabajo, así que escaneaba **todo el repo**: `docs/`, `progress/` y
+`feature_list.json` citan nombres de utilidades al explicar cosas, y Tailwind
+los tomaba por usados. El bundle traía `.bg-chart-3`, `.fill-chart-3`,
+`.text-red-500`, `.container`… que ninguna pantalla usa.
+
+La base del escaneo se fija en `src/assets/main.css`:
+
+```css
+@import 'tailwindcss' source('../');   /* main.css vive en src/assets/ → src/ */
+@source '../../index.html';
+```
+
+**Por qué lista blanca y no exclusiones.** Ir excluyendo carpetas
+(`@source not …`) es un juego de topos: solo tapa lo que ya has descubierto y la
+contaminación crece sola (`progress/history.md` no se poda nunca). Declarar
+dónde vive el código lo invierte. Consecuencias:
+
+- Escribir documentación **ya no cambia** lo que se compila.
+- El bundle vuelve a ser fiable para saber qué está vivo: si borras una clase
+  del código, desaparece del CSS aunque un informe antiguo la nombre.
+- La exclusión `@source not '../../design-system'` **se eliminó**: la carpeta de
+  referencia está fuera de `src/`, así que ya no entra por definición.
+
+**La consecuencia práctica, y la trampa:** un fichero con clases **fuera de
+`src/` no se escanea salvo que se declare**. Si añades clases a `index.html` o a
+cualquier plantilla externa sin su `@source`, se caen del CSS **en silencio**
+(sin error de build). Por eso `index.html` se declara explícitamente aunque hoy
+no lleve ninguna clase: es código de aplicación y vive en la raíz.
+
+**Lo vigila un test de efecto**, no de configuración:
+`src/assets/__tests__/tailwind-sources.spec.ts` compila el bundle de producción
+real y comprueba que las clases citadas solo fuera de `src/` **no** están y que
+las que usa `App.vue` **sí**. Un `grep` de `source('../')` no valdría: seguiría
+pasando si el escaneo se ensancha por otra vía.
+
+> Al escribir en este documento: los nombres de utilidad de las tablas de arriba
+> **ya no contaminan** el bundle. El reverso es que `src/` sí se escanea entero,
+> **tests incluidos**: una clase escrita literalmente en un `.spec.ts` acaba en
+> el CSS de producción (por eso ese spec compone sus nombres en tiempo de
+> ejecución).
 
 **Deuda conocida (heredada del design system, ver `design-system/readme.md`):**
 las webfonts se cargan desde el CDN de Google Fonts (`@import`), así que no hay
