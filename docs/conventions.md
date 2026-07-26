@@ -42,6 +42,22 @@ humano. El nombre del archivo, en inglés (regla anterior).
 > (`control-gastos`, `gastos-frontend`, `gastos-backend`) no se renombran; la
 > regla aplica a lo que se crea dentro.
 
+### Tildes y codificación: quien lee un fichero, en UTF-8
+
+El contenido en español lleva tildes con normalidad (`según`, `SÍ`, `diseño`);
+no se evitan ni se sustituyen por vocales sin acento. Todo el repo es UTF-8. La
+condición para que eso sea seguro es **una sola**: cualquier script o herramienta
+que lea un fichero del repo debe declarar la codificación UTF-8 de forma
+explícita, nunca confiar en la del sistema operativo.
+
+> Por qué existe esta regla: en Windows el encoding por defecto de Python es
+> `cp1252`, no UTF-8. Un `open("feature_list.json")` sin `encoding` decodificaba
+> mal las tildes en silencio y reventaba con las que su tabla no cubre — la `Í`
+> de «SÍ» tumbó `./init.sh` (feature #5). El arreglo nunca es quitar la tilde del
+> dato: es que el lector declare UTF-8. En el repo: `open(..., encoding="utf-8")`
+> en Python, `readFileSync(..., "utf8")` en Node. El `.editorconfig` fija
+> `charset = utf-8` para código, `.md`, `.json` y `.sh`.
+
 ## Estilo del lenguaje — DESCUBIERTO
 
 Verificado en `.prettierrc.json`, `.editorconfig`, `tsconfig.*` y
