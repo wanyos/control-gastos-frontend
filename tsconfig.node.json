@@ -17,6 +17,11 @@
     // Include Node.js types and avoid accidentally including other `@types/*` packages.
     "types": ["node"],
 
+    // Vite 8.2 avisa de que su futuro `configLoader: 'native'` no resolverá
+    // imports sin extensión: `vitest.config.ts` importa `./vite.config.ts` con
+    // ella. Seguro aquí porque este proyecto es `noEmit` (solo type-check).
+    "allowImportingTsExtensions": true,
+
     // Disable emitting output during `vue-tsc --build`, which is used for type-checking only.
     "noEmit": true,
 

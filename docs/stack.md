@@ -10,6 +10,8 @@
 ## Lenguaje
 
 - **TypeScript** `~6.0.3` (rango en `package.json` → serie 6.0.x).
+  **Bloqueado en la serie 6 a propósito**: ver *Mantenimiento de dependencias*
+  → «Por qué TypeScript 7 no entra (todavía)».
 - **Modo estricto: sí.** `strict: true` viene de `@vue/tsconfig` (base que
   heredan los tsconfig del proyecto vía `@vue/tsconfig/tsconfig.dom.json`).
   Además:
@@ -22,19 +24,23 @@
 
 ## Framework / Runtime
 
-- **Vue 3** `^3.5.39` — SFC (`.vue`) con Composition API. `jsx: preserve` /
+- **Vue 3** `^3.5.40` — SFC (`.vue`) con Composition API. `jsx: preserve` /
   `jsxImportSource: vue` habilitados por si se usa TSX.
-- **Runtime Node** — `engines`: `^22.18.0 || >=24.12.0`. En desarrollo todo
+- **Runtime Node** — `engines`: `^22.22.2 || ^24.15.0 || >=26.0.0`. En desarrollo todo
   corre sobre Vite; no hay servidor propio (el backend es un proyecto hermano).
 
 ## Librerías clave
 
-- **Estado / store:** Pinia `^3.0.4` — se usan *setup stores* (función que
+- **Estado / store:** Pinia `^4.0.2` — se usan *setup stores* (función que
   devuelve refs/computed/acciones). Se registra en `src/main.ts` como plugin
-  base. El store de ejemplo del scaffold (`src/stores/counter.ts`) se retiró en
+  base. Desde la v4, Pinia es **ESM-only** (sin problema: el proyecto es
+  `"type": "module"` y se empaqueta con Vite) y **`@vue/devtools-api` `^8.2.1`
+  es una peer dependency NO opcional que hay que declarar a mano** — por eso
+  aparece en `dependencies` sin que ningún import de `src/` la nombre. No la
+  quites «por no usarse»: sin ella Pinia no resuelve su peer. El store de ejemplo del scaffold (`src/stores/counter.ts`) se retiró en
   el bootstrap; los stores viven por feature en `src/features/<feature>/store.ts`
   (ver `docs/architecture.md`).
-- **Routing:** Vue Router `^5.1.0` — `createWebHistory(import.meta.env.BASE_URL)`.
+- **Routing:** Vue Router `^5.2.0` — `createWebHistory(import.meta.env.BASE_URL)`.
   Ver `src/router/index.ts` (aún con `routes: []`).
 - **Validación de schemas:** ninguna instalada (no Zod, no Typebox). Decisión
   (feature #2, 2026-07-10): la configuración de entorno se valida **a mano** en
@@ -46,8 +52,8 @@
   con config inyectada + cliente `http` por defecto ligado a `appConfig`;
   normaliza fallos HTTP/red a `ApiError`.
 - **Estilos:** **Tailwind CSS v4** (utility-first) — instalado en la feature #3
-  (2026-07-10). Versiones exactas (lockfile): `tailwindcss` **4.3.2** +
-  `@tailwindcss/vite` **4.3.2** (rango `^4.3.2` en `package.json`, dev deps).
+  (2026-07-10). Versiones exactas (lockfile): `tailwindcss` **4.3.3** +
+  `@tailwindcss/vite` **4.3.3** (rango `^4.3.3` en `package.json`, dev deps).
   Configuración según la doc oficial de v4: plugin `tailwindcss()` registrado en
   `vite.config.ts` y CSS global `src/assets/main.css` con `@import 'tailwindcss'`,
   cargada como primera import de `src/main.ts`. **Sin** `tailwind.config.js` ni
@@ -221,7 +227,7 @@ woff2 y sustituir el `@import`.
 
 ## Build / Dev tooling
 
-- **Bundler / build tool:** Vite `^8.1.3` (`@vitejs/plugin-vue` 6 +
+- **Bundler / build tool:** Vite `^8.2.0` (`@vitejs/plugin-vue` 6 +
   `vite-plugin-vue-devtools`).
 - **Gestor de paquetes:** **pnpm** (`pnpm-lock.yaml`, `pnpm-workspace.yaml`).
 - **Alias de imports:** `@` → `./src` (definido en `vite.config.ts` y en los
@@ -239,11 +245,14 @@ woff2 y sustituir el `@import`.
 
 ## Testing
 
-- **Unitarios:** **Vitest** `^4.1.10`, entorno `jsdom`, con `@vue/test-utils`.
+- **Unitarios:** **Vitest** `^4.1.10`, entorno `jsdom` `^30.0.1`, con
+  `@vue/test-utils`. El requisito de Node del proyecto lo marca **jsdom**, que
+  es más estricto que Vite o Vue: ver *Restricciones / decisiones de versionado*.
   - Comando: `pnpm test:unit`.
   - Ubicación: co-localizados por módulo en `src/**/__tests__/*.spec.ts`
     (así lo esperan `eslint.config.ts` y `tsconfig.vitest.json`).
-- **E2E:** **Playwright** `^1.61.1`.
+- **E2E:** **Playwright** `^1.62.1`. Tras subir de versión hay que refrescar los
+  navegadores con `npx playwright install`; los binarios van atados a la versión.
   - Comando: `pnpm test:e2e`.
   - Ubicación: `e2e/`.
   - Navegadores: chromium, firefox, webkit. `baseURL` = `5173` en local
@@ -259,8 +268,12 @@ woff2 y sustituir el `@import`.
 
 ## Restricciones / decisiones de versionado
 
-- **Node bloqueado** a `^22.18.0 || >=24.12.0` (campo `engines`). El resto de
-  dependencias usan rangos semver estándar (`^` / `~`) fijados en
+- **Node bloqueado** a `^22.22.2 || ^24.15.0 || >=26.0.0` (campo `engines`).
+  Ese suelo **no es arbitrario: lo dicta `jsdom` 30**, que es la dependencia más
+  exigente del stack. Se subió el 2026-08-03 al actualizar jsdom, para que quien
+  esté por debajo falle al instalar con un mensaje claro en vez de reventar a
+  mitad de los tests. Si algún día se baja jsdom, este rango puede relajarse.
+  El resto de dependencias usan rangos semver estándar (`^` / `~`) fijados en
   `package.json`; el lockfile es `pnpm-lock.yaml`.
 - **Librerías prohibidas:** ninguna declarada aún. Si se decide vetar algo
   (p. ej. un UI kit para forzar componentes propios), anótalo en
@@ -273,6 +286,54 @@ woff2 y sustituir el `@import`.
   vacías) y se retiró el scaffold de ejemplo (`src/stores/counter.ts`). El
   cliente HTTP (`services/http.ts`) y Tailwind quedan para sus features
   respectivas (#2 y #3).
+
+## Mantenimiento de dependencias
+
+> Última pasada: **2026-08-03**. Tarea de mantenimiento, no una feature.
+
+### Cómo se hace una actualización aquí
+
+`ncu` lista lo desatendido, pero **no se sube todo de golpe**: si algo rompe,
+mezclar 20 paquetes hace imposible saber cuál fue. El orden que funciona es:
+
+1. Línea base: `./init.sh` en verde **antes** de tocar nada.
+2. Todo lo **minor/patch** junto (`ncu -u --target minor`) → verificar.
+3. Cada **major uno a uno**, verificando entre medias.
+4. Cierre: `pnpm type-check`, `pnpm test`, `pnpm lint`, `pnpm build`.
+
+`./init.sh` **no cubre** ni el lint ni el build ni el e2e (solo hace type-check
+y `pnpm test`). En una actualización de dependencias hay que lanzarlos a mano.
+
+### Por qué TypeScript 7 no entra (todavía)
+
+TypeScript 7 está publicado (`~7.0.2`) y **la config del proyecto ya es
+compatible**: no usa nada de lo que la 7 elimina (`baseUrl`, `outFile`,
+`target: ES5`, `moduleResolution: node10`…). Aun así se **descarta a propósito**
+y `typescript` se queda en `~6.0.3`, por dos motivos comprobados en el repo:
+
+1. **`vue-tsc` 3.3.9 ni arranca.** TS 7 reestructuró los `exports` de su
+   `package.json` y `vue-tsc` sigue resolviendo `typescript/lib/tsc`:
+   `ERR_PACKAGE_PATH_NOT_EXPORTED`. Eso tumba `pnpm type-check` y, con él,
+   `pnpm build`. Es un fallo duro, no un aviso.
+2. **`typescript-eslint` no lo soporta.** Su peer es `>=4.8.4 <6.1.0` y sigue
+   siéndolo en la última publicada (8.66.0). Entra por
+   `@vue/eslint-config-typescript`, así que no se arregla subiendo nada.
+
+**Cuándo reintentarlo:** cuando `vue-tsc` publique una versión que resuelva TS 7
+y `typescript-eslint` amplíe su peer por encima de `<6.1.0`. Hasta entonces
+`ncu` seguirá ofreciendo la 7: es esperado, no es un despiste.
+
+### Otras trampas conocidas
+
+- **`pnpm add` de un major puede añadir peers nuevas sin avisar en claro.**
+  Comprueba siempre `pnpm peers check` después (así salió la peer no opcional
+  `@vue/devtools-api` de Pinia 4).
+- **`pnpm-workspace.yaml` crece solo.** Cada instalación añade entradas a
+  `minimumReleaseAgeExclude` (política de antigüedad mínima de pnpm). Que el
+  diff lo toque es normal.
+- **El e2e del scaffold está roto de fábrica** desde la feature #1:
+  `e2e/vue.spec.ts` espera un `<h1>You did it!</h1>` que `App.vue` ya no pinta.
+  Falla siempre; no lo confundas con una regresión de una actualización.
 
 ## Variables de entorno requeridas
 
