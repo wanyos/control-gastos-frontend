@@ -8,6 +8,14 @@ import { defineConfig, devices } from '@playwright/test'
 // require('dotenv').config();
 
 /**
+ * Port for the preview server (CI / production-build mode). Vite's default is
+ * 4173, but Windows reserves ranges of ports for excluded (e.g. some Hyper-V
+ * installs block 4151–4250), so it must be overridable:
+ * `E2E_PREVIEW_PORT=8099 CI=true pnpm test:e2e`.
+ */
+const previewPort = Number(process.env.E2E_PREVIEW_PORT ?? 4173)
+
+/**
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
@@ -34,13 +42,16 @@ export default defineConfig({
     /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
     actionTimeout: 0,
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.CI ? 'http://localhost:4173' : 'http://localhost:5173',
+    baseURL: process.env.CI
+      ? `http://localhost:${previewPort}`
+      : 'http://localhost:5173',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
 
-    /* Only on CI systems run the tests headless */
-    headless: !!process.env.CI,
+    /* Headless by default so `./init.sh` runs the smoke test without popping
+       browser windows. Set HEADED=1 to watch the run while debugging. */
+    headless: process.env.HEADED === '1' ? false : true,
   },
 
   /* Configure projects for major browsers */
@@ -103,8 +114,8 @@ export default defineConfig({
      * Use the preview server on CI for more realistic testing.
      * Playwright will re-use the local server if there is already a dev-server running.
      */
-    command: process.env.CI ? 'npm run preview' : 'npm run dev',
-    port: process.env.CI ? 4173 : 5173,
+    command: process.env.CI ? `npm run preview -- --port ${previewPort}` : 'npm run dev',
+    port: process.env.CI ? previewPort : 5173,
     reuseExistingServer: !process.env.CI,
   },
 })

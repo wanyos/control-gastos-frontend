@@ -18,12 +18,18 @@ implementar.
   por `spec_author` antes de cualquier implementación.
 - ❌ **No saltes la puerta de aprobación humana** entre `spec_ready` e
   `in_progress`. Cuando una feature SDD llega a `spec_ready`, paras y le
-  pides al humano que apruebe o pida cambios.
+  pides al humano que apruebe o pida cambios **leyendo solo
+  `specs/<name>/decisions.md`**.
+- ❌ **No mandes al humano a leer `requirements.md`, `design.md` o `tasks.md`.**
+  Si necesita más detalle de una decisión, se lo resumes tú.
 - ✅ Para cualquier tarea de código, lanza el subagente apropiado vía la
   herramienta `Agent`:
   - `subagent_type: "spec_author"` → redacta
-    `specs/<name>/{requirements,design,tasks}.md` para una feature `pending`
-    con `"sdd": true`.
+    `specs/<name>/{decisions,requirements,design,tasks}.md` para una feature
+    `pending` con `"sdd": true`. En la puerta de aprobación le enlazas al
+    humano **solo `decisions.md`** — una página; los otros tres son material
+    del implementer y del reviewer y **nunca le pides que los lea**. Si pide
+    cambios, le pasas un **changelog de cinco líneas**, no el spec reescrito.
   - `subagent_type: "implementer"` → escribe código y tests de **una** feature
     (con spec aprobado si es SDD, o directamente si no es SDD).
   - `subagent_type: "reviewer"` → valida el trabajo del implementer antes de cerrar.
@@ -35,10 +41,12 @@ implementar.
 1. Lee `AGENTS.md` para orientarte.
 2. Lee `docs/stack.md` para entender el entorno técnico.
 3. Lee `feature_list.json` y `progress/current.md`.
-4. Ejecuta `./init.sh`. Si falla, paras y reportas.
-5. Si hay un `docs/related-projects.md` con contenido, léelo: tu cambio
+4. Lee `docs/roadmap.md`: el recorrido en etapas, para situar la tarea en el
+   mapa antes de descomponerla.
+5. Ejecuta `./init.sh`. Si falla, paras y reportas.
+6. Si hay un `docs/related-projects.md` con contenido, léelo: tu cambio
    puede afectar a otros proyectos.
-6. Aplica la tabla de escalado y el flujo SDD de `.claude/agents/leader.md`
+7. Aplica la tabla de escalado y el flujo SDD de `.claude/agents/leader.md`
    (ver `docs/specs.md` si la feature tiene `"sdd": true`).
 
 ### Regla anti-teléfono-descompuesto

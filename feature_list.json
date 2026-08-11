@@ -174,6 +174,47 @@
         "No cambia ningún token ni ninguna entrada de @theme inline"
       ],
       "status": "done"
+    },
+    {
+      "id": 6,
+      "name": "e2e-smoke",
+      "title": "Arreglar el e2e roto y convertirlo en una prueba de humo real",
+      "intent": {
+        "que_quiero": "Que el test de punta a punta vuelva a servir para algo: que compruebe que la aplicación arranca de verdad —que monta, que se ve con el fondo y la tipografía del diseño, y que no suelta errores en la consola— y que eso funcione tanto cuando lo lanzo en mi máquina como cuando corre en modo CI. Y que si algún día se vuelve a romper, me entere: quiero que ./init.sh lo ejecute.",
+        "por_que": "Lleva roto desde la primera feature y nadie se enteró, porque ./init.sh solo ejecuta los tests unitarios y el e2e no se lanza nunca. Un test que siempre está rojo no es una red de seguridad, es ruido que se acaba ignorando. Encima me lo encontré de casualidad actualizando librerías, y hubo que pararse a comprobar si lo había roto la actualización: eso es exactamente el tiempo que te hace perder un test roto que nadie vigila.",
+        "como_se_que_esta_bien": [
+          "Cuando ejecuto pnpm test:e2e en mi máquina, pasa en verde.",
+          "Cuando el e2e corre en modo CI, contra el build de producción servido con preview, también pasa en verde. Hoy ahí la página se queda en blanco.",
+          "El test comprueba que la app arranca de verdad: que monta, que el shell se ve con el fondo y la tipografía del diseño, y que no hay errores en la consola.",
+          "Cuando ejecuto ./init.sh, el e2e se ejecuta en chromium, y si está roto init.sh termina en rojo.",
+          "Si mañana alguien rompe el arranque de la app, ./init.sh me lo dice en el momento, no tres features después."
+        ],
+        "que_no_quiero": [
+          "No maquetar ninguna pantalla ni añadir rutas al router para darle algo que mirar al test: el test se adapta a la app que hay, no al revés.",
+          "No meter los tres navegadores en ./init.sh. En la puerta quiero solo chromium, para que arrancar sesión siga siendo rápido; los tres siguen disponibles con pnpm test:e2e.",
+          "No tocar el fail-fast de configuración de la feature #2: que la app se niegue a arrancar con un entorno inválido está bien y se queda como está.",
+          "No convertir esto en una feature de CI: no quiero montar un pipeline, solo que el e2e también funcione en ese modo."
+        ],
+        "delego_en_agente": [
+          "Cómo conseguir que la app arranque en el build de producción sin cargarse el fail-fast. Hoy no existe .env.production, VITE_API_URL no se hornea en el bundle y src/shared/config.ts lanza ConfigError al importarse, así que la app no monta y la página sale en blanco. No sé cuál es la forma correcta (¿un .env.production committeado como .env.development y .env.test?, ¿que el e2e inyecte la variable?, ¿otra cosa?): que el agente decida, me lo explique y me marque el trade-off.",
+          "Cómo comprobar que se ve con el diseño sin que el test quede frágil. En la feature #5 ya se aprendió que escribir nombres de clase literales tiene efectos colaterales (acaban en el CSS de producción); que el agente proponga la forma y me la marque.",
+          "Qué hacer con e2e/vue.spec.ts: reescribirlo encima o sustituirlo por un fichero con un nombre que diga lo que prueba. Que el agente decida.",
+          "Cómo meter el e2e en ./init.sh sin que el arranque de sesión se dispare de tiempo y sin que falle en una máquina donde no estén instalados los navegadores de Playwright (npx playwright install). Que el agente lo resuelva y me lo cuente."
+        ]
+      },
+      "acceptance": [
+        "pnpm test:e2e pasa en verde en local (dev server, 5173) en chromium, firefox y webkit ← como_se_que_esta_bien #1",
+        "El e2e pasa en verde también en modo CI, contra el build de producción servido por preview en 4173, donde hoy la app no monta ← como_se_que_esta_bien #2",
+        "La app arranca en el build de producción sin relajar la validación de entorno de src/shared/config.ts: el fail-fast sigue lanzando ConfigError si el entorno es inválido ← que_no_quiero #3 + delego_en_agente #1",
+        "El test verifica arranque real, no presencia de texto del scaffold: la app monta, el shell aplica el fondo y la tipografía del design system, y no hay errores de consola durante la carga ← como_se_que_esta_bien #3",
+        "Ya no queda ninguna aserción contra el contenido del scaffold de Vue (el h1 'You did it!') ← que_no_quiero #1",
+        "./init.sh ejecuta el e2e limitado a chromium y termina en rojo si falla ← como_se_que_esta_bien #4 y #5, que_no_quiero #2",
+        "./init.sh degrada con un mensaje claro (no con un error críptico) si faltan los navegadores de Playwright en la máquina ← delego_en_agente #4",
+        "No se añade ninguna ruta al router ni ninguna pantalla nueva ← que_no_quiero #1",
+        "docs/stack.md actualizado: cómo arranca el e2e en cada modo y qué cubre la puerta de ./init.sh",
+        "pnpm build, pnpm type-check, pnpm lint y ./init.sh terminan en verde"
+      ],
+      "status": "done"
     }
   ]
 }

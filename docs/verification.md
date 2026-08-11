@@ -23,14 +23,19 @@ pnpm test:unit          # modo watch (interactivo)
 pnpm test:unit run      # una sola pasada, útil en CI / verificación
 ```
 
-> `init.sh` detecta el script `"test"` de `package.json` (`pnpm test` →
-> `vitest run`, añadido en la feature #2) y ejecuta la suite unitaria
-> automáticamente en su bloque de tests, además del type-check.
+> `init.sh` detecta el script de tests unitarios de `package.json`
+> (`test:unit` → `vitest run`, añadido en la feature #2) y ejecuta la suite
+> automáticamente en su bloque de tests, además del type-check. Desde la
+> feature #6 también ejecuta el **e2e smoke limitado a chromium**
+> (sección 6 del script).
 
 ### Nivel 2 — Test de integración / E2E (obligatorio para features de UI)
 
 Los tests E2E usan **Playwright** contra la app real (levanta el dev server en
-`5173`, o el preview en `4173` bajo CI). Viven en `e2e/`.
+`5173`, o el preview en `4173` bajo CI). Viven en `e2e/`. La feature #6 los
+convirtió en una **prueba de humo de arranque real**: la app monta, aplica el
+design system y no suelta errores de consola (ver `docs/stack.md` → *E2E en
+cada modo*).
 
 ```bash
 # Primera vez: instalar navegadores
@@ -38,9 +43,16 @@ npx playwright install
 
 pnpm test:e2e                      # todos los navegadores (chromium/firefox/webkit)
 pnpm test:e2e --project=chromium   # solo chromium (más rápido en local)
-pnpm test:e2e e2e/vue.spec.ts      # un fichero concreto
 pnpm test:e2e --debug              # modo debug
+HEADED=1 pnpm test:e2e             # con ventanas visibles (por defecto es headless)
+
+# Modo CI (build de producción servido por preview en 4173):
+pnpm build && CI=true pnpm test:e2e
 ```
+
+La puerta de `./init.sh` (sección 6) ejecuta el e2e limitado a chromium contra
+el dev server y termina en rojo si falla; si faltan los navegadores de
+Playwright, degrada con un aviso claro en vez de fallar.
 
 Para componentes, la integración ligera (montar el componente y comprobar
 render/interacción) se hace con Vitest + `@vue/test-utils` en el Nivel 1.

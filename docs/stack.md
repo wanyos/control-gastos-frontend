@@ -257,6 +257,39 @@ woff2 y sustituir el `@import`.
   - Ubicación: `e2e/`.
   - Navegadores: chromium, firefox, webkit. `baseURL` = `5173` en local
     (dev server) / `4173` en CI (preview). Config: `playwright.config.ts`.
+  - **Headless por defecto en todos los modos** (para que la puerta de
+    `./init.sh` no abra ventanas). Para observar la ejecución:
+    `HEADED=1 pnpm test:e2e`.
+  - **La puerta de `./init.sh` ejecuta solo chromium**
+    (`pnpm test:e2e --project=chromium`) y termina en rojo si falla; si faltan
+    los navegadores de Playwright, degrada con un aviso de instalación en vez
+    de fallar. Los tres navegadores quedan disponibles con `pnpm test:e2e`.
+
+#### E2E en cada modo (feature #6, 2026-08-10)
+
+El e2e es una **prueba de humo de arranque real** (`e2e/app-boot.spec.ts`),
+no una aserción sobre el scaffold: verifica que la app monta, que el shell
+aplica el fondo y la tipografía del design system (comparando **estilos
+computados** contra los tokens de `:root`, sin nombres de clase literales,
+para no depender de —ni contaminar— el CSS de Tailwind) y que no hay errores
+de consola ni de `pageerror` durante la carga.
+
+- **Modo local (`pnpm test:e2e`)**: Playwright arranca el **dev server**
+  (`npm run dev` → 5173) si no hay uno corriendo. `VITE_API_URL` se lee de
+  `.env.development`.
+- **Modo CI (`CI=true pnpm test:e2e`)**: Playwright arranca `npm run preview`
+  contra el **build de producción** en 4173. Requiere `dist/` → ejecutar
+  `pnpm build` antes. El puerto es sobreescribible con
+  `E2E_PREVIEW_PORT` (útil si el 4173 cae en un rango de puertos excluidos por
+  Windows en la máquina local, p. ej. 4151–4250). Aquí la app **también debe montar**: `VITE_API_URL` se
+  hornea en el bundle desde `.env.production` en tiempo de build. El fail-fast
+  de `src/shared/config.ts` **no se relaja**: si el entorno de build es
+  inválido, la app se niega a arrancar y el e2e lo descubre (página en blanco
+  + errores de consola).
+- **Cobertura de la puerta (`./init.sh`, sección 6)**: solo chromium, contra
+  el dev server. Es la red de seguridad diaria: si alguien rompe el arranque
+  (config invalidada, tokens que dejan de cargar, CSS de producción que se
+  cae), `./init.sh` termina en rojo.
 
 ## Base de datos / Persistencia
 
@@ -301,8 +334,9 @@ mezclar 20 paquetes hace imposible saber cuál fue. El orden que funciona es:
 3. Cada **major uno a uno**, verificando entre medias.
 4. Cierre: `pnpm type-check`, `pnpm test`, `pnpm lint`, `pnpm build`.
 
-`./init.sh` **no cubre** ni el lint ni el build ni el e2e (solo hace type-check
-y `pnpm test`). En una actualización de dependencias hay que lanzarlos a mano.
+`./init.sh` **no cubre** ni el lint ni el build (solo hace type-check, la suite
+unitaria y, desde la feature #6, el e2e smoke en chromium). En una
+actualización de dependencias hay que lanzarlos a mano.
 
 ### Por qué TypeScript 7 no entra (todavía)
 
@@ -331,9 +365,9 @@ y `typescript-eslint` amplíe su peer por encima de `<6.1.0`. Hasta entonces
 - **`pnpm-workspace.yaml` crece solo.** Cada instalación añade entradas a
   `minimumReleaseAgeExclude` (política de antigüedad mínima de pnpm). Que el
   diff lo toque es normal.
-- **El e2e del scaffold está roto de fábrica** desde la feature #1:
-  `e2e/vue.spec.ts` espera un `<h1>You did it!</h1>` que `App.vue` ya no pinta.
-  Falla siempre; no lo confundas con una regresión de una actualización.
+- **El e2e del scaffold (`e2e/vue.spec.ts`) estuvo roto de fábrica** desde la
+  feature #1 (esperaba `<h1>You did it!</h1>` que `App.vue` ya no pinta) hasta
+  la feature #6, que lo sustituyó por la prueba de humo `e2e/app-boot.spec.ts`.
 
 ## Variables de entorno requeridas
 
@@ -344,7 +378,9 @@ y `typescript-eslint` amplíe su peer por encima de `<6.1.0`. Hasta entonces
   (`loadConfig` + singleton `appConfig`); un entorno inválido impide el
   arranque con un `ConfigError` claro (feature #2, ADR-004).
 - Ficheros committeados (sin secretos): `.env.example` (plantilla),
-  `.env.development` (valores locales de `pnpm dev`), `.env.test` (Vitest).
+  `.env.development` (valores locales de `pnpm dev`), `.env.test` (Vitest),
+  `.env.production` (valores del build de producción; necesario para que el
+  build monte bajo `vite preview` en el e2e CI, ver *E2E en cada modo*).
   Overrides personales via `*.local` (git-ignored).
 
 | Nombre | Descripción | Obligatoria | Ejemplo |

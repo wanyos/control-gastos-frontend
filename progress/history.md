@@ -338,3 +338,121 @@ Plantilla para cada entrada nueva:
   deuda del escaneo de Tailwind anotada en la entrada de la #4**, marcada allí
   como resuelta. No quedan features `pending` ni `in_progress` en
   `feature_list.json`.
+
+## 2026-08-03 — Mantenimiento: actualización de dependencias
+
+> No es una feature: no entra en `feature_list.json` ni pasa por
+> implementer/reviewer. El trabajo es de configuración (`package.json`,
+> tsconfig, docs), no de código de aplicación.
+
+- **Agente:** `leader` en solitario. Sin subagentes: el cambio cae en la
+  excepción de `CLAUDE.md` («cambios fuera del código de aplicación»). **No se
+  tocó ni un fichero de `src/` ni de `e2e/`.**
+- **Plan:** `ncu` reportaba 21 paquetes desatendidos. Se subieron **por fases**,
+  verificando entre cada una, para poder aislar el culpable si algo rompía:
+  línea base verde → los 18 minor/patch juntos → cada major **uno a uno** →
+  verificación final. Se comprobó que `./init.sh` **no cubre** lint, build ni
+  e2e (solo type-check y Vitest), así que esos se lanzaron a mano.
+- **Cambios:**
+  - `package.json`: 20 de 21 paquetes subidos. Majors: `jsdom` 29 → **30.0.1** y
+    `pinia` 3 → **4.0.2**. Minors destacados: Vite 8.2.0, ESLint 10.8.0, oxlint
+    1.77.0, Tailwind 4.3.3, Vue 3.5.40, vue-router 5.2.0, Playwright 1.62.1.
+  - **Nueva dependencia de runtime: `@vue/devtools-api` `^8.2.1`.** Pinia 4 la
+    convierte en peer **no opcional de instalación manual**. Ningún `import` de
+    `src/` la nombra, así que parece borrable y no lo es; avisado en
+    `docs/stack.md`.
+  - `package.json` → `engines`: `^22.18.0 || >=24.12.0` → **`^22.22.2 ||
+    ^24.15.0 || >=26.0.0`**. Decisión del humano, tras detectar que jsdom 30
+    exige más Node del que el proyecto declaraba soportar: se sube el suelo para
+    que quien esté por debajo falle al instalar con un mensaje claro, en vez de
+    reventar a mitad de los tests.
+  - `vitest.config.ts` + `tsconfig.node.json`: Vite 8.2 avisa de que su futuro
+    `configLoader: 'native'` no resolverá `import … from './vite.config'` sin
+    extensión. Añadida la extensión `.ts` y `allowImportingTsExtensions: true`
+    (seguro: ese proyecto es `noEmit`). Aviso silenciado.
+  - `docs/stack.md`: versiones al día y sección nueva ***Mantenimiento de
+    dependencias*** — el procedimiento por fases, por qué TS 7 no entra y las
+    trampas conocidas (peers que aparecen solas, `pnpm-workspace.yaml` que crece
+    solo, el e2e roto de fábrica).
+- **Descartado con evidencia: TypeScript 7.** No por prudencia — se instaló y se
+  probó. La **config del proyecto sí es compatible** (no usa nada de lo que la 7
+  elimina: `baseUrl`, `outFile`, `target: ES5`, `moduleResolution: node10`,
+  verificado con `tsc --showConfig`). Lo que lo bloquea es el tooling:
+  1. **`vue-tsc` 3.3.9 ni arranca:** TS 7 reestructuró los `exports` de su
+     `package.json` y vue-tsc sigue resolviendo `typescript/lib/tsc` →
+     `ERR_PACKAGE_PATH_NOT_EXPORTED`. Tumba `pnpm type-check` y con él
+     `pnpm build`. Fallo duro, no un aviso.
+  2. **`typescript-eslint` declara peer `>=4.8.4 <6.1.0`** y sigue igual en su
+     última publicada (8.66.0); entra vía `@vue/eslint-config-typescript`, así
+     que no se arregla subiendo nada.
+
+  Revertido a `~6.0.3`. **`ncu` seguirá ofreciendo la 7: es esperado.** Las dos
+  condiciones para reintentarlo quedan escritas en `docs/stack.md`.
+- **Verificación:** `./init.sh` verde (49 tests, 6 ficheros), `pnpm build`
+  verde, `oxlint` y `eslint` sin hallazgos, `prettier --check src/` limpio,
+  `pnpm peers check` sin incidencias. **El CSS de producción conserva el mismo
+  hash que antes de la actualización (`index-C9zTJsPb.css`, 9.82 kB)**: ni los
+  tokens ni la capa de estilos se han movido, pese a subir Tailwind.
+- **Fuera de scope (anotado, NO aplicado — AGENTS.md §3):**
+  - **`e2e/vue.spec.ts` lleva roto desde la feature #1**, y no lo rompió esta
+    actualización: espera `<h1>You did it!</h1>` del scaffold de Vue, y `App.vue`
+    solo pinta `<RouterView />` con el router en `routes: []`. Falla en chromium,
+    firefox y webkit. **Nadie se entera porque `./init.sh` solo ejecuta Vitest.**
+    Ya venía anotado como deuda preexistente en la entrada de la #5; sigue
+    mereciendo su propia tarea (reescribirlo contra la app real o borrarlo hasta
+    que haya pantalla). Al subir Playwright hay que refrescar los binarios con
+    `npx playwright install`.
+  - **`@types/jsdom` (^28.0.3) va por detrás de `jsdom` (30.0.1)**, pero es la
+    última publicada y ningún fichero de `src/` importa tipos de jsdom: hoy no
+    molesta.
+- **Cierre:** mantenimiento terminado, repo verde y commiteado por el humano
+  (`c703169`). `feature_list.json` **sin cambios**: sigue sin features `pending`
+  ni `in_progress`.
+
+## 2026-08-10 — Feature #6 `e2e-smoke`
+
+> El e2e del scaffold llevaba roto desde la #1 (`<h1>You did it!</h1>` ya no lo
+> pinta `App.vue`) y nadie se entera: `./init.sh` no lo ejecutaba. Además el
+> build de producción no montaba (no existía `.env.production` y `VITE_API_URL`
+> se quedaba fuera del bundle), así que el modo CI del e2e daba página en
+> blanco. Esta feature lo convierte en una puerta de humo real ejecutada por
+> `./init.sh`.
+
+- **Agente:** implementer (flujo simple, sin `sdd`).
+- **Cambios:**
+  - `.env.production` (nuevo, commiteado, sin secretos): `VITE_API_URL` se
+    hornea en el bundle de producción, así el build monta bajo `vite preview`
+    (modo CI) **sin relajar el fail-fast** de `src/shared/config.ts`.
+  - `e2e/vue.spec.ts` → **`e2e/app-boot.spec.ts`**: prueba de humo real. Verifica
+    que la app monta (`#app > div` presente), que el shell aplica el fondo del
+    design system (compara `background-color` computado contra el token
+    `--surface-app` de `:root`) y la tipografía (`--font-sans` → Hanken
+    Grotesk), y que no hay errores de consola ni `pageerror`. Las comprobaciones
+    de estilos son **por valor, no por nombre de clase literal** (aprendizaje de
+    la #5: una clase escrita en un fichero escaneado acaba en el CSS). El
+    `readCssVar` vive dentro del `evaluate()` para no rezagarlo a Node.
+  - `playwright.config.ts`: headless por defecto (`HEADED=1` para verlas, así
+    `./init.sh` no abre ventanas); puerto de preview sobreescribible con
+    `E2E_PREVIEW_PORT` (el 4173 cae en el rango de puertos excluidos 4151–4250
+    de Windows en esta máquina, `EACCES`).
+  - `init.sh`: la detección de test runner ahora soporta `test:unit` (el script
+    `test` ya no existe, solo `test:unit` de Vitest); nueva sección 6 que
+    ejecuta `pnpm test:e2e --project=chromium` y **degrada con aviso claro** si
+    faltan los navegadores de Playwright (grep de "Executable doesn't exist")
+    en vez de fallar críptico. Resumen renumerado a sección 7.
+  - `docs/stack.md` (E2E por modo, puerta de `init.sh`, `.env.production`,
+    cobertura de `./init.sh`, trampa obsoleta del e2e del scaffold) y
+    `docs/verification.md` (Nivel 2 y bloque de tests de `init.sh`).
+- **Verificación:** `pnpm test:e2e` (local, dev server 5173) → 3/3 (chromium,
+  firefox, webkit) en 6.5s. Modo CI (`pnpm build` + `CI=true pnpm test:e2e`) →
+  3/3 en 7.5s (con `E2E_PREVIEW_PORT=8099` por el rango excluido local). `./init.sh`
+  verde con el gate chromium ejecutándose; degradación probada con
+  `PLAYWRIGHT_BROWSERS_PATH` vacío → aviso claro, no falla. `pnpm type-check`,
+  `pnpm lint` y `pnpm build` en verde.
+- **Fuera de scope (anotado, NO aplicado):** el build con el placeholder de
+  producción seguirá llevando `http://localhost:3000` hasta que el primer
+  endpoint real fije la URL; el puerto 4173 bloqueado en esta máquina es un
+  problema del SO, no del repo (default en CI real es correcto).
+- **Cierre:** feature #6 `e2e-smoke` → **done**. `./init.sh` ahora es una puerta
+  que vigila el arranque de la app a diario. No quedan features `pending` ni
+  `in_progress` en `feature_list.json`.

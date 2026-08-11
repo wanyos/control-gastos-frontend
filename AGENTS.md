@@ -11,10 +11,12 @@
 1. Ejecuta `./init.sh` y verifica que termina sin errores. Si falla, **para**
    y resuelve el entorno antes de tocar código.
 2. Lee `progress/current.md` para entender en qué estado quedó la última sesión.
-3. Lee `feature_list.json` y elige **una** tarea. Si tiene `"sdd": true`
+3. Lee `docs/roadmap.md` para situar esa sesión en el recorrido completo: qué
+   etapa está en curso, qué cabos sueltos hay abiertos y qué resuelve tu tarea.
+4. Lee `feature_list.json` y elige **una** tarea. Si tiene `"sdd": true`
    pasa por **Spec Driven Development** (ver `docs/specs.md` y §4 de este
    archivo). Si no, sigue el flujo simple.
-4. Lee `docs/specs.md` antes de tocar cualquier spec o feature `sdd: true`.
+5. Lee `docs/specs.md` antes de tocar cualquier spec o feature `sdd: true`.
 
 ## 2. Mapa del repositorio
 
@@ -22,16 +24,19 @@
 |-------------------------------|-----------------------------------------------------------------------------------------------------------|---------------|
 | `feature_list.json`           | Lista de tareas con estado (`pending` / `spec_ready` / `in_progress` / `done` / `blocked`)                | Siempre, al empezar |
 | `progress/current.md`         | Estado de la sesión actual                                                                                | Siempre, al empezar |
+| `docs/roadmap.md`             | El recorrido completo en etapas: dónde está el proyecto, qué falta y qué cabo suelto resuelve cada etapa   | Siempre, al empezar y al cerrar |
 | `progress/history.md`         | Bitácora append-only de sesiones anteriores                                                               | Si necesitas contexto histórico |
 | `progress/summaries/<feature>.md` | Resumen de cierre por feature: qué se hizo y dónde está el código (archivo:línea)                     | Para revisar una feature cerrada |
 | `progress/implementation/<feature>.md` | Informe técnico del implementer                                                                  | Trazabilidad de una feature |
 | `progress/reviews/<feature>.md` | Veredicto y evidencia del reviewer                                                                       | Trazabilidad de una feature |
 | `progress/exploration/<tema>.md` | Investigaciones previas de los explorers                                                                | Si orquestas trabajo |
-| `specs/<feature>/`            | `requirements.md` + `design.md` + `tasks.md` (Kiro-style)                                                 | Antes de implementar cualquier feature con `"sdd": true` |
+| `specs/<feature>/decisions.md`| **DEL HUMANO.** Una página: las decisiones y nada más. Es lo único que se le pide leer en la puerta       | Al aprobar un spec (humano); nunca se le manda a leer otra cosa |
+| `specs/<feature>/`            | `requirements.md` + `design.md` + `tasks.md` (Kiro-style) — material del `implementer` y del `reviewer`   | Antes de implementar cualquier feature con `"sdd": true` |
 | `docs/stack.md`               | Lenguaje, framework, librerías, versiones                                                                 | Antes de tocar dependencias |
 | `docs/architecture.md`        | Qué significa "hacer un buen trabajo" en este proyecto                                                    | Antes de implementar |
 | `docs/conventions.md`         | Reglas de estilo, nombres, estructura                                                                     | Antes de escribir código |
-| `docs/specs.md`               | Proceso SDD: EARS notation, los 3 archivos, puerta de aprobación humana                                   | Antes de redactar o leer un spec |
+| `docs/specs.md`               | Proceso SDD: EARS notation, los 4 archivos, las 4 reglas de revisabilidad, puerta de aprobación humana    | Antes de redactar o leer un spec |
+| `docs/decisions-template.md`  | Plantilla y reglas de la hoja de decisiones (formato fijo, máx. 6 puntos 🔴)                              | Antes de escribir un `decisions.md` |
 | `docs/verification.md`        | Cómo verificar que tu trabajo funciona (incluye trazabilidad requirements para SDD)                       | Antes de declarar una tarea como `done` |
 | `docs/related-projects.md`    | Proyectos hermanos (frontend↔backend, etc.)                                                               | Si tu cambio afecta a otro proyecto |
 | `CHECKPOINTS.md`              | Criterios objetivos de "estado final correcto"                                                            | Para auto-evaluarte |
@@ -47,6 +52,9 @@
   por `spec_author` y obtener aprobación humana antes de tocar código.
 - **No saltes la puerta de aprobación humana.** El leader detiene el flujo
   en `spec_ready` y espera.
+- **En la puerta se enlaza `decisions.md` y nada más.** Un spec sin su hoja no
+  es entregable, y un spec de más de ~15 requirements es señal de que la feature
+  hay que partirla (ver `docs/specs.md §Las cuatro reglas de revisabilidad`).
 - **Documenta lo que haces** en `progress/current.md` mientras trabajas, no al final.
 - **Deja el repositorio limpio** antes de cerrar la sesión (ver §6).
 - **Si no sabes algo, busca en `docs/`** antes de inventarlo.
@@ -62,9 +70,13 @@ pending → [spec_author] → spec_ready → ⏸ HUMANO → in_progress → [imp
 
 1. El leader detecta la primera feature `pending` con `"sdd": true`.
 2. El leader lanza `spec_author`, que crea
-   `specs/<name>/{requirements,design,tasks}.md` y marca el status como
-   `spec_ready`.
-3. **Pausa.** El humano lee el spec en `specs/<name>/` y aprueba (o pide cambios).
+   `specs/<name>/{decisions,requirements,design,tasks}.md` y marca el status
+   como `spec_ready`.
+3. **Pausa.** El humano lee **solo `specs/<name>/decisions.md`** — una página —
+   y aprueba (o pide cambios). Los otros tres archivos son material del
+   implementer y del reviewer: **nunca se le manda a leerlos**; si necesita más
+   detalle de una decisión, se lo resume el leader. Si pide cambios, recibe un
+   **changelog de cinco líneas**, no el documento reescrito.
 4. Una vez aprobado, el leader cambia el status a `in_progress` y lanza `implementer`.
 5. El implementer ejecuta `tasks.md` una a una, marcándolas `[x]`.
 6. El reviewer verifica trazabilidad `R<n>` ↔ test y tasks completas;
@@ -89,7 +101,11 @@ Antes de terminar:
 
 1. Ejecuta `./init.sh` — todo verde.
 2. Si la tarea está acabada: marca `status: "done"` en `feature_list.json`.
-3. Mueve el resumen de `progress/current.md` al final de `progress/history.md`.
+3. **Actualiza `docs/roadmap.md`**, en el mismo paso en que vacías
+   `current.md`: cambia el estado de la etapa tocada y tacha el cabo suelto que
+   la feature haya resuelto. Normalmente son **dos líneas**; si necesitas más,
+   el detalle va en el `intent` de la feature, no en el mapa.
+4. Mueve el resumen de `progress/current.md` al final de `progress/history.md`.
 4. Vacía `progress/current.md` dejando solo la plantilla.
 5. No dejes archivos temporales, ni logs de debug, ni TODOs sin contexto.
 

@@ -287,8 +287,11 @@ if [ -f "package.json" ]; then
   if [ -f "pnpm-lock.yaml" ]; then PKG="pnpm";
   elif [ -f "yarn.lock" ]; then PKG="yarn";
   else PKG="npm"; fi
-  # Detectar test runner desde package.json
-  if grep -q '"test"' package.json 2>/dev/null; then
+  # Detectar test runner desde package.json. Soporta tanto el clásico
+  # `test` como `test:unit` (este proyecto usa `test:unit`).
+  if grep -q '"test:unit"' package.json 2>/dev/null; then
+    TEST_CMD="$PKG test:unit"
+  elif grep -q '"test"' package.json 2>/dev/null; then
     TEST_CMD="$PKG test"
   fi
 
@@ -433,7 +436,13 @@ try:
             sys.exit(1)
         if f.get("sdd") and f.get("status") in requires_spec:
             spec_dir = os.path.join("specs", f.get("name", ""))
-            for fname in ("requirements.md", "design.md", "tasks.md"):
+            required = ["requirements.md", "design.md", "tasks.md"]
+            # decisions.md es la hoja de revision del humano: se exige mientras la
+            # feature esta en la puerta o en curso. Las cerradas antes de que
+            # existiera la regla no se tocan.
+            if f.get("status") in ("spec_ready", "in_progress"):
+                required.insert(0, "decisions.md")
+            for fname in required:
                 if not os.path.isfile(os.path.join(spec_dir, fname)):
                     spec_errors.append(
                         f"feature {f.get('id')} ({f.get('name')}) en "
@@ -475,7 +484,14 @@ elif command -v node >/dev/null 2>&1; then
         }
         if (f.sdd && requiresSpec.has(f.status)) {
           const specDir = path.join("specs", f.name || "");
-          for (const fname of ["requirements.md", "design.md", "tasks.md"]) {
+          const required = ["requirements.md", "design.md", "tasks.md"];
+          // decisions.md es la hoja de revision del humano: se exige mientras la
+          // feature esta en la puerta o en curso. Las cerradas antes de que
+          // existiera la regla no se tocan.
+          if (f.status === "spec_ready" || f.status === "in_progress") {
+            required.unshift("decisions.md");
+          }
+          for (const fname of required) {
             if (!fs.existsSync(path.join(specDir, fname))) {
               specErrors.push(`feature ${f.id} (${f.name}) en ${f.status} sin ${specDir}/${fname}`);
             }
@@ -541,10 +557,43 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────
-# 6. Resumen
+# 6. E2E smoke (chromium) — puerta de humo real (feature 6: e2e-smoke)
+# ─────────────────────────────────────────────────────────────────────
+# Solo chromium, para que la arrancada de sesión siga siendo rápida; los
+# tres navegadores quedan disponibles con `pnpm test:e2e`. Si faltan los
+# navegadores de Playwright en la máquina, se degrada con un aviso claro en
+# vez de reventar con un error críptico.
+echo ""
+echo "── 6. E2E smoke (chromium) ─────────────────────────────"
+
+E2E_CMD=""
+if [ -f "package.json" ] && grep -q '"test:e2e"' package.json 2>/dev/null; then
+  E2E_CMD="$PKG test:e2e --project=chromium"
+fi
+
+if [ -z "$E2E_CMD" ]; then
+  warn "No hay script test:e2e en package.json; se omite el e2e"
+else
+  info "Ejecutando: $E2E_CMD"
+  E2E_OUTPUT="$($E2E_CMD 2>&1)"
+  E2E_STATUS=$?
+  if [ "$E2E_STATUS" -eq 0 ]; then
+    ok "E2E smoke verde (chromium)"
+  elif echo "$E2E_OUTPUT" | grep -qi "executable doesn't exist\|please run the following command to download new browsers"; then
+    warn "Navegadores de Playwright no encontrados; se omite el e2e."
+    warn "Instálalos con: npx playwright install chromium"
+  else
+    fail "E2E smoke rojo (chromium):"
+    echo "$E2E_OUTPUT"
+    EXIT_CODE=1
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────
+# 7. Resumen
 # ─────────────────────────────────────────────────────────────────────
 echo ""
-echo "── 6. Resumen ──────────────────────────────────────────"
+echo "── 7. Resumen ──────────────────────────────────────────"
 
 if [ $EXIT_CODE -eq 0 ]; then
   ok "Entorno listo. Puedes empezar a trabajar."

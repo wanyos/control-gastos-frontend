@@ -25,12 +25,61 @@ Cada feature con `"sdd": true` tiene una carpeta dedicada en cuanto deja
 
 ```
 specs/<feature-name>/
+├── decisions.md      # PARA EL HUMANO: una página, las decisiones y nada más
 ├── requirements.md   # QUÉ se necesita (EARS notation)
 ├── design.md         # CÓMO se construirá (decisiones técnicas)
 └── tasks.md          # PASOS concretos a implementar
 ```
 
 El `feature-name` coincide con el campo `name` de `feature_list.json`.
+
+`decisions.md` sigue la plantilla de `docs/decisions-template.md`. Los otros
+tres son material del `implementer` y del `reviewer`.
+
+## Las cuatro reglas de revisabilidad
+
+> **Procedencia (2026-08-10).** Dos features SDD consumieron **tres días** solo
+> en escribir y revisar sus specs, sin una línea de código: **3.844 líneas** en 6
+> archivos, **95 requirements**, **42 tasks**. Diagnóstico: el spec se **escribe
+> para el agente** pero se le da a **revisar al humano**, y son dos públicos
+> distintos. Segundo hallazgo: de cinco pasadas de escritura, **dos se tiraron
+> enteras** por redactar el spec antes de tener delante el fichero real del que
+> dependía. Estas cuatro reglas salen de ahí. No las relajes sin saber lo que
+> costaron.
+
+**1. `decisions.md` es obligatorio y es lo único que se le pide leer al humano.**
+En la puerta de aprobación se le enlaza **esa hoja, nunca los otros tres**. Si
+algo no le convence, se cambia en los archivos técnicos: él no los abre. EARS,
+procedencia, trazabilidad y firmas son maquinaria legítima para el `implementer`
+y el `reviewer`; el humano necesita **las decisiones**, y sin esta hoja quedan
+repartidas por cientos de líneas.
+
+> Formato y reglas de estilo en **`docs/decisions-template.md`** (hermana de
+> `docs/intent-template.md`, la de entrada, y de `docs/summary-template.md`, la
+> de salida: esta es la de **revisión**). Las tres cubren el ciclo de una
+> feature: el humano escribe la primera y lee las otras dos.
+
+**2. Tope de tamaño: si no cabe en ~15 requirements, son dos features.** El
+tamaño del spec es un **síntoma**, no una causa: un spec largo casi nunca es un
+problema de redacción, es **una feature que hace tres cosas**. El `spec_author`
+que se pase **para y propone el corte** en vez de escribir. Pasarse con una razón
+dicha en voz alta vale; llegar a 40 en silencio, no.
+
+**3. Revisión por diff: nunca «vuelve a leerte el documento».** Ante una
+corrección, el agente devuelve un **changelog de cinco líneas** (qué cambió,
+dónde, por qué). Re-emitir el documento entero para que el humano localice la
+diferencia es lo que hace que una aclaración pequeña se sienta como empezar de
+cero.
+
+**4. Sin las entradas reales no se escribe el spec.** Si la feature depende de un
+fichero, un formato, un contrato o un dato externo, no se redacta hasta tenerlo
+delante: se **pide y se espera**. Escribir sobre lo que uno supone que contiene
+es la vía directa al retrabajo.
+
+Orden causal, por si hay que priorizar: la regla 2 es la que de verdad cura; la
+regla 1 hace el dolor soportable mientras tanto y es la que da resultado
+inmediato. Las reglas 1-3 atacan el **coste de revisión**; la 4 ataca el
+**retrabajo**.
 
 ## Estados de una feature
 
@@ -57,12 +106,18 @@ intent (humano) → acceptance (derivado) → requirements/design/tasks (spec) �
 ## La puerta de aprobación humana
 
 El flujo automático se detiene **una vez**: cuando el `spec_author` termina
-sus tres archivos, marca la feature como `spec_ready` y para. El humano
-lee `specs/<feature>/` y dice "aprobado" (o pide cambios).
+sus cuatro archivos, marca la feature como `spec_ready` y para. El humano lee
+**solo `specs/<feature>/decisions.md`** —una página— y dice "aprobado" (o pide
+cambios). Los otros tres son material del `implementer` y del `reviewer`:
+**nunca se le manda a leerlos**; si necesita más detalle de una decisión, se lo
+resume el `leader`. Si pide cambios, recibe un **changelog de cinco líneas**, no
+el documento reescrito (ver §Las cuatro reglas de revisabilidad).
 
 Para que ese "aprobado" sea una revisión real y no un checkbox vacío, el
 `requirements.md` DEBE incluir una **sección de procedencia** (ver más abajo).
-En la puerta, el humano revisa dos cosas:
+Esa sección es materia prima del `spec_author`: alimenta el bloque 🔴 de
+`decisions.md`, que es lo que el humano sí ve. En la puerta, el humano revisa
+dos cosas, ambas desde la hoja de decisiones:
 
 1. **Trazabilidad:** ¿cada requirement sale de algo que yo pedí en el `intent`?
 2. **Procedencia:** ¿qué se marcó como `(añadido)` o `(delegado)`? Eso es lo
