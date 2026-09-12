@@ -23,6 +23,20 @@ describe('loadConfig (R1, R2, R3)', () => {
     expect(() => loadConfig(empty)).toThrowError(/VITE_API_URL/)
   })
 
+  it('resolves a root-relative base against the page origin (feature 7)', () => {
+    const config = loadConfig({ VITE_API_URL: '/' }, 'http://localhost:5173')
+
+    expect(config.apiUrl).toBe('http://localhost:5173/')
+    expect(new URL('/api/net-worth', config.apiUrl).toString()).toBe(
+      'http://localhost:5173/api/net-worth',
+    )
+  })
+
+  it('fails fast when the base is relative and there is no origin (feature 7)', () => {
+    expect(() => loadConfig({ VITE_API_URL: '/' }, null)).toThrowError(ConfigError)
+    expect(() => loadConfig({ VITE_API_URL: '/' }, null)).toThrowError(/VITE_API_URL is relative/)
+  })
+
   it('throws a ConfigError with variable name and reason for an unparseable URL (R3)', () => {
     const invalid = { VITE_API_URL: 'no-es-una-url' }
 

@@ -45,8 +45,12 @@
 - **Validación de schemas:** ninguna instalada (no Zod, no Typebox). Decisión
   (feature #2, 2026-07-10): la configuración de entorno se valida **a mano** en
   `src/shared/config.ts` (una sola variable hoy; ver ADR-004 en
-  `docs/architecture.md`). **Revisar cuando se consuman respuestas de la API**
-  (caso donde una librería de schemas sí paga su coste).
+  `docs/architecture.md`). **Revisado en la feature #7** al consumir la primera
+  respuesta de la API: se mantiene la validación a mano
+  (`parseNetWorth` en `src/features/net-worth/service.ts`, ~60 líneas de
+  guardas que lanzan `ValidationError` con el campo que falla). Vuelve a
+  plantearse cuando haya varios endpoints con esquemas grandes; con uno solo,
+  una librería de schemas no paga todavía su dependencia.
 - **Cliente HTTP:** ninguno instalado (no axios); se usa `fetch` nativo.
   El cliente base vive en `src/services/http.ts` (feature #2): `createHttp()`
   con config inyectada + cliente `http` por defecto ligado a `appConfig`;
@@ -369,6 +373,56 @@ y `typescript-eslint` amplíe su peer por encima de `<6.1.0`. Hasta entonces
   feature #1 (esperaba `<h1>You did it!</h1>` que `App.vue` ya no pinta) hasta
   la feature #6, que lo sustituyó por la prueba de humo `e2e/app-boot.spec.ts`.
 
+## Acceso a la API en desarrollo: proxy + base relativa
+
+> Feature #7 (`api-types-and-net-worth-client`, 2026-09-12). Sin dependencias
+> nuevas.
+
+El backend **no tiene CORS** (se decide en su despliegue). Si el navegador
+llama directo a `http://localhost:3000`, la petición se bloquea. La solución es
+el **proxy del dev server**, declarado en `vite.config.ts`:
+
+```ts
+server: { proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true } } }
+```
+
+**El choque que había que resolver.** El proxy solo interviene si la petición
+sale contra el **origen del dev server**. Pero `createHttp` construye la URL con
+`new URL(path, config.apiUrl)` y `loadConfig` exigía una URL **absoluta**: con
+`VITE_API_URL=http://localhost:3000` el navegador se saltaba el proxy y chocaba
+con CORS. Proxy y configuración se contradecían.
+
+**Decisión: `VITE_API_URL` admite una base *root-relative*, y los entornos
+locales usan `/`.** `loadConfig(raw, origin)` acepta dos formas:
+
+| Valor | Qué hace |
+|---|---|
+| `/` (empieza por `/`) | Se resuelve contra el origen de la página (`location.origin`) → la petición es **same-origin** y el proxy la reenvía. |
+| `http://host:puerto` | Base absoluta: el navegador llama a ese origen directamente (necesita CORS en el backend). |
+
+El fail-fast **no se relaja**: una base relativa sin origen que resolver (SSR,
+Node puro) y un valor que no es ni URL parseable ni ruta absoluta siguen
+lanzando `ConfigError` al importar `appConfig`. `apiUrl` sigue siendo siempre
+una **URL absoluta ya resuelta**, así que `services/http.ts` no cambia.
+
+**Trade-off.** La alternativa era apuntar `VITE_API_URL` al propio dev server
+(`http://localhost:5173`): no tocaba `config.ts`, pero ata la configuración a un
+puerto concreto — si el 5173 está ocupado, Vite arranca en el 5174 y **todas**
+las llamadas se van al servidor equivocado sin error claro. La base relativa no
+puede desincronizarse: sea cual sea el puerto, es el de la página. A cambio,
+`AppConfig.apiUrl` deja de ser literalmente lo que pone el `.env` (se resuelve),
+y un despliegue con la API en otro origen **tiene que** escribir la URL absoluta
+y habilitar CORS.
+
+**Consecuencia en los paths:** la base es el **origen** de la API, no
+`…/api`. Los servicios piden rutas absolutas que ya incluyen el prefijo
+(`http('/api/net-worth')`), como hace `src/features/net-worth/service.ts`.
+
+Los cuatro `.env` committeados usan `/`: desarrollo (para el proxy), test (jsdom
+aporta el origen) y producción (la app se sirve desde el mismo origen que la
+API; ver `docs/related-projects.md`). La forma absoluta sigue cubierta por los
+tests de `loadConfig`.
+
 ## Variables de entorno requeridas
 
 - Convención Vite: solo las variables con prefijo **`VITE_`** se exponen al
@@ -385,7 +439,7 @@ y `typescript-eslint` amplíe su peer por encima de `<6.1.0`. Hasta entonces
 
 | Nombre | Descripción | Obligatoria | Ejemplo |
 |--------|-------------|-------------|---------|
-| `VITE_API_URL` | Base URL de la API del backend (debe ser URL parseable). | sí | `http://localhost:3000` |
+| `VITE_API_URL` | Base de la API: **origen absoluto** (`http://localhost:3000`) o **ruta root-relative** (`/`), que se resuelve contra el origen de la página. | sí | `/` |
 
-> El puerto real del backend se confirma contra el proyecto hermano
-> (`gastos-backend`) cuando se consuma el primer endpoint.
+> Puerto del backend **confirmado** contra el proyecto hermano en la feature #7:
+> `http://localhost:3000`, y es el `target` del proxy de `vite.config.ts`.
