@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** ninguna (la 7 cerrada; la 8 espera aprobación del humano)
+- **Feature en curso:** ninguna (la 8 cerrada; la 9 pendiente de spec)
 - **Inicio:** 2026-09-12
 - **Agente:** implementer (Claude Code)
 
@@ -106,6 +106,14 @@ El humano aprobó la feature 7: implementada (flujo simple, sin SDD) por
   se cierra con la **F7**, no con la F8: `src/features/` la estrenó
   `src/features/net-worth/`.
 
+- 2026-09-12 — Feature 8 implementada y aprobada. Shell (sidebar + topbar) en
+  `src/shared/components/`, rutas en inglés en `src/router/index.ts` con
+  `meta.label`/`meta.icon`, Lucide vía `@lucide/vue` 1.45.0 (`lucide-vue-next`
+  está obsoleto), placeholder de `/net-worth` en `src/features/net-worth/views/`.
+  80 tests + e2e verdes. Pendiente del humano: confirmar el nombre de marca
+  `control·accounts`. No bloqueantes del reviewer: test de clic en la sidebar,
+  ampliar `tailwind-sources.spec.ts` al resto de `.vue`, página 404.
+
 ## Próximo paso
 
 **La feature 8 `app-shell`**, que está `pending` y **espera a que el humano
@@ -116,3 +124,36 @@ apruebe su `intent`**. Después la 9 `net-worth-view`, que es SDD: pasa por
 Antes de la 9 conviene saber que el backend **no puede** servir sus bloques C
 (cascada) y D (evolución): `GET /api/net-worth` solo responde a fecha de hoy.
 Está anotado como cabo suelto 3 de este roadmap y cabo 20 del backend.
+
+- 2026-09-12 (implementer, feature 8 `app-shell`) — Línea base verde antes de
+  tocar nada: `bash ./init.sh` (9 features, type-check, 7 archivos / 62 tests,
+  e2e de humo en chromium). Plan:
+  1) instalar `@lucide/vue` (import nombrado por icono, tree-shakable) y
+     anotarlo en `docs/stack.md` + actualizar la nota de `docs/conventions.md`;
+  2) rutas reales en `src/router/index.ts` con `meta.label` / `meta.icon` como
+     única fuente de verdad de la navegación (`/` redirige a `/net-worth`);
+  3) shell portado de `design-system/ui_kits/web/Shell.jsx` a SFC Vue3 en
+     `src/shared/components/` (`AppShell`, `AppSidebar`, `AppTopBar`), textos en
+     inglés y solo alias semánticos de tokens;
+  4) vista placeholder mínima de `/net-worth` en
+     `src/features/net-worth/views/` y placeholder compartido para las otras
+     cuatro rutas;
+  5) `index.html` con `lang="en"` y título descriptivo;
+  6) tests unitarios de montaje, navegación y marcado del activo; el e2e de humo
+     no se toca.
+
+- 2026-09-12 (implementer, feature 8 `app-shell`) — Implementada. Shell portado
+  de `Shell.jsx` en `src/shared/components/` (`AppShell`, `AppSidebar`,
+  `AppTopBar`, `PlaceholderView`); cinco rutas en inglés en `src/router/index.ts`
+  con `meta.label`/`meta.icon` como fuente única de la sidebar y la topbar, `/`
+  redirige a `/net-worth`; placeholder de la home en
+  `src/features/net-worth/views/NetWorthView.vue` (sin llamadas a la API);
+  `index.html` con `lang="en"`. Dependencia nueva: `@lucide/vue` 1.45.0
+  (`lucide-vue-next` está deprecado), anotada en `docs/stack.md`; nota de
+  `docs/conventions.md` actualizada. Hallazgo en navegador: `base.css` pinta los
+  `a` de azul fuera de las capas de Tailwind; resuelto en el componente sin tocar
+  `src/assets/styles/` y documentado en `docs/conventions.md`. Verde:
+  `pnpm type-check`, `pnpm lint`, `pnpm test:unit` (9 archivos / 80 tests),
+  `pnpm build`, e2e en modo CI y `bash ./init.sh` con el e2e de humo **sin
+  cambios**. Informe: `progress/implementation/app-shell.md`. La feature sigue
+  en `in_progress`, a la espera del `reviewer`; nada commiteado.

@@ -50,9 +50,9 @@
 ```
 src/
   main.ts                 # bootstrap: createApp + Pinia + Router
-  App.vue                 # shell raíz
+  App.vue                 # raíz: envuelve AppShell
   router/
-    index.ts              # rutas (hoy vacío); rutas por feature se agregan aquí
+    index.ts              # todas las rutas; su meta.label/meta.icon alimenta la sidebar (feature #8)
   features/
     <feature>/            # p.ej. expenses, incomes, dashboard
       components/         # componentes de presentación de la feature
@@ -63,6 +63,7 @@ src/
       types.ts            # tipos/interfaces propios (derivados del contrato)
       __tests__/          # tests co-localizados (*.spec.ts)
   shared/                 # componentes/composables/utils reutilizables entre features
+    components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8)
     config.ts             # AppConfig tipada + loadConfig() + singleton appConfig (feature #2)
     errors.ts             # AppError y subtipos, toAppError, formatError, handleGlobalError (feature #2)
   services/

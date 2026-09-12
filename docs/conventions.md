@@ -211,10 +211,21 @@ expuestos como utilidades de Tailwind; el mapa completo está en `docs/stack.md`
 > `specs/net-worth-view/decisions.md` en la puerta de aprobación (propuesta de
 > partida: `€12,480.55`, locale en-US).
 
-> **Iconos:** el design system asume Lucide, pero **no está instalado** (fuera del
-> scope de la feature #4). **Se instala en la feature 8 (`app-shell`)**, que lo
-> anota en `docs/stack.md`. Hasta entonces no lo añadas por tu cuenta: es una
-> dependencia nueva.
+> **Iconos: Lucide, instalado en la feature 8 (`app-shell`)** como `@lucide/vue`
+> (paquete, versión y por qué en `docs/stack.md` → *Iconos (Lucide)*). Se importa
+> **un icono por nombre** (`import { Wallet } from '@lucide/vue'`), nunca el set
+> entero con `import *`: es lo que mantiene fuera del bundle los que no se usan.
+> El color se hereda por `currentColor` desde una utilidad de texto del
+> contenedor, no con la prop `color`. Los nombres de icono de la referencia React
+> (`data-lucide="line-chart"`) se traducen al componente en PascalCase y pueden
+> haber cambiado de nombre en Lucide (`line-chart` es hoy `ChartLine`).
+
+> **Enlaces de UI y `base.css`.** `src/assets/styles/tokens/base.css` pinta todo
+> `a` con `--ink-link` y lo subraya en `:hover`, **fuera de las capas de
+> Tailwind**, así que gana a cualquier utilidad puesta en el propio `<a>`. En
+> enlaces de navegación el color va en un elemento hijo (ver
+> `src/shared/components/AppSidebar.vue`), y el subrayado se anula con un
+> `<style scoped>`. No se arregla editando `base.css`: es copia literal.
 
 > **No edites `src/assets/styles/` a mano.** Son copias literales de
 > `design-system/`; se re-copian cuando el design system se regenera y hay tests
@@ -237,4 +248,4 @@ Política de `@apply`:
 > `docs/stack.md` y añadirla en una feature de setup antes de usarla.
 
 Pendientes de definir cuando apliquen: dark mode, accesibilidad (roles/aria),
-responsive (mobile-first), iconos (Lucide) y formato de moneda/fechas.
+responsive (mobile-first) y formato de moneda/fechas.

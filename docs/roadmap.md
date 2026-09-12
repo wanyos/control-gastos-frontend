@@ -46,8 +46,8 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E0 | **Cimientos** — arranque, errores, config, cliente HTTP | ✅ | F1, F2 |
 | E1 | **El aspecto** — Tailwind, tokens del diseño, smoke e2e | ✅ | F3, F4, F5, F6 |
 | E2 | **Tipos y cliente tipado** — tipos propios a partir del contrato + proxy | ✅ | F7 |
-| E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ⬜ ← | F8 |
-| E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ⬜ | F9 |
+| E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ✅ | F8 |
+| E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ⬜ ← | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ⬜ | *sin features* |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ⬜ | *sin features* |
 | E7 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
@@ -81,14 +81,15 @@ en `src/features/net-worth/`, servicio sobre `src/services/http.ts`, proxy de
 `loadConfig`, trade-off en [`docs/stack.md`](./stack.md)). Cierra el cabo
 suelto 1 y, de paso, el 2.
 
-### E3 — Shell de la aplicación ⬜ ← **el siguiente**
+### E3 — Shell de la aplicación ✅
 
 Sidebar + topbar + `RouterView` portados del design system a Vue3, textos en
-inglés. Rutas reales en `src/router/index.ts`: `/net-worth` como home, el
-resto como placeholders, todas con nombre en inglés. Instalar Lucide. `index.html` con título y
-`lang="en"`. Estrena `src/features/`.
+inglés. Cerrada el 2026-09-12 por la F8: shell en `src/shared/components/`,
+rutas en `src/router/index.ts` (`/` → `/net-worth`; placeholders `/overview`,
+`/movements`, `/investments`, `/import`), Lucide vía `@lucide/vue`, `index.html`
+con `lang="en"`. Sin página 404 todavía.
 
-### E4 — Vista de Patrimonio ⬜
+### E4 — Vista de Patrimonio ⬜ ← **el siguiente**
 
 La primera pantalla contra `GET /api/net-worth`. Bloque A (cifra total y
 frase interpretada), bloque B (reparto por naturaleza y por banco) y bloque

@@ -302,7 +302,7 @@
         "pnpm type-check, pnpm lint, pnpm test:unit y ./init.sh terminan en verde",
         "El e2e de humo sigue pasando sin cambios"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 9,

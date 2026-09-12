@@ -41,7 +41,10 @@
   el bootstrap; los stores viven por feature en `src/features/<feature>/store.ts`
   (ver `docs/architecture.md`).
 - **Routing:** Vue Router `^5.2.0` — `createWebHistory(import.meta.env.BASE_URL)`.
-  Ver `src/router/index.ts` (aún con `routes: []`).
+  Ver `src/router/index.ts`: desde la feature #8 declara las rutas reales del
+  shell (`/` redirige a `/net-worth`), y su `meta.label` / `meta.icon` es la
+  única fuente de verdad de la sidebar y del título de la topbar.
+- **Iconos:** **Lucide** vía `@lucide/vue` — ver *Iconos (Lucide)* más abajo.
 - **Validación de schemas:** ninguna instalada (no Zod, no Typebox). Decisión
   (feature #2, 2026-07-10): la configuración de entorno se valida **a mano** en
   `src/shared/config.ts` (una sola variable hoy; ver ADR-004 en
@@ -226,8 +229,42 @@ las webfonts se cargan desde el CDN de Google Fonts (`@import`), así que no hay
 build offline ni `@font-face` local. Si algún día se quiere, hay que bajar los
 woff2 y sustituir el `@import`.
 
-**Fuera de scope (feature #4):** los iconos **Lucide** que el design system asume
-**no están instalados**; se decidirá en su propia feature.
+**Iconos:** los iconos **Lucide** que el design system asume se instalaron en la
+feature #8; ver *Iconos (Lucide)*.
+
+### Iconos (Lucide)
+
+> Feature #8 (`app-shell`, 2026-09-12). **Dependencia nueva aprobada** para esta
+> feature.
+
+- **Paquete:** `@lucide/vue` **1.45.0** (rango `^1.45.0` en `dependencies`; es
+  código de runtime). Peer: `vue >=3.0.1`.
+- **Por qué este paquete y no otro:**
+  - Es el paquete **oficial** de Lucide para Vue. `lucide-vue-next`, el nombre
+    histórico para Vue 3, está **deprecado** en npm («Please use @lucide/vue
+    instead»); instalarlo hoy sería nacer con deuda.
+  - El paquete plano `lucide` (vanilla, `createIcons()` sobre `data-lucide`, que
+    es lo que hace la referencia React del design system) **no se usa**:
+    reescribe el DOM por fuera de Vue y, al registrar iconos por nombre, empuja a
+    importar el set entero.
+- **Cómo no arrastra todo el set al bundle:** cada icono es un componente ESM
+  independiente y el paquete declara `"sideEffects": false`, así que Vite solo
+  empaqueta los que se importan **por nombre**:
+
+  ```ts
+  import { Wallet } from '@lucide/vue'          // sí: tree-shakable
+  import * as icons from '@lucide/vue'          // no: mete los ~1.700 iconos
+  ```
+
+  Verificado en el build de producción de la feature #8: el bundle contiene
+  exactamente los 5 iconos del shell (`wallet`, `layout-dashboard`,
+  `arrow-left-right`, `chart-line`, `file-up`) y ninguno más; el JS total de la
+  app queda en ~95 kB (37 kB gzip).
+- **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
+  `RouteMeta.icon` (`src/router/index.ts`).
+- **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,
+  así que se tiñe con las utilidades de texto del contenedor (`text-accent`…),
+  nunca con la prop `color`.
 
 ## Build / Dev tooling
 

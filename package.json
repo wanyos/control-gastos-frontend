@@ -17,6 +17,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@lucide/vue": "^1.45.0",
     "@vue/devtools-api": "^8.2.1",
     "pinia": "^4.0.2",
     "vue": "^3.5.41",

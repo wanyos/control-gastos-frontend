@@ -3,24 +3,24 @@ import { mount } from '@vue/test-utils'
 
 import App from '../App.vue'
 
-const routerViewStub = {
+const appShellStub = {
   stubs: {
-    RouterView: { template: '<div data-test="router-view" />' },
+    AppShell: { template: '<div data-test="app-shell" />' },
   },
 }
 
 describe('App', () => {
-  it('renders the router outlet as the app shell', () => {
-    const wrapper = mount(App, { global: routerViewStub })
+  it('renders the application shell', () => {
+    const wrapper = mount(App, { global: appShellStub })
 
-    expect(wrapper.find('[data-test="router-view"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="app-shell"]').exists()).toBe(true)
   })
 
-  it('dresses the app shell with design system tokens, not Tailwind defaults', () => {
+  it('dresses the app wrapper with design system tokens, not Tailwind defaults', () => {
     // jsdom does not compute Tailwind styles; this asserts class presence.
     // That the utilities exist and resolve is covered by assets/__tests__/
     // styles.spec.ts and by the manual smoke test (pnpm dev).
-    const wrapper = mount(App, { global: routerViewStub })
+    const wrapper = mount(App, { global: appShellStub })
 
     expect(wrapper.classes()).toContain('min-h-screen')
     expect(wrapper.classes()).toContain('bg-surface-app')
@@ -30,10 +30,10 @@ describe('App', () => {
     expect(wrapper.classes()).not.toContain('bg-gray-50')
   })
 
-  it('keeps the router outlet inside the styled shell wrapper', () => {
-    const wrapper = mount(App, { global: routerViewStub })
+  it('keeps the shell inside the styled wrapper, which the e2e smoke test asserts on', () => {
+    const wrapper = mount(App, { global: appShellStub })
 
-    const outlet = wrapper.find('[data-test="router-view"]')
-    expect(outlet.element.parentElement).toBe(wrapper.element)
+    const shell = wrapper.find('[data-test="app-shell"]')
+    expect(shell.element.parentElement).toBe(wrapper.element)
   })
 })
