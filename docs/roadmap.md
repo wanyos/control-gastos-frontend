@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-08-11.
+> **Última revisión:** 2026-09-12.
 
 ## Este documento frente a los otros
 
@@ -29,8 +29,11 @@ features cerradas son infraestructura: arranque, cliente HTTP, Tailwind, tokens
 del diseño y un smoke e2e. **Ninguna pantalla, ninguna llamada real a la API,
 cero features de producto.**
 
-Y hay un dato que condiciona todo lo que viene: **el backend va muy por delante**
-y su contrato ya cambió sin que este proyecto lo consuma (ver E1).
+El backend va muy por delante (45 features cerradas) y **ya tiene todo lo que
+la primera pantalla necesita**: `GET /api/net-worth`, `GET /api/accounts`,
+`GET /api/overview`, `GET /api/investments/overview`, filtros y paginación de
+movimientos, confirmación de movimientos y reglas de categorización. La
+conexión backend→frontend se hace ahora.
 
 ---
 
@@ -42,12 +45,14 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 |---|---|---|---|
 | E0 | **Cimientos** — arranque, errores, config, cliente HTTP | ✅ | F1, F2 |
 | E1 | **El aspecto** — Tailwind, tokens del diseño, smoke e2e | ✅ | F3, F4, F5, F6 |
-| E2 | **Ponerse al día con el contrato** — tipos propios a partir de la API real | ⬜ | *sin feature* |
-| E3 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ⬜ | *sin features* |
-| E4 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ⬜ | *sin features* |
-| E5 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
-| E6 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
-| E7 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
+| E2 | **Tipos y cliente tipado** — tipos propios a partir del contrato + proxy | ✅ | F7 |
+| E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ⬜ ← | F8 |
+| E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ⬜ | F9 |
+| E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ⬜ | *sin features* |
+| E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ⬜ | *sin features* |
+| E7 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
+| E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
+| E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
 ### E0 — Cimientos ✅
 
@@ -64,52 +69,71 @@ Tailwind configurado, los tokens del diseño cargados como CSS
 [`design-system/`](../design-system/) con sus fichas, la lista blanca de fuentes
 que Tailwind escanea, y un e2e que comprueba que la app monta de verdad.
 
-### E2 — Ponerse al día con el contrato ⬜ ← **el siguiente**
+### E2 — Tipos y cliente tipado ✅
 
-> 🔴 **Deuda heredada del backend:** `/api/expenses*` **ya no existe** (404). El
-> contrato vigente son `Account`, `Category` y `Movement`, en
-> `../gastos-backend/docs/api-contract.md`. Nadie lo consume todavía, así que el
-> breaking change no ha roto nada — **pero la primera feature que llame a la API
-> tiene que partir del contrato nuevo**, no de lo que se recordaba.
+Leer el contrato del backend (`../gastos-backend/docs/api-contract.md`),
+definir **los tipos propios** de este proyecto a partir de él (no se comparten
+con el backend, ver [`docs/related-projects.md`](./related-projects.md)),
+dejar el cliente HTTP tipado contra ellos y configurar el proxy de Vite para
+desarrollo. Cerrada el 2026-09-12 por la F7: tipos de `GET /api/net-worth`
+en `src/features/net-worth/`, servicio sobre `src/services/http.ts`, proxy de
+`/api` en `vite.config.ts` y `VITE_API_URL=/` (base relativa admitida en
+`loadConfig`, trade-off en [`docs/stack.md`](./stack.md)). Cierra el cabo
+suelto 1 y, de paso, el 2.
 
-Alcance previsto: leer el contrato, definir **los tipos propios** de este
-proyecto a partir de él (no se comparten con el backend, ver
-[`docs/related-projects.md`](./related-projects.md)) y dejar el cliente HTTP
-tipado contra ellos.
+### E3 — Shell de la aplicación ⬜ ← **el siguiente**
 
-### E3 — La pantalla que dispara la ingesta ⬜
+Sidebar + topbar + `RouterView` portados del design system a Vue3, textos en
+inglés. Rutas reales en `src/router/index.ts`: `/net-worth` como home, el
+resto como placeholders, todas con nombre en inglés. Instalar Lucide. `index.html` con título y
+`lang="en"`. Estrena `src/features/`.
+
+### E4 — Vista de Patrimonio ⬜
+
+La primera pantalla contra `GET /api/net-worth`. Bloque A (cifra total y
+frase interpretada), bloque B (reparto por naturaleza y por banco) y bloque
+E (detalle por banco y producto). Avisos de `investments.issues`. Portar
+`StatCard`, `AccountCard`, `Card` y `Badge` del design system. Barras
+horizontales, no donut. Formato de moneda en-US (`€12,480.55`).
+
+> Los bloques C (cascada) y D (evolución) esperan a que el backend exponga
+> patrimonio a una fecha o como serie histórica.
+
+### E5 — La pantalla que dispara la ingesta ⬜
 
 Es la razón de ser de la idea nº 1 y **el backend ya tiene los dos endpoints**:
-`GET /api/ingesta/pending` (el aviso de «N nuevos» al abrir) y
-`POST /api/ingesta/process` (el botón). Separadas a propósito: detectar es
+`GET /api/ingestion/pending` (el aviso de «N nuevos» al abrir) y
+`POST /api/ingestion/process` (el botón). Separadas a propósito: detectar es
 barato y automático; importar es explícito y revisado.
 
-### E4 — Revisar antes de confirmar ⬜
+### E6 — Revisar antes de confirmar ⬜
 
 Todo lo que importe el backend nace en estado `pending_review`. Esta pantalla es
-la que lo confirma o lo corrige.
+la que lo confirma o lo corrige. El endpoint `PATCH /api/movements/:id` ya
+existe (feature 37 del backend).
 
-> ⚠️ **Bloqueada por el backend:** hoy **nada** pasa un movimiento de
-> `pending_review` a `confirmed` — no existe el endpoint. Es un cabo suelto
-> abierto en `../gastos-backend/docs/roadmap.md` (E6). **Esta etapa no se puede
-> planificar hasta que exista.**
-
-### E5 — El extracto ⬜
+### E7 — El extracto ⬜
 
 La tabla tipo extracto con búsqueda y filtros por fecha, cuenta, categoría,
 forma de pago y texto: la vista que de verdad sustituye al Excel.
 
-> ⚠️ **Bloqueada por el backend:** `GET /api/movements` es hoy un listado plano
-> **sin filtros, sin rango de fechas y sin paginación**. Con años de movimientos
-> no vale. Cabo suelto abierto en el roadmap del backend (E7).
+> 🟡 **Parcialmente servida por el backend, comprobado el 2026-09-12.**
+> `GET /api/movements` ya filtra por `accountId`, `from`, `to`, `type` y
+> `status`, y pagina con `page`/`pageSize` (feature 36 del backend). **Le
+> faltan los dos filtros que esta vista más necesita**: por **categoría** y la
+> **búsqueda por texto del concepto**. Están anotados como pendientes en la E7
+> del roadmap del backend. El de **forma de pago no va a existir**:
+> `Movement.paymentMethod` se quedó sin fuente al descartar el Excel
+> (`../../docs/ideas.md` §6), así que esta etapa **no debe prometerlo**.
 
-### E6 — Los dashboards ⬜
+### E8 — Los dashboards ⬜
 
 Ingresos vs gastos del mes, saldo por cuenta, patrimonio total y su evolución,
-reparto por categoría, comparativa entre meses. Depende de que el backend exponga
-los agregados (su etapa E7), no solo listados.
+reparto por categoría, comparativa entre meses. El backend ya expone los
+agregados: `GET /api/overview`, `GET /api/investments/overview`,
+`GET /api/net-worth`.
 
-### E7 — Que esto se vea desde algún sitio ⬜
+### E9 — Que esto se vea desde algún sitio ⬜
 
 **Ninguna etapa lo cubría hasta hoy.** La app es web y se usa desde varios
 ordenadores; en algún momento deja de ser `localhost`. Dónde se sirve el build,
@@ -122,14 +146,13 @@ datos bancarios reales. No es urgente; es que no estaba.
 
 | # | Cabo suelto | Lo resuelve |
 |---|---|---|
-| 1 | Los tipos de este proyecto todavía no existen; el contrato del backend cambió y nadie lo consume | **E2** |
-| 2 | `src/features/` está vacía: la convención de una carpeta por feature no se ha estrenado | **E3**, la primera que la use |
-| 3 | Nada confirma un movimiento importado — **falta el endpoint en el backend** | backend E6, luego **E4** |
-| 4 | No se pueden filtrar ni paginar los movimientos — **falta en el backend** | backend E7, luego **E5** |
+| ~~1~~ | ~~Los tipos de este proyecto todavía no existen; el contrato del backend cambió y nadie lo consume~~ | ✅ **cerrado por la F7** |
+| ~~2~~ | ~~`src/features/` está vacía: la convención de una carpeta por feature no se ha estrenado~~ | ✅ **cerrado por la F7**: la estrenó `src/features/net-worth/`, no la F8 como se previó |
+| 3 | Cascada y evolución de Patrimonio necesitan histórico del backend (`GET /api/net-worth?asOf=` o serie) | backend, luego **E4** bloques C y D |
 
-> Los cabos 3 y 4 **no son tuyos**: son del backend. Están aquí porque bloquean
-> etapas de este proyecto y la regla de oro del workspace dice que el backend va
-> primero. Si aparecen aquí antes de estar resueltos allí, la feature nace mal.
+> El cabo 3 **no es tuyo**: es del backend. Está aquí porque bloquea bloques
+> de la vista de Patrimonio y la regla de oro del workspace dice que el backend
+> va primero. Si aparece aquí antes de estar resuelto allí, la feature nace mal.
 
 ---
 

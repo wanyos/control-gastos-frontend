@@ -206,10 +206,15 @@ expuestos como utilidades de Tailwind; el mapa completo está en `docs/stack.md`
 > la sección «Idioma» de este documento: **el texto de cara al usuario va en
 > inglés**. Del design system se adopta **solo la capa visual** (colores,
 > tipografía, espaciado, radios, sombras, motion). El formato de moneda/fechas se
-> decidirá en su feature; no copies el de la referencia por inercia.
+> decidirá en su feature; no copies el de la referencia por inercia. **Esa
+> feature es la 9 (`net-worth-view`)**: el formato exacto se fija en
+> `specs/net-worth-view/decisions.md` en la puerta de aprobación (propuesta de
+> partida: `€12,480.55`, locale en-US).
 
 > **Iconos:** el design system asume Lucide, pero **no está instalado** (fuera del
-> scope de la feature #4). No lo añadas por tu cuenta: es una dependencia nueva.
+> scope de la feature #4). **Se instala en la feature 8 (`app-shell`)**, que lo
+> anota en `docs/stack.md`. Hasta entonces no lo añadas por tu cuenta: es una
+> dependencia nueva.
 
 > **No edites `src/assets/styles/` a mano.** Son copias literales de
 > `design-system/`; se re-copian cuando el design system se regenera y hay tests

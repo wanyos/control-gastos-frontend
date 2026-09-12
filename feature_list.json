@@ -1,12 +1,18 @@
 {
-  "project": "TODO: nombre del proyecto",
-  "description": "TODO: describe brevemente qué hace este proyecto.",
+  "project": "control-gastos-frontend",
+  "description": "Aplicación web de control de gastos personales: vista de patrimonio, dashboards de flujo mensual, extracto con filtros, ingesta de movimientos desde bancos y revisión antes de confirmar.",
   "rules": {
     "one_feature_at_a_time": true,
     "require_tests_to_close": true,
     "require_approved_spec_to_implement": true,
     "human_writes_intent_first": "Toda feature DEBE tener un bloque 'intent' escrito por el humano ANTES de que el leader derive 'acceptance'. El leader traduce la intención a criterios técnicos; NUNCA se inventa el QUÉ. Si una feature no tiene 'intent', el leader se detiene y lo pide. Ver docs/intent-template.md.",
-    "valid_status": ["pending", "spec_ready", "in_progress", "done", "blocked"],
+    "valid_status": [
+      "pending",
+      "spec_ready",
+      "in_progress",
+      "done",
+      "blocked"
+    ],
     "sdd_required_when": "feature has \"sdd\": true"
   },
   "features": [
@@ -215,6 +221,139 @@
         "pnpm build, pnpm type-check, pnpm lint y ./init.sh terminan en verde"
       ],
       "status": "done"
+    },
+    {
+      "id": 7,
+      "name": "api-types-and-net-worth-client",
+      "title": "Tipos propios del contrato y cliente HTTP tipado para patrimonio",
+      "intent": {
+        "que_quiero": "Que el frontend tenga sus propios tipos TypeScript a partir del contrato de la API, y un servicio HTTP que los use, de forma que cuando construya las pantallas pueda llamar a la API con TypeScript ayudándome en vez de en contra. Los tipos no se comparten con el backend; se escriben aquí leyendo el contrato. Empiezo por lo que necesita la primera pantalla: GET /api/net-worth. Además necesito que en desarrollo las llamadas a /api pasen por el proxy del dev server y lleguen al backend, porque el backend no tiene CORS.",
+        "por_que": "El backend ya tiene 45 features y su contrato está vivo, pero este proyecto todavía no consume nada. La primera pantalla que construya tiene que partir del contrato real, no de recuerdos. Y sin el proxy resuelto de verdad, la primera llamada del navegador se va directa al backend y la bloquea CORS.",
+        "como_se_que_esta_bien": [
+          "Cuando importo un tipo de mis tipos propios, sus campos coinciden exactamente con lo que el contrato dice que devuelve la API, incluida la forma distinta de cada producto según su type.",
+          "Cuando arranco pnpm dev con el backend en :3000 y pido el patrimonio, me llegan los datos reales sin escribir la URL completa y sin ningún error de CORS en la consola.",
+          "Los importes llegan y se guardan tal y como los manda la API (strings decimales de dos decimales); no se pierde ni un céntimo por el camino.",
+          "Cuando el contrato del backend cambia, ajusto mis tipos y TypeScript me dice dónde se rompe la app.",
+          "Los tests unitarios del servicio pasan con la frontera HTTP mockeada, sin necesidad de backend real."
+        ],
+        "que_no_quiero": [
+          "No tocar el contrato del backend ni crear endpoints; eso es suyo.",
+          "No construir pantallas todavía; esto es solo la capa de datos.",
+          "No copiar el contrato tal cual a este proyecto; quiero mis propios tipos que reflejen qué devuelve la API.",
+          "No tipar por adelantado endpoints que ninguna pantalla va a usar todavía: se quedarían desfasados antes de estrenarse.",
+          "No crear un segundo cliente HTTP ni un fetch paralelo al de src/services/http.ts."
+        ],
+        "delego_en_agente": [
+          "Cómo estructurar los tipos: si uno por endpoint o un modelo compartido; que decida lo más idiomático para Vue3 + TypeScript, y cómo modelar que la forma del producto depende de su type (unión discriminada u otra cosa).",
+          "Cómo resolver el choque entre el proxy y appConfig.apiUrl: hoy createHttp construye la URL con new URL(path, apiUrl) y loadConfig exige una URL absoluta, así que con VITE_API_URL=http://localhost:3000 el proxy no llega a intervenir. Que elija entre apuntar VITE_API_URL al propio dev server o admitir base relativa en config.ts, lo implemente y lo documente en docs/stack.md.",
+          "Si además de GET /api/net-worth le sale barato tipar algún otro endpoint ya existente, que lo proponga y me lo marque; obligatorio solo el de patrimonio.",
+          "Si hace falta tocar .env.example o .env.development, que lo haga y lo diga."
+        ]
+      },
+      "acceptance": [
+        "Existen tipos propios en src/ que reflejan la respuesta de GET /api/net-worth según ../gastos-backend/docs/api-contract.md: asOf, total, accounts (total + lista) e investments (total, products, issues), con la forma de cada producto dependiendo de su type (fund/etf/managed_portfolio, deposit, savings_account)",
+        "Los importes monetarios se tipan como string decimal, nunca como number; los campos que el contrato puede devolver a null (value, marketValue, uninvestedCash, valuedAt) se tipan como nullable",
+        "Tipar otros endpoints es opcional: si se hace, el implementer lo anota en progress/implementation/ y no bloquea el cierre",
+        "Un servicio HTTP tipado reutiliza src/services/http.ts (createHttp, http) y expone al menos getNetWorth()",
+        "vite.config.ts incluye un proxy que redirige /api a http://localhost:3000 en desarrollo",
+        "En pnpm dev la petición de patrimonio sale contra el origen del dev server (http://localhost:5173) y llega al backend por el proxy, no directamente a :3000, y no produce error de CORS",
+        "La decisión sobre VITE_API_URL frente a base relativa está implementada de forma coherente con loadConfig (src/shared/config.ts) y documentada en docs/stack.md",
+        "Tests unitarios del servicio pasan con la llamada HTTP mockeada (sin backend real)",
+        "pnpm type-check, pnpm lint, pnpm test:unit y ./init.sh terminan en verde",
+        "No se crea un segundo cliente HTTP; se reutiliza el existente en src/services/http.ts"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 8,
+      "name": "app-shell",
+      "title": "Shell de la aplicación: sidebar, topbar y rutas base",
+      "intent": {
+        "que_quiero": "Que la app tenga una estructura visual con sidebar y topbar, portada del design system de React a Vue3, con rutas reales en el router y todos los nombres y textos en inglés. La sidebar navega entre las vistas previstas y la topbar muestra el título. Es el primer uso real de src/features/ y la primera vez que la app se ve con forma de aplicación y no de página suelta.",
+        "por_que": "Sin shell, cada pantalla que construya sería una página suelta sin navegación. El shell es el contenedor que da contexto al usuario y permite moverse entre vistas. Además necesito estrenar src/features/ con un componente que tenga sentido.",
+        "como_se_que_esta_bien": [
+          "Cuando abro la app en pnpm dev, se ve una sidebar a la izquierda con los enlaces de navegación y una topbar con el título.",
+          "Cuando hago clic en 'Net Worth' en la sidebar, la URL cambia a /net-worth y se renderiza el componente correspondiente en RouterView.",
+          "Ningún texto, ruta ni identificador queda en español: el design system viene en español y aquí se traduce.",
+          "El diseño se parece al del design system (Shell.jsx), con los tokens de color y tipografía del proyecto y sus iconos."
+        ],
+        "que_no_quiero": [
+          "No construir la vista de Patrimonio todavía; solo el shell y las rutas placeholder.",
+          "No inventar pantallas que no existan ni en el design system ni en el roadmap.",
+          "No dejar rutas ni labels en español copiados del design system (Resumen, Cuentas, Movimientos...).",
+          "No tocar el e2e de humo; el test actual tiene que seguir pasando."
+        ],
+        "delego_en_agente": [
+          "Qué icono de Lucide corresponde a cada entrada de la sidebar, y cómo se integra Lucide en Vue3 (paquete y forma de importarlo) sin arrastrar todo el set al bundle.",
+          "Cómo estructurar las rutas en src/router/index.ts: un archivo por feature o todas juntas; que decida lo más limpio.",
+          "Qué aspecto tiene un placeholder: una vista vacía con su título o algo más; que lo mantenga mínimo.",
+          "Qué título exacto poner en index.html."
+        ]
+      },
+      "acceptance": [
+        "La app muestra un shell con sidebar a la izquierda y topbar arriba, portado de design-system/ui_kits/web/Shell.jsx (React) a componentes Vue3 SFC",
+        "Las rutas están en inglés: /net-worth (home, ruta real con su vista placeholder hasta la feature 9) y placeholders para /overview, /movements, /investments e /import",
+        "Ningún identificador, nombre de archivo, ruta ni texto de UI queda en español (docs/conventions.md, sección Idioma): los labels del Shell.jsx se traducen al portarlo",
+        "RouterView renderiza el componente correspondiente según la URL y la entrada activa de la sidebar se marca",
+        "index.html tiene lang=\"en\" y un título descriptivo",
+        "src/features/ estrena la convención de una carpeta por feature (docs/conventions.md)",
+        "Lucide queda instalado como dependencia nueva y anotado en docs/stack.md; la nota de docs/conventions.md que decía 'no lo añadas' se actualiza",
+        "Solo se usan alias semánticos de los tokens (bg-surface-card, text-ink-muted...), nunca colores crudos, y no se edita src/assets/styles/ a mano",
+        "pnpm type-check, pnpm lint, pnpm test:unit y ./init.sh terminan en verde",
+        "El e2e de humo sigue pasando sin cambios"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 9,
+      "name": "net-worth-view",
+      "title": "Vista de Patrimonio contra GET /api/net-worth",
+      "intent": {
+        "que_quiero": "La primera pantalla de la aplicación: la vista de Patrimonio que muestra cuánto dinero tengo en total, de qué está hecho (por naturaleza y por banco), el detalle por cada banco y producto, y los avisos de honestidad del dato (productos sin valoración, fotos viejas, depósitos vencidos sin cerrar). Barras horizontales, no donut. Los componentes de diseño se portan del design system de React a Vue3. Los textos en inglés.",
+        "por_que": "Es la pregunta que motivó todo el proyecto: '¿cuánto tengo?'. El backend ya tiene GET /api/net-worth con todo lo necesario, pero no se ve por ninguna parte. Esta pantalla es la primera que construye el frontend y la que cierra la conexión backend → frontend.",
+        "como_se_que_esta_bien": [
+          "Cuando abro /net-worth con el backend arrancado, veo el total de patrimonio que devuelve la API y debajo una frase interpretada.",
+          "Veo el reparto por naturaleza con barras horizontales, y los grupos suman exactamente el total que muestro arriba: no hay dinero que se quede fuera de ningún grupo.",
+          "Veo el 'dinero parado' señalado dentro de ese reparto.",
+          "Veo el reparto por banco (Bankinter, N26, Openbank, MyInvestor, Trade Republic).",
+          "Veo una ficha por cada banco y producto con valuedAt y 'desde cuándo hay dato'.",
+          "Los productos con value: null aparecen como hueco, nunca como cero, y no suman.",
+          "Los investments.issues se muestran como avisos legibles (no_valuation, stale_valuation, matured_not_closed).",
+          "Los textos están en inglés y las cifras se ven con el formato de moneda que quede fijado en el spec.",
+          "La vista se ve coherente con los tokens del design system."
+        ],
+        "que_no_quiero": [
+          "No construir la cascada (bloque C) ni la evolución (bloque D): el backend no tiene patrimonio a una fecha ni serie histórica todavía.",
+          "No recalcular el total sumando a mano lo que la API ya suma en decimal exacto.",
+          "No maquetar otras pantallas (mes, extracto, etc.).",
+          "No cambiar el e2e de humo.",
+          "No instalar dependencias de gráficos (charts) todavía; solo barras con CSS/Tailwind."
+        ],
+        "delego_en_agente": [
+          "Cómo portar los componentes del design system (StatCard, AccountCard, Card, Badge) de React a Vue3: que lean los .jsx y los .d.ts de design-system/components/ y decidan cuánto del estilo original traer.",
+          "Cómo manejar los importes, que llegan como strings decimales: que proponga si se formatean directamente desde el string o se parsean, y que lo justifique sin perder céntimos.",
+          "Qué frase poner en el bloque A sin histórico: que proponga el texto exacto (solo el total y su reparto, nunca si creció).",
+          "Cómo medir la honestidad del dato sin que el test quede frágil: que proponga la forma y me la marque.",
+          "Si los depósitos vencidos (matured_not_closed) se muestran aparte o integrados en la lista de productos."
+        ]
+      },
+      "acceptance": [
+        "La ruta /net-worth renderiza la vista de Patrimonio con los bloques A, B y E",
+        "Bloque A: se muestra el campo total de la respuesta tal cual (no una suma recalculada en el cliente) y debajo una frase interpretada del estado",
+        "Bloque B: reparto por naturaleza con barras horizontales, y reparto por banco. La partición exacta (qué grupos, dónde caen las cuentas que no son checking y qué cuenta como 'dinero parado') se fija en specs/net-worth-view/decisions.md; sea cual sea, los grupos deben sumar el total mostrado y ninguna cuenta ni producto computable puede quedarse fuera de todos los grupos",
+        "Bloque E: ficha por cada banco y producto con valuedAt y 'desde cuándo hay dato'",
+        "Los productos con value: null aparecen como hueco visual, nunca como cero, y no entran en ninguna suma",
+        "Los investments.issues se muestran como avisos con su reason traducida a texto legible en inglés (no_valuation, stale_valuation, matured_not_closed)",
+        "Los textos de la UI están en inglés",
+        "El formato de moneda queda fijado en specs/net-worth-view/decisions.md en la puerta de aprobación (propuesta de partida: €12,480.55, locale en-US) y la vista lo aplica de forma consistente, con font-mono tabular-nums en las cifras",
+        "Se portan componentes del design system (StatCard, AccountCard, Card, Badge) de React a Vue3, traduciendo sus textos y sus tokens de color según docs/conventions.md",
+        "Los errores de la llamada se muestran a partir del error del store (ApiError / toAppError), nunca como strings sueltos",
+        "El e2e de humo sigue pasando",
+        "pnpm type-check, pnpm lint, pnpm test:unit y ./init.sh terminan en verde",
+        "Con el backend arrancado en :3000 y pnpm dev, la cifra total coincide con la de curl http://localhost:3000/api/net-worth"
+      ],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }

@@ -26,6 +26,14 @@
   hecho: anótalo como dependencia del backend en `progress/current.md`. Ese
   endpoint se implementa primero en el backend, en su propia sesión.
 
+## En desarrollo: proxy de Vite
+
+El backend no tiene CORS (se decide en el despliegue, E9 del backend). En
+desarrollo, las llamadas a `/api` pasan por el proxy de Vite configurado en
+`vite.config.ts`, que las redirige a `localhost:3000`. Esto es solo para
+desarrollo; en producción la app se servirá desde la misma origen que la API
+o se configurará CORS real.
+
 ## Qué NO haces desde aquí
 
 - No edites código ni archivos del backend.
