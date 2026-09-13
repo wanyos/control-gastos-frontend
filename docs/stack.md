@@ -184,6 +184,40 @@ servido y contra los estilos computados en Chromium, no solo leído):
 4. **El escaneo va por lista blanca** (`source('../')`): ver *Qué ficheros
    escanea Tailwind* más abajo.
 
+### Tema oscuro: dónde vive (feature #10, 2026-09-13)
+
+> Sin dependencias nuevas. La regla de uso está en `docs/conventions.md` →
+> *La app es solo oscura*.
+
+**La app es solo oscura** y el design system viene en claro. El tema vive en
+**`src/assets/theme-dark.css`**, fuera de `src/assets/styles/` (que sigue siendo
+copia literal), y se importa en `src/assets/main.css` **después** de
+`tokens/base.css`. Redefine en `:root` los **alias semánticos** (`--surface-*`,
+`--ink-*`, `--border-*`, `--brand*`, `--positive/negative/warning/info` y sus
+`-subtle`) apuntando a peldaños de la paleta del design system; no lleva colores
+literales. Añade también `color-scheme: dark` (scrollbars y controles nativos).
+
+Por qué basta con redefinir los alias: el puente `@theme inline` hace que cada
+utilidad apunte a la variable (`.bg-surface-card{background-color:var(--surface-card)}`,
+comprobado en el CSS construido), y el `:root` del tema va detrás del de
+`colors.css`, así que gana. Con modificador de opacidad (`bg-surface-app/85`)
+Tailwind genera `color-mix(in oklab, var(--surface-app) 85%, transparent)`:
+también sigue al tema. Los `-subtle` oscuros se obtienen con
+`color-mix(in srgb, <tono> N%, var(--surface-card))`.
+
+Lo vigila `src/assets/__tests__/theme-dark.spec.ts`:
+
+- el import va detrás de los tokens y el tema solo redefine alias existentes, sin
+  colores literales;
+- ningún `--surface-*` ni `*-subtle` es más claro que `--neutral-700`;
+- **contraste WCAG medido**: los pares que se usan juntos están declarados como
+  líneas `contrast: <texto> on <fondo> [over <base>] >= <mínimo>` en el propio
+  `theme-dark.css`, y el test los resuelve con los valores reales (4.5 texto,
+  3 barras, bordes, puntos e iniciales decorativas);
+- cada color que expone el puente de `main.css` tiene al menos un par medido;
+- ningún `.vue` de `src/` lleva colores crudos (hex, `rgb()`, `bg-white`,
+  `text-slate-500`…).
+
 ### Qué ficheros escanea Tailwind (lista blanca)
 
 > Feature #5 (`tailwind-source-whitelist`, 2026-07-20). Sin dependencias nuevas.

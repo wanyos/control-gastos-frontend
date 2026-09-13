@@ -44,7 +44,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | # | Etapa | Estado | Features |
 |---|---|---|---|
 | E0 | **Cimientos** — arranque, errores, config, cliente HTTP | ✅ | F1, F2 |
-| E1 | **El aspecto** — Tailwind, tokens del diseño, smoke e2e | ✅ | F3, F4, F5, F6 |
+| E1 | **El aspecto** — Tailwind, tokens del diseño, smoke e2e, tema oscuro | ✅ | F3, F4, F5, F6, F10 |
 | E2 | **Tipos y cliente tipado** — tipos propios a partir del contrato + proxy | ✅ | F7 |
 | E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ✅ | F8 |
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
@@ -68,6 +68,9 @@ Tailwind configurado, los tokens del diseño cargados como CSS
 ([`src/assets/styles/tokens/`](../src/assets/styles/tokens/)), el
 [`design-system/`](../design-system/) con sus fichas, la lista blanca de fuentes
 que Tailwind escanea, y un e2e que comprueba que la app monta de verdad.
+Desde el 2026-09-13 (F10) la app es **solo oscura**: el tema redefine los tokens
+semánticos en `src/assets/theme-dark.css`, así que todo componente que use alias
+semánticos sale oscuro (regla en `docs/conventions.md`).
 
 ### E2 — Tipos y cliente tipado ✅
 

@@ -264,5 +264,38 @@ Política de `@apply`:
 > Instalar Tailwind es una **dependencia nueva**: hay que registrarla en
 > `docs/stack.md` y añadirla en una feature de setup antes de usarla.
 
-Pendientes de definir cuando apliquen: dark mode, accesibilidad (roles/aria) y
-responsive (mobile-first).
+Pendientes de definir cuando apliquen: accesibilidad (roles/aria) y responsive
+(mobile-first). El modo oscuro ya está decidido: ver abajo.
+
+### La app es solo oscura — confirmado (feature #10, 2026-09-13)
+
+Toda la UI es oscura y **no hay selector claro/oscuro**. El design system viene
+en claro, pero el proyecto redefine sus alias semánticos a tonos oscuros en
+`src/assets/theme-dark.css` (dónde vive y por qué funciona: `docs/stack.md` →
+*Tema oscuro*). Consecuencias al maquetar:
+
+- **Al portar un componente de `design-system/`, usa los alias semánticos**
+  (`bg-surface-card`, `text-ink-muted`, `border-line-subtle`,
+  `bg-warning-subtle text-warning`…). Ya resuelven al tema oscuro: el componente
+  sale oscuro **sin hacer nada especial**. No copies el aspecto claro de la
+  referencia ni añadas variantes `dark:`.
+- **Prohibidos los fondos claros.** Ni `--neutral-0`…`--neutral-300`, ni los
+  peldaños claros de color (`--green-50`, `--red-100`…), ni `bg-white`, ni un
+  `var(--neutral-50)` suelto en un `<style>`. Un fondo es siempre `surface-*` o
+  un `*-subtle`. Las únicas zonas de color vivo son rellenos de datos pequeños
+  (barras, puntos, iniciales de banco: `bg-chart-*`).
+- **Texto sobre fondo coloreado:** `text-ink-on-brand` (oscuro en este tema), no
+  un blanco a mano.
+- **Si pones un token sobre un fondo nuevo** (p. ej. `text-info` dentro de una
+  tarjeta hundida), añade su línea `contrast:` en `theme-dark.css`; el test
+  `src/assets/__tests__/theme-dark.spec.ts` la mide y falla por debajo de 4.5:1
+  (texto) o 3:1 (barras, bordes, iconos).
+  **Única excepción de texto a 3:1:** un texto que esté oculto a tecnologías de
+  asistencia (`aria-hidden="true"`) **y** que repita un texto visible al lado,
+  como la inicial de la ficha de banco (monograma del nombre que va escrito
+  junto a ella). Tienen que cumplirse las dos condiciones; cualquier otro texto,
+  aunque sea pequeño o secundario, se mide a 4.5:1. La justificación queda
+  escrita junto a sus líneas `contrast:` en `theme-dark.css`.
+- **Si hace falta un tono que no existe**, se cambia el alias en
+  `theme-dark.css` (dentro de la paleta del design system), nunca el componente
+  con un color suelto. `src/assets/styles/` sigue sin tocarse.

@@ -1,0 +1,143 @@
+/* Dark theme — the app is dark only (feature 10, docs/conventions.md).
+
+   The design system ships light. Instead of patching components, this file
+   redefines its SEMANTIC aliases on :root, after tokens/colors.css, so every
+   utility that goes through them (bg-surface-card, text-ink-muted…) renders
+   dark, including components ported in the future. It never edits the copies
+   in styles/ and only points at the design system's own palette steps: no
+   literal colors here.
+
+   Contrast is measured, not eyeballed: src/assets/__tests__/theme-dark.spec.ts
+   resolves every `contrast:` line below against these values and fails if a
+   pair drops under its minimum (WCAG: 4.5 text, 3 bars, badges' dots, borders
+   and icons; the only text exception is explained next to the bank tile
+   initials). `a/15` means token `a` at 15% opacity, as Tailwind's `/15`
+   modifier; `over` names what shows through a translucent background. When a
+   component puts a token on a new background, add its pair here.
+
+   Main area and topbar
+   contrast: --ink-strong on --surface-app >= 4.5 (topbar title, section headings)
+   contrast: --ink-strong on --surface-app/85 over --surface-card >= 4.5 (topbar over cards)
+   contrast: --ink-muted on --surface-app >= 4.5 (loading message)
+   contrast: --ink-link on --surface-app >= 4.5 (links painted by base.css)
+   contrast: --border-subtle on --surface-app >= 3 (topbar bottom line, card edge)
+
+   Cards
+   contrast: --ink-strong on --surface-card >= 4.5 (titles, key figures, amounts)
+   contrast: --ink-body on --surface-card >= 4.5 (body copy, error message)
+   contrast: --ink-muted on --surface-card >= 4.5 (captions, percentages, dates)
+   contrast: --ink-faint on --surface-card >= 4.5 (No valuation gap)
+   contrast: --ink-link on --surface-card >= 4.5 (links painted by base.css)
+   contrast: --negative on --surface-card >= 4.5 (negative amounts, mismatch sentence)
+   contrast: --positive on --surface-card >= 4.5 (positive figures)
+   contrast: --warning on --surface-card >= 4.5 (warning text)
+   contrast: --info on --surface-card >= 4.5 (info text)
+   contrast: --brand on --surface-card >= 4.5 (brand text)
+   contrast: --ink-body on --surface-hover >= 4.5 (hovered rows)
+   contrast: --border-subtle on --surface-card >= 3 (card and row edges)
+   contrast: --border-default on --surface-card >= 3 (inputs)
+   contrast: --border-strong on --surface-card >= 3 (emphasized edges)
+   contrast: --border-brand on --surface-card >= 3 (selected edges)
+
+   Badges (soft tone: text on its tinted background) and icon tiles
+   contrast: --ink-body on --surface-sunken >= 4.5 (neutral badge, Idle money)
+   contrast: --brand on --brand-subtle >= 4.5 (brand badge, stat icon tile)
+   contrast: --brand on --brand-subtle-2 >= 4.5 (brand tile, stronger tint)
+   contrast: --positive on --positive-subtle >= 4.5 (positive badge)
+   contrast: --negative on --negative-subtle >= 4.5 (Mismatch badge)
+   contrast: --warning on --warning-subtle >= 4.5 (Warning badge)
+   contrast: --info on --info-subtle >= 4.5 (info badge)
+   contrast: --ink-on-brand on --brand >= 4.5 (brand buttons)
+   contrast: --ink-on-brand on --brand-hover >= 4.5 (brand buttons, hover)
+   contrast: --ink-on-brand on --brand-active >= 4.5 (brand buttons, pressed)
+
+   Share bars (fill on track), group dots and bank tiles
+   contrast: --chart-1 on --surface-sunken >= 3 (bar and dot)
+   contrast: --chart-2 on --surface-sunken >= 3 (bar and dot)
+   contrast: --chart-3 on --surface-sunken >= 3 (bar and dot)
+   contrast: --chart-4 on --surface-sunken >= 3 (bar and dot)
+   contrast: --chart-5 on --surface-sunken >= 3 (bar)
+   contrast: --chart-6 on --surface-sunken >= 3 (bar)
+   contrast: --chart-7 on --surface-sunken >= 3 (bar)
+   contrast: --chart-8 on --surface-sunken >= 3 (bar)
+   contrast: --chart-1 on --surface-card >= 3 (bank tile)
+   contrast: --chart-2 on --surface-card >= 3 (bank tile)
+   contrast: --chart-3 on --surface-card >= 3 (bank tile)
+   contrast: --chart-4 on --surface-card >= 3 (bank tile)
+   contrast: --chart-5 on --surface-card >= 3 (bank tile)
+   contrast: --chart-6 on --surface-card >= 3 (bank tile)
+   contrast: --chart-7 on --surface-card >= 3 (bank tile)
+   contrast: --chart-8 on --surface-card >= 3 (bank tile)
+   Bank tile initials are text measured at 3, not 4.5, on purpose. The letter is
+   aria-hidden and only repeats the first letter of the bank name written right
+   next to it, so it works as a monogram: WCAG exempts decorative text, and 3 is
+   the non-text minimum. No ink in the palette reaches 4.5 on all eight chart
+   hues (indigo 4.25, purple 4.48). This exception applies ONLY to text hidden
+   from assistive technology (aria-hidden) AND redundant with visible text beside
+   it; any other text stays at 4.5.
+   contrast: --ink-on-brand on --chart-1 >= 3 (bank tile initial, aria-hidden)
+   contrast: --ink-on-brand on --chart-2 >= 3 (bank tile initial, aria-hidden)
+   contrast: --ink-on-brand on --chart-3 >= 3 (bank tile initial, aria-hidden)
+   contrast: --ink-on-brand on --chart-4 >= 3 (bank tile initial, aria-hidden)
+   contrast: --ink-on-brand on --chart-5 >= 3 (bank tile initial, aria-hidden)
+   contrast: --ink-on-brand on --chart-6 >= 3 (bank tile initial, aria-hidden)
+   contrast: --ink-on-brand on --chart-7 >= 3 (bank tile initial, aria-hidden)
+   contrast: --ink-on-brand on --chart-8 >= 3 (bank tile initial, aria-hidden)
+
+   Sidebar
+   contrast: --ink-on-dark on --surface-inverse >= 4.5 (wordmark)
+   contrast: --accent on --surface-inverse >= 3 (wordmark dot)
+   contrast: --ink-on-dark/70 on --surface-inverse >= 4.5 (idle entries and icons)
+   contrast: --ink-on-dark/70 on --ink-on-dark/5 over --surface-inverse >= 4.5 (hovered entry)
+   contrast: --accent on --accent/15 over --surface-inverse >= 4.5 (active entry)
+   contrast: --surface-app on --surface-inverse >= 1.25 (sidebar stands apart from the main area)
+
+   Overlays
+   contrast: --ink-on-dark on --surface-overlay over --surface-app >= 4.5 (text over a scrim)
+*/
+
+:root {
+  /* Native scrollbars and form controls follow the dark scheme too. */
+  color-scheme: dark;
+
+  /* Brand: one step brighter so it reads on dark; hover and press lighten. */
+  --brand: var(--green-500);
+  --brand-hover: var(--green-400);
+  --brand-active: var(--green-300);
+  --brand-subtle: color-mix(in srgb, var(--green-500) 16%, var(--surface-card));
+  --brand-subtle-2: color-mix(in srgb, var(--green-500) 22%, var(--surface-card));
+  --brand-on: var(--neutral-950);
+  --accent: var(--green-500);
+
+  /* Surfaces: sidebar darkest, main area lighter, cards in between. */
+  --surface-app: var(--neutral-800);
+  --surface-card: var(--neutral-900);
+  --surface-sunken: var(--neutral-950);
+  --surface-inverse: var(--neutral-950);
+  --surface-hover: var(--neutral-700);
+
+  /* Ink: the neutral scale read from the light end. */
+  --ink-strong: var(--neutral-50);
+  --ink-body: var(--neutral-200);
+  --ink-muted: var(--neutral-300);
+  --ink-faint: var(--neutral-400);
+  --ink-on-brand: var(--neutral-950);
+  --ink-on-dark: var(--neutral-50);
+  --ink-link: var(--chart-3);
+
+  /* Borders: bright enough to keep 3:1 against both the page and the cards. */
+  --border-subtle: var(--neutral-500);
+  --border-default: var(--neutral-400);
+  --border-strong: var(--neutral-300);
+  --border-brand: var(--green-500);
+
+  /* Finance signals: hues that keep 4.5:1 on dark; tints are the hue sunk into a card. */
+  --positive: var(--green-500);
+  --positive-subtle: color-mix(in srgb, var(--green-500) 16%, var(--surface-card));
+  --negative: var(--chart-6);
+  --negative-subtle: color-mix(in srgb, var(--red-500) 20%, var(--surface-card));
+  --warning: var(--amber-500);
+  --warning-subtle: color-mix(in srgb, var(--amber-500) 16%, var(--surface-card));
+  --info: var(--chart-3);
+  --info-subtle: color-mix(in srgb, var(--blue-500) 16%, var(--surface-card));
+}

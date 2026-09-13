@@ -354,6 +354,50 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 10,
+      "name": "dark-theme",
+      "title": "Toda la UI en tono oscuro, sin perder contraste, y como regla para las vistas futuras",
+      "intent": {
+        "que_quiero": "Toda la interfaz en tono oscuro, no solo la sidebar. Hoy la parte central (el main, donde se pinta cada vista) tiene el fondo blanco y la quiero oscura como la sidebar. El tono me da igual, no tiene que ser negro, puede ser cualquier tono oscuro, pero no quiero colores claros. Al hacer el cambio hay que tener cuidado de que no se quede oculta ninguna parte de lo que se ve ahora por falta de contraste. Y quiero que quede como regla: cualquier componente o vista que se haga en el futuro (el design system viene en claro) tiene que salir ya en oscuro.",
+        "por_que": "He visto la primera pantalla (Patrimonio) y se ve bien, pero quiero la app en oscuro entera. La sidebar ya lo está y el bloque central en blanco no me gusta. Y no quiero tener que pedirlo de nuevo en cada vista nueva.",
+        "como_se_que_esta_bien": [
+          "Cuando abro cualquier ruta de la app, no queda ningún fondo claro a la vista: ni la página, ni la barra superior, ni las tarjetas, ni los badges o avisos.",
+          "Todo lo que veo hoy se sigue viendo y leyendo: la cifra total, la frase, las etiquetas de los grupos, las barras, los importes, las fichas por banco, los badges, las fechas, los avisos y el mensaje de error o de carga.",
+          "Las barras de reparto se distinguen del fondo y entre sí.",
+          "Las vistas placeholder (Overview, Movements, Investments, Import) también se ven en oscuro y legibles.",
+          "La sidebar sigue oscura y se sigue distinguiendo de la zona central.",
+          "Cuando en una feature futura se porte un componente del design system usando los tokens del proyecto, sale en oscuro sin tener que hacer nada especial, y las convenciones del proyecto lo dejan escrito."
+        ],
+        "que_no_quiero": [
+          "No quiero colores claros en ningún fondo de la UI.",
+          "No quiero que nada se quede oculto o casi invisible por contraste.",
+          "No quiero un selector de tema claro/oscuro: la app es oscura y ya está.",
+          "No quiero cambios de contenido, de textos, de distribución ni de datos: solo color.",
+          "No quiero que el oscuro dependa de parchear componente a componente: tiene que valer también para los que vengan."
+        ],
+        "delego_en_agente": [
+          "Qué tonos oscuros exactos usar para el fondo, las tarjetas y los estados, siempre dentro de la paleta del design system; si la zona central usa el mismo tono que la sidebar o uno distinto, siempre que se distingan.",
+          "Cómo implementarlo sin editar src/assets/styles/ (copias literales del design system con tests que las vigilan): por ejemplo, redefiniendo los tokens semánticos a nivel de toda la app en un archivo propio, de forma que cualquier componente que use alias semánticos salga oscuro.",
+          "Cómo comprobar el contraste de forma medible y no solo a ojo."
+        ]
+      },
+      "acceptance": [
+        "El tema oscuro se aplica a toda la app redefiniendo los tokens semánticos (surface, ink, border, estados *-subtle, brand-subtle...) en un archivo propio cargado globalmente; no se parchean componentes uno a uno con colores sueltos",
+        "Ningún fondo visible de la UI es un tono claro (neutral-0 a neutral-300 ni los *-subtle claros): main, barra superior, tarjetas (BaseCard, StatCard, AccountCard y los bloques de la vista de Patrimonio), badges, avisos y placeholders",
+        "Se revisan todos los componentes Vue existentes (src/shared/components/ y src/features/**/components|views) y se lista en el informe cuáles usaban tokens claros y cómo quedan",
+        "Los componentes siguen usando solo alias semánticos de tokens; no aparecen colores crudos (hex, rgb, blue-500...) en los SFC",
+        "No se edita nada en src/assets/styles/ ni en design-system/; los tests que vigilan esas copias siguen en verde",
+        "Contraste medido, no a ojo: el texto normal cumple WCAG AA (≥ 4.5:1) contra el fondo sobre el que se pinta, y barras, badges, bordes e iconos cumplen ≥ 3:1; un test automatizado calcula esos ratios sobre los pares de tokens del tema oscuro y falla si alguno baja del umbral",
+        "Los estados de la vista de Patrimonio siguen visibles en oscuro: cargando, error, aviso de descuadre, avisos de investments.issues, producto sin valoración (No valuation), saldo negativo y la entrada activa de la sidebar",
+        "La sidebar sigue oscura y se distingue de la zona central",
+        "docs/conventions.md deja escrito que la app es solo oscura: al portar componentes del design system (que está en claro) se usan los alias semánticos, que ya resuelven al tema oscuro, y se prohíben fondos claros; docs/stack.md o architecture.md anotan dónde vive el tema",
+        "Comprobado en Chromium real con el backend arrancado: capturas de /net-worth y de un placeholder antes y después referenciadas en el informe, sin nada oculto por contraste",
+        "No cambian textos, contenido, distribución ni datos; el e2e de humo sigue pasando sin cambios",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "status": "done"
     }
   ]
 }

@@ -27,6 +27,10 @@
 @import './styles/tokens/spacing.css';
 @import './styles/tokens/base.css';
 
+/* The app is dark only: redefines the semantic aliases above, so it must come
+   after tokens/colors.css. Lives outside styles/, which stays a verbatim copy. */
+@import './theme-dark.css';
+
 /* Bridge: exposes the design system's semantic aliases as Tailwind utilities.
    `inline` makes utilities resolve to the token vars above instead of copying
    values, so re-copying design-system/ is enough to pick up new values.

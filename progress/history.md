@@ -492,3 +492,30 @@ Plantilla para cada entrada nueva:
   `tailwind-sources.spec.ts`, página 404, `./init.sh` reutiliza el dev server de
   :5173 y no detectaría una dependencia del backend.
 - **Cierre:** features 1-9 `done`. Siguiente etapa del roadmap: E5 (ingesta).
+
+## 2026-09-13 — Feature 10: dark-theme
+
+- **Agente:** `leader` (Claude Code) orquestando `implementer` y `reviewer`.
+  Flujo simple (sin SDD).
+- **Plan:** el humano vio la vista de Patrimonio y pidió toda la UI en tono
+  oscuro, sin fondos claros, sin perder contraste y como regla para las vistas
+  futuras. Se implementa redefiniendo los tokens semánticos a nivel global, sin
+  tocar componentes ni las copias del design system.
+- **Cambios:** `src/assets/theme-dark.css` (tema, cargado desde
+  `src/assets/main.css` después de los tokens); `src/assets/__tests__/theme-dark.spec.ts`
+  (61 pares de contraste leídos del propio tema, fondos oscuros, ningún color
+  crudo en `.vue`); `docs/conventions.md` (la app es solo oscura, excepción
+  acotada de contraste para texto `aria-hidden` y redundante) y `docs/stack.md`.
+  Ningún `.vue` modificado. Capturas antes/después en
+  `progress/implementation/dark-theme/`.
+- **Decisiones:** sidebar `#0B1116`, zona central y topbar `#232C36`, tarjetas
+  `#141B22`; negativos a coral y enlaces/info a azul claro para llegar a 4.5:1.
+  La inicial de la ficha de banco se mide a 3:1 (decorativa y redundante), no
+  hay tinta de la paleta que llegue a 4.5:1 con todos los colores de gráfico.
+- **Revisión:** primera ronda CHANGES_REQUESTED solo por comentarios y
+  documentación de esa excepción; segunda ronda APPROVED (la primera
+  re-revisión se colgó y se relanzó).
+- **Verificación:** `pnpm lint`, `pnpm type-check`, `pnpm build`,
+  `pnpm test:unit` (17 archivos / 249 tests) y `./init.sh` con el e2e de humo
+  sin cambios, en verde.
+- **Cierre:** feature 10 → **done**. Siguiente etapa del roadmap: E5 (ingesta).
