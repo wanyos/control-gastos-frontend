@@ -353,7 +353,7 @@
         "Con el backend arrancado en :3000 y pnpm dev, la cifra total coincide con la de curl http://localhost:3000/api/net-worth"
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

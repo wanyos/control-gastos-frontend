@@ -456,3 +456,39 @@ Plantilla para cada entrada nueva:
 - **Cierre:** feature #6 `e2e-smoke` → **done**. `./init.sh` ahora es una puerta
   que vigila el arranque de la app a diario. No quedan features `pending` ni
   `in_progress` en `feature_list.json`.
+
+## 2026-09-12 — Parte 3 del handoff + features 7, 8 y 9
+
+- **Agente:** `leader` (Claude Code) orquestando `implementer`, `reviewer` y un
+  agente general con el rol de `spec_author` (el tipo no estaba registrado en la
+  sesión). Punto de partida: `../docs/handoff-primera-vista-frontend.md`.
+- **Plan:** revisar y corregir las features 7-9 redactadas en una sesión previa
+  contra el handoff y el contrato real; después implementarlas en orden 7 → 8 → 9,
+  con puerta humana en cada intent y en el spec de la 9.
+- **Revisión de features:** choque proxy ↔ `appConfig.apiUrl` explicitado (F7),
+  tipado reducido a `GET /api/net-worth` (F7), importes como string decimal
+  (F7/F9), rutas en inglés y Lucide obligatorio (F8), total leído de la API y
+  partición del bloque B llevada a `decisions.md` (F9).
+- **Feature 7 `api-types-and-net-worth-client` → done** (commit `0a3e9cb`).
+  Tipos y `getNetWorth()` con validación en frontera en `src/features/net-worth/`;
+  proxy `/api`; `VITE_API_URL=/` con base relativa en `loadConfig`. Anomalía de
+  orden (cierre antes del reviewer) anotada en la bitácora de la sesión.
+  Resumen: `progress/summaries/api-types-and-net-worth-client.md`.
+- **Feature 8 `app-shell` → done** (commit `f3a8ebc`). Shell en
+  `src/shared/components/`, cinco rutas en inglés con `meta.label`/`meta.icon`,
+  `@lucide/vue` 1.45.0. Resumen: `progress/summaries/app-shell.md`.
+- **Feature 9 `net-worth-view` → done** (SDD). Humano aprobó cifras es-ES,
+  fechas en-GB y 🔴2–🔴6 con la propuesta. Vista de Patrimonio (bloques A, B, E
+  y avisos), `src/shared/money.ts` en céntimos exactos, store de patrimonio; el
+  smoke e2e responde `/api/net-worth` con una muestra (🔴6, aprobado).
+  Resumen: `progress/summaries/net-worth-view.md`.
+- **Verificación:** `./init.sh` verde en cada cierre; al final 16 archivos /
+  158 tests unitarios, build y e2e de humo (también sin backend, en modo CI).
+  Contra el backend real: `/net-worth` muestra `88.850,64 €` = `curl` `"88850.64"`.
+- **Pendiente del humano / backend:** confirmar el nombre de marca
+  `control·accounts`; provocar un aviso real en pantalla; en el backend, fecha del
+  primer dato por producto (cabo 4) y corregir el ejemplo del contrato (cabo 5).
+  No bloqueantes de los reviewers: test de clic en la sidebar, ampliar
+  `tailwind-sources.spec.ts`, página 404, `./init.sh` reutiliza el dev server de
+  :5173 y no detectaría una dependencia del backend.
+- **Cierre:** features 1-9 `done`. Siguiente etapa del roadmap: E5 (ingesta).

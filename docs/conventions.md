@@ -205,11 +205,28 @@ expuestos como utilidades de Tailwind; el mapa completo está en `docs/stack.md`
 > escrito para español es-ES (textos en «tú», moneda `12.480,55 €`). Aquí manda
 > la sección «Idioma» de este documento: **el texto de cara al usuario va en
 > inglés**. Del design system se adopta **solo la capa visual** (colores,
-> tipografía, espaciado, radios, sombras, motion). El formato de moneda/fechas se
-> decidirá en su feature; no copies el de la referencia por inercia. **Esa
-> feature es la 9 (`net-worth-view`)**: el formato exacto se fija en
-> `specs/net-worth-view/decisions.md` en la puerta de aprobación (propuesta de
-> partida: `€12,480.55`, locale en-US).
+> tipografía, espaciado, radios, sombras, motion). El formato de cifras y fechas
+> no se copia de la referencia por inercia: lo fijó la feature 9 (ver abajo).
+
+> **Formato de cifras y fechas — decidido en la feature 9 (`net-worth-view`,
+> 2026-09-12).** UI en inglés con cifras en es-ES, mezcla elegida a propósito.
+> Todo pasa por `src/shared/money.ts`; no se crean formateadores sueltos por
+> componente.
+>
+> - **Importes:** `formatMoney("1234.56")` → `1.234,56 €` (EUR, dos decimales;
+>   `-5,00 €`, `0,00 €`). Se formatea **desde el string exacto** de la API con
+>   `Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', useGrouping: 'always' })`.
+>   ⚠️ **Trampa CLDR:** sin `useGrouping: 'always'`, es-ES **no agrupa números de
+>   4 cifras** (`1234,56 €`); hay test de regresión.
+> - **Sumas y porcentajes:** en céntimos enteros `bigint` (`toCents`,
+>   `sumAmounts`, `sharePermille`), redondeando **una sola vez**. Nunca
+>   `Number()`, `parseFloat` ni `parseInt` sobre un importe.
+> - **Porcentajes:** `formatPercent(383)` → `38,3 %` (un decimal).
+> - **Espacios:** antes de `€` y de `%` va un espacio no separable U+00A0. En los
+>   tests se genera (`String.fromCharCode(0xa0)`), nunca se teclea.
+> - **Fechas:** en-GB con `timeZone: 'UTC'`: `formatDate("2026-09-12")` →
+>   `12 Sept 2026`. ICU abrevia septiembre como `Sept` y puede cambiarlo: los
+>   textos esperados de los tests salen de `formatDate`.
 
 > **Iconos: Lucide, instalado en la feature 8 (`app-shell`)** como `@lucide/vue`
 > (paquete, versión y por qué en `docs/stack.md` → *Iconos (Lucide)*). Se importa
@@ -247,5 +264,5 @@ Política de `@apply`:
 > Instalar Tailwind es una **dependencia nueva**: hay que registrarla en
 > `docs/stack.md` y añadirla en una feature de setup antes de usarla.
 
-Pendientes de definir cuando apliquen: dark mode, accesibilidad (roles/aria),
-responsive (mobile-first) y formato de moneda/fechas.
+Pendientes de definir cuando apliquen: dark mode, accesibilidad (roles/aria) y
+responsive (mobile-first).

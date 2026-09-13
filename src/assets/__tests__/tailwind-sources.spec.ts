@@ -23,12 +23,16 @@ const srcDir = join(root, 'src') + sep
  */
 const probe = (...parts: string[]) => parts.join('')
 
-/** Utilities that only documentation and harness reports mention. */
+/**
+ * Utilities that only documentation and harness reports mention. The net worth
+ * view (feature 9) started using the chart and negative-subtle backgrounds, so
+ * those two probes were replaced by utilities still quoted only in docs/stack.md.
+ */
 const CONTAMINANTS = [
-  probe('bg-', 'chart-3'),
+  probe('text-', 'ink-link'),
   probe('fill-', 'chart-3'),
   probe('text-', 'red-500'),
-  probe('bg-', 'negative-subtle'),
+  probe('rounded-', '2xl'),
   probe('cont', 'ainer'),
 ]
 

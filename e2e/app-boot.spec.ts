@@ -20,6 +20,20 @@ function hexToRgb(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`
 }
 
+// The net worth view requests the API on mount (feature 9). The smoke answers
+// it with a small coherent sample so it proves the boot, not a running backend.
+const NET_WORTH_SAMPLE = {
+  asOf: '2026-09-12',
+  total: '1500.00',
+  accounts: {
+    total: '1500.00',
+    accounts: [
+      { id: 1, iban: 'ES00', bank: 'n26', alias: 'Main', type: 'checking', balance: '1500.00' },
+    ],
+  },
+  investments: { total: '0.00', products: [], issues: [] },
+}
+
 test('app boots: shell mounts with the design system applied and no console errors', async ({
   page,
 }) => {
@@ -30,6 +44,7 @@ test('app boots: shell mounts with the design system applied and no console erro
   const pageErrors: Error[] = []
   page.on('pageerror', (error) => pageErrors.push(error))
 
+  await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
   await page.goto('/')
 
   // The app really mounted: App.vue's shell is the only child of #app.

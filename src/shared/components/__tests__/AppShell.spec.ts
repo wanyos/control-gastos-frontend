@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { Router } from 'vue-router'
 
@@ -12,7 +13,7 @@ const mountShell = async (path: string) => {
   await router.push(path)
   await router.isReady()
 
-  const wrapper = mount(AppShell, { global: { plugins: [router] } })
+  const wrapper = mount(AppShell, { global: { plugins: [router, createPinia()] } })
   await wrapper.vm.$nextTick()
 
   return { router, wrapper }
@@ -22,6 +23,16 @@ const linkTexts = (wrapper: Awaited<ReturnType<typeof mountShell>>['wrapper']) =
   wrapper.findAll('nav a').map((link) => link.text())
 
 describe('AppShell', () => {
+  // /net-worth renders the real view, which requests the API on mount: the HTTP
+  // boundary is held pending so the shell is tested without a backend.
+  beforeEach(() => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(() => {}))
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('mounts a sidebar listing every navigation entry and a topbar', async () => {
     const { wrapper } = await mountShell('/net-worth')
 
@@ -44,10 +55,10 @@ describe('AppShell', () => {
   })
 
   it('renders the routed view inside the shell', async () => {
-    const { wrapper } = await mountShell('/net-worth')
+    const { wrapper } = await mountShell('/overview')
 
     const view = wrapper.get('[data-test="placeholder"]')
-    expect(view.text()).toContain('Net Worth')
+    expect(view.text()).toContain('Overview')
     expect(wrapper.get('main').element.contains(view.element)).toBe(true)
   })
 

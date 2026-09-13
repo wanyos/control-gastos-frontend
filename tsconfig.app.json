@@ -6,6 +6,10 @@
     // Extra safety for array and object lookups, but may have false positives.
     "noUncheckedIndexedAccess": true,
 
+    // ES2023.Intl types Intl.NumberFormat#format(string): amounts are formatted
+    // from the exact API decimal string, never through a float (feature 9).
+    "lib": ["ES2022", "ES2023.Intl", "DOM", "DOM.Iterable"],
+
     // Path mapping for cleaner imports.
     "paths": {
       "@/*": ["./src/*"]

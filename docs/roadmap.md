@@ -47,7 +47,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E1 | **El aspecto** — Tailwind, tokens del diseño, smoke e2e | ✅ | F3, F4, F5, F6 |
 | E2 | **Tipos y cliente tipado** — tipos propios a partir del contrato + proxy | ✅ | F7 |
 | E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ✅ | F8 |
-| E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ⬜ ← | F9 |
+| E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ⬜ | *sin features* |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ⬜ | *sin features* |
 | E7 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
@@ -89,18 +89,21 @@ rutas en `src/router/index.ts` (`/` → `/net-worth`; placeholders `/overview`,
 `/movements`, `/investments`, `/import`), Lucide vía `@lucide/vue`, `index.html`
 con `lang="en"`. Sin página 404 todavía.
 
-### E4 — Vista de Patrimonio ⬜ ← **el siguiente**
+### E4 — Vista de Patrimonio ✅
 
 La primera pantalla contra `GET /api/net-worth`. Bloque A (cifra total y
 frase interpretada), bloque B (reparto por naturaleza y por banco) y bloque
 E (detalle por banco y producto). Avisos de `investments.issues`. Portar
 `StatCard`, `AccountCard`, `Card` y `Badge` del design system. Barras
-horizontales, no donut. Formato de moneda en-US (`€12,480.55`).
+horizontales, no donut. Cerrada el 2026-09-12 por la F9: cifras y porcentajes
+en es-ES (`1.234,56 €`, `38,3 %`), fechas en-GB (`12 Sept 2026`), 4 grupos por
+tipo, total leído de la API. Spec en `specs/net-worth-view/`. «Desde cuándo hay
+dato» queda fuera: la API no lo trae (cabo 4).
 
 > Los bloques C (cascada) y D (evolución) esperan a que el backend exponga
 > patrimonio a una fecha o como serie histórica.
 
-### E5 — La pantalla que dispara la ingesta ⬜
+### E5 — La pantalla que dispara la ingesta ⬜ ← **el siguiente**
 
 Es la razón de ser de la idea nº 1 y **el backend ya tiene los dos endpoints**:
 `GET /api/ingestion/pending` (el aviso de «N nuevos» al abrir) y
@@ -150,8 +153,10 @@ datos bancarios reales. No es urgente; es que no estaba.
 | ~~1~~ | ~~Los tipos de este proyecto todavía no existen; el contrato del backend cambió y nadie lo consume~~ | ✅ **cerrado por la F7** |
 | ~~2~~ | ~~`src/features/` está vacía: la convención de una carpeta por feature no se ha estrenado~~ | ✅ **cerrado por la F7**: la estrenó `src/features/net-worth/`, no la F8 como se previó |
 | 3 | Cascada y evolución de Patrimonio necesitan histórico del backend (`GET /api/net-worth?asOf=` o serie) | backend, luego **E4** bloques C y D |
+| 4 | La ficha de Patrimonio no puede decir «desde cuándo hay dato»: `GET /api/net-worth` no trae la fecha del primer dato por producto | backend, luego **E4** |
+| 5 | El ejemplo JSON de `GET /api/net-worth` en el contrato del backend no cuadra (`investments.total`) — defecto de documentación, no de datos | backend |
 
-> El cabo 3 **no es tuyo**: es del backend. Está aquí porque bloquea bloques
+> Los cabos 3, 4 y 5 **no son tuyos**: son del backend. Está aquí porque bloquea bloques
 > de la vista de Patrimonio y la regla de oro del workspace dice que el backend
 > va primero. Si aparece aquí antes de estar resuelto allí, la feature nace mal.
 

@@ -21,6 +21,13 @@
     explícitos para tipos.
   - `moduleResolution: bundler`, `target: ESNext` con `lib: ES2022` (el target
     real de compilación lo fija Vite).
+  - **`ES2023.Intl` añadido a `lib`** (feature #9) en `tsconfig.app.json` y en
+    `tsconfig.vitest.json`: tipa `Intl.NumberFormat#format(string)` y
+    `useGrouping: 'always'`. Los importes se formatean **desde el string decimal
+    exacto** de la API (ECMA-402 NumberFormat v3), sin pasar por `number` ni
+    castear; ver `src/shared/money.ts` y *Formato de cifras y fechas* en
+    `docs/conventions.md`. Soporte en navegador: Chrome 106, Firefox 116,
+    Safari 15.4.
 
 ## Framework / Runtime
 
@@ -314,6 +321,12 @@ aplica el fondo y la tipografía del design system (comparando **estilos
 computados** contra los tokens de `:root`, sin nombres de clase literales,
 para no depender de —ni contaminar— el CSS de Tailwind) y que no hay errores
 de consola ni de `pageerror` durante la carga.
+
+Desde la feature #9 la home (`/net-worth`) pide `GET /api/net-worth` al montar.
+Sin backend, el proxy responde 502 y Chromium lo escribe como error de consola,
+así que el smoke **intercepta `**/api/net-worth` con `page.route`** y responde
+una muestra pequeña y coherente con el contrato. Sigue probando el arranque
+real, no la vista, y no depende de tener el backend en `:3000`.
 
 - **Modo local (`pnpm test:e2e`)**: Playwright arranca el **dev server**
   (`npm run dev` → 5173) si no hay uno corriendo. `VITE_API_URL` se lee de
