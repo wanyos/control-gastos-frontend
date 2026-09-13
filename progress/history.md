@@ -519,3 +519,22 @@ Plantilla para cada entrada nueva:
   `pnpm test:unit` (17 archivos / 249 tests) y `./init.sh` con el e2e de humo
   sin cambios, en verde.
 - **Cierre:** feature 10 → **done**. Siguiente etapa del roadmap: E5 (ingesta).
+
+## 2026-09-13 — Feature 11: app-title-and-favicon
+
+- **Agente:** `leader` (Claude Code) orquestando `implementer` y `reviewer`.
+  Flujo simple (sin SDD).
+- **Plan:** título de la pestaña `Control Accounts` y favicon propio en lugar del
+  de Vue, a partir del logo del design system.
+- **Cambios:** `index.html` (título y enlaces a iconos); `public/` con el SVG
+  verde derivado de `design-system/assets/logo-mark.svg` (aria-label en inglés),
+  PNG de 32 px y `apple-touch-icon` de 180 px rasterizados con Playwright; se
+  borra el `favicon.ico` de Vue; test nuevo `src/__tests__/index-html.spec.ts`.
+- **Decisiones:** variante verde, porque la casi negra se pierde en pestañas
+  oscuras (1,18:1); la verde queda entre 2,9:1 y 4,1:1 en las cuatro barras
+  probadas. Sin `.ico` ni dependencias nuevas.
+- **Verificación:** type-check, lint, 254 tests, build, `./init.sh` y e2e de humo
+  contra el build en chromium, firefox y webkit, sin errores de consola por el
+  404 de `/favicon.ico`.
+- **Cierre:** feature 11 → **done**. El nombre de la sidebar sigue siendo
+  `control·accounts` (no se pidió cambiarlo).

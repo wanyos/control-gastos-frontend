@@ -398,6 +398,40 @@
         "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
       ],
       "status": "done"
+    },
+    {
+      "id": 11,
+      "name": "app-title-and-favicon",
+      "title": "Título de la pestaña 'Control Accounts' y favicon propio del proyecto",
+      "intent": {
+        "que_quiero": "Un pequeño cambio: que el título del HTML (la pestaña del navegador) sea 'Control Accounts' y poner un favicon algo más profesional y acorde a mi proyecto, en lugar del de Vue que viene por defecto.",
+        "por_que": "La app ya tiene su primera pantalla y su tema oscuro; la pestaña sigue con un título provisional y el icono genérico del scaffold, y no se ve como un producto propio.",
+        "como_se_que_esta_bien": [
+          "Cuando abro la app, la pestaña del navegador dice exactamente 'Control Accounts'.",
+          "El icono de la pestaña es el del proyecto (un icono de finanzas coherente con el design system y con la app en oscuro), no el de Vue.",
+          "El icono se distingue bien tanto con la barra de pestañas del navegador en claro como en oscuro.",
+          "El icono sale también en el build de producción, no solo en desarrollo."
+        ],
+        "que_no_quiero": [
+          "No quiero cambiar nada más de la interfaz: ni la sidebar, ni textos, ni colores, ni datos.",
+          "No quiero un icono inventado que no tenga relación con el design system si el design system ya trae uno."
+        ],
+        "delego_en_agente": [
+          "Qué icono usar: el design system trae design-system/assets/logo-mark.svg y logo-mark-dark.svg; que elija la variante (o combinación) que mejor se vea en pestañas claras y oscuras.",
+          "En qué formatos servirlo (SVG, y si hace falta un .ico o PNG de respaldo y apple-touch-icon) sin añadir dependencias."
+        ]
+      },
+      "acceptance": [
+        "index.html tiene <title>Control Accounts</title> exactamente y conserva lang=\"en\"",
+        "El favicon por defecto de Vue (public/favicon.ico del scaffold) deja de usarse; el nuevo icono se basa en el logo del design system (design-system/assets/logo-mark*.svg), copiado a public/ sin editar design-system/",
+        "index.html enlaza el favicon SVG y, si se incluye, un respaldo (.ico o PNG) y apple-touch-icon; todos los archivos enlazados existen en public/",
+        "El icono es legible con la barra de pestañas en claro y en oscuro (comprobado y justificado en el informe)",
+        "El build de producción (dist/) incluye los archivos del icono y los enlaza correctamente",
+        "No se añaden dependencias, no cambian textos, colores ni componentes de la UI, y el e2e de humo sigue pasando sin cambios",
+        "Si algún test existente comprueba el título de index.html, se actualiza al nuevo valor",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "status": "done"
     }
   ]
 }
