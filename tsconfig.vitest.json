@@ -10,8 +10,9 @@
     // Vitest runs in a different environment than the application code.
     // Adjust lib and types accordingly.
     // ES2023.Intl: tests import src/shared/money.ts, which formats exact decimal strings.
-    "lib": ["ES2023.Intl"],
-    "types": ["node", "jsdom"],
+    // DOM: tests run under jsdom; these globals used to come from @types/jsdom.
+    "lib": ["ES2022", "ES2023.Intl", "DOM", "DOM.Iterable"],
+    "types": ["node"],
 
     // `vue-tsc --build` produces a .tsbuildinfo file for incremental type-checking.
     // Specified here to keep it out of the root directory.

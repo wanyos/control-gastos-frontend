@@ -101,7 +101,7 @@ gate completo antes de dar una feature por `done` es:
 ```bash
 ./init.sh              # entorno + type-check + tests unitarios → [OK] Entorno listo
 pnpm type-check        # vue-tsc --build (incluye .vue; init.sh solo corre tsc)
-pnpm lint              # oxlint + eslint sin errores
+pnpm lint              # oxlint sin errores (único linter desde la feature #12)
 pnpm build             # el build de producción compila
 ```
 

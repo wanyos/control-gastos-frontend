@@ -51,7 +51,7 @@ export default defineConfig({
 
     /* Headless by default so `./init.sh` runs the smoke test without popping
        browser windows. Set HEADED=1 to watch the run while debugging. */
-    headless: process.env.HEADED === '1' ? false : true,
+    headless: process.env.HEADED !== '1',
   },
 
   /* Configure projects for major browsers */

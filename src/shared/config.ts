@@ -56,6 +56,7 @@ export function loadConfig(
       }
     } else {
       try {
+        // oxlint-disable-next-line no-new -- constructing the URL is the validation
         new URL(rawApiUrl)
         apiUrl = rawApiUrl
       } catch {

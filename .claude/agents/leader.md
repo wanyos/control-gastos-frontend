@@ -145,7 +145,7 @@ Pasos:
 
 4. Redacta `docs/architecture.md` y `docs/conventions.md` como PROPUESTA
    basada en las convenciones idiomáticas del stack y en cualquier config ya
-   presente (ej: si hay `.eslintrc` o `.prettierrc`, refleja sus reglas
+   presente (ej: si hay `.oxlintrc.json` o `.prettierrc`, refleja sus reglas
    reales). Marca CADA sección con `PROPUESTA — confirmar` al principio. No
    las presentes como definitivas: son las decisiones que el humano posee.
 

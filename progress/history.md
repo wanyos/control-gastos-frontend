@@ -538,3 +538,33 @@ Plantilla para cada entrada nueva:
   404 de `/favicon.ico`.
 - **Cierre:** feature 11 → **done**. El nombre de la sidebar sigue siendo
   `control·accounts` (no se pidió cambiarlo).
+
+## 2026-09-14 — Feature 12: dependency-cleanup-and-upgrade
+
+- **Agente:** `leader` (Claude Code) orquestando `implementer` y `reviewer`.
+  Flujo simple (sin SDD).
+- **Plan:** auditar las dependencias, quitar las que no se usan, simplificar y
+  actualizar. Decisiones del humano: quitar `vite-plugin-vue-devtools`, lint solo
+  con oxlint, mantener `npm-run-all2`.
+- **Cambios:** de 32 a 20 dependencias. Fuera `@vue/devtools-api` (directa),
+  `@types/jsdom`, `vite-plugin-vue-devtools`, `jiti` y 8 paquetes de ESLint
+  (con `eslint.config.ts`, `lint:eslint` y `.eslintcache`). `.oxlintrc.json`
+  ampliado (categoría `suspicious`, overrides). `tsconfig.vitest.json` declara DOM
+  en `lib` (lo aportaba `@types/jsdom`). Borrado `pnpm-workspace.yaml` (solo tenía
+  exclusiones obsoletas de antigüedad mínima). Todo lo demás a su última versión,
+  Vitest 5 incluido sin cambios de config ni tests. Docs, `.claude/agents/` y
+  `.vscode/` sin referencias a ESLint ni DevTools.
+- **No actualizado:** TypeScript sigue en 6.0.3. El bloqueo no era ESLint sino
+  `vue-tsc`: el leader lo reprobó el 2026-09-14 con `typescript@7.0.2` y
+  `vue-tsc@3.3.11` (la última) → `ERR_PACKAGE_PATH_NOT_EXPORTED` (`./lib/tsc`),
+  porque TS 7 aún no publica su API programática. `@vue/devtools-api` sigue en
+  `node_modules` porque es peer obligatorio de Pinia 4 y dependencia de
+  vue-router 5; no está en `package.json`.
+- **Cobertura de lint perdida:** reglas de `<template>` de Vue (~56) y reglas de
+  Playwright (mitigado solo en CI con `forbidOnly`). `unicorn/no-array-sort`
+  desactivada por falsos positivos.
+- **Verificación:** `pnpm install --frozen-lockfile`, type-check, lint, 254 tests
+  con Vitest 5, build y e2e contra servidor nuevo y build. `./init.sh` salió rojo
+  por un dev server viejo (12/09) en :5173 con la config antigua; el leader lo
+  paró con autorización del humano y `./init.sh` quedó en verde.
+- **Cierre:** feature 12 → **done**.

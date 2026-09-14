@@ -65,8 +65,11 @@ Verificado en `.prettierrc.json`, `.editorconfig`, `tsconfig.*` y
 
 - **TypeScript** serie 6.0.x, `strict: true`, target efectivo ES2022
   (ver `docs/stack.md`).
-- **Formatter:** Prettier `3.9.4`. **Linters:** oxlint + ESLint (flat config,
-  `@vue/eslint-config-typescript`, reglas Vue + Vitest + Playwright).
+- **Formatter:** Prettier `3.9.6`. **Linter:** solo **oxlint** (`.oxlintrc.json`;
+  plugins `eslint`, `typescript`, `unicorn`, `oxc`, `vue` y `vitest` en los tests
+  unitarios). ESLint se retiró en la feature #12: oxlint **no lintea el
+  `<template>` de los `.vue`** ni tiene reglas de Playwright; qué cubre y qué no,
+  en `docs/stack.md` → *Lint (solo oxlint)*.
 - **Longitud de línea:** 100 columnas (`printWidth: 100`, `max_line_length = 100`).
 - **Comillas:** simples (`singleQuote: true`).
 - **Punto y coma:** no (`semi: false`).
@@ -126,7 +129,7 @@ código, y el CSS al final. Preferir siempre `<script setup lang="ts">`.
 ## Tests
 
 - **DESCUBIERTO:** los unit tests viven en `src/**/__tests__/*.spec.ts`
-  (así lo esperan `eslint.config.ts` y `tsconfig.vitest.json`). Los E2E en
+  (así lo esperan el override de `.oxlintrc.json` y `tsconfig.vitest.json`). Los E2E en
   `e2e/`. Runner: Vitest (jsdom) + `@vue/test-utils`.
 - Un fichero de test co-localizado por módulo. Nombres de test descriptivos y en
   inglés, como el resto del código (el scaffold ya lo hace:

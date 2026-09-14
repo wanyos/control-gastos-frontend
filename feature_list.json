@@ -432,6 +432,47 @@
         "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
       ],
       "status": "done"
+    },
+    {
+      "id": 12,
+      "name": "dependency-cleanup-and-upgrade",
+      "title": "Revisión de librerías: quitar las que no se usan, simplificar el lint a oxlint y actualizar",
+      "intent": {
+        "que_quiero": "Antes de seguir con lo siguiente, revisar las librerías. Primero ver si usamos todas, ya sean de desarrollo o de producción; las que no se usen se eliminan. Ver si podemos reducir algunas o cambiarlas por otras más simples o mejores. Después, actualizar todas las que estén desactualizadas.",
+        "por_que": "El proyecto ya tiene sus primeras features cerradas y quiero partir de una base de dependencias limpia, mínima y al día antes de construir más encima.",
+        "como_se_que_esta_bien": [
+          "No queda en package.json ninguna librería que no se use.",
+          "El lint lo hace solo oxlint: ESLint y todos sus plugins y configuraciones han desaparecido.",
+          "Ya no aparece el botón flotante de Vue DevTools en pnpm dev.",
+          "Todas las librerías que quedan están en su última versión compatible, y si alguna no se puede subir sé por qué.",
+          "La app funciona igual que antes: arranca, se ve la vista de Patrimonio y pasan todos los tests."
+        ],
+        "que_no_quiero": [
+          "No quiero cambios de comportamiento ni visuales en la app.",
+          "No quiero forzar una actualización que rompa herramientas: si una versión mayor no es compatible, se queda en la última que sí lo es y se explica.",
+          "No quiero quitar npm-run-all2: se mantiene.",
+          "No quiero saltarme la política de antigüedad mínima de versiones de pnpm sin dejarlo justificado."
+        ],
+        "delego_en_agente": [
+          "Cómo configurar oxlint (plugins y categorías) para cubrir lo máximo posible de lo que hacía ESLint (Vue, TypeScript, Vitest, Playwright), y qué cobertura se pierde.",
+          "Cómo migrar a Vitest 5 si hay cambios que lo exijan.",
+          "Qué hacer con las entradas obsoletas de minimumReleaseAgeExclude en pnpm-workspace.yaml."
+        ]
+      },
+      "acceptance": [
+        "Auditoría escrita en el informe: cada dependencia de package.json con dónde se usa (archivo) o por qué se necesita aunque no se importe (p. ej. peer, loader de configuración, tipos)",
+        "Se eliminan las dependencias sin uso directo detectadas: @vue/devtools-api (sin import; ya la traen pinia y vue-router), @types/jsdom (quitando 'jsdom' de types en tsconfig.vitest.json si nada lo necesita) y cualquier otra que la auditoría confirme sin uso",
+        "Se elimina vite-plugin-vue-devtools y su uso en vite.config.ts (decisión del humano)",
+        "El lint pasa a ser solo oxlint (decisión del humano): se eliminan eslint, eslint.config.ts, @vue/eslint-config-typescript, eslint-plugin-vue, eslint-plugin-playwright, @vitest/eslint-plugin, eslint-plugin-oxlint, eslint-config-prettier, vue-eslint-parser, jiti (si nada más lo requiere directamente), el script lint:eslint y .eslintcache; .oxlintrc.json activa los plugins y categorías que cubren Vue, TypeScript, Vitest y los tests e2e, y el informe lista la cobertura que se pierde",
+        "Se mantiene npm-run-all2 (decisión del humano)",
+        "Las referencias a ESLint y a Vue DevTools en docs/ (stack.md, conventions.md, verification.md), .claude/agents/, .vscode/ y cualquier otro archivo del repo se actualizan para no apuntar a herramientas que ya no existen",
+        "Todas las dependencias restantes se actualizan a su última versión compatible (incluida Vitest 5 con su migración si hace falta); TypeScript se queda en la última 6.0.x porque TypeScript 7 no tiene todavía API programática estable y vue-tsc depende de ella; cualquier otra que no pueda subirse queda justificada en el informe y en docs/stack.md",
+        "docs/stack.md refleja las versiones y dependencias finales",
+        "pnpm-workspace.yaml queda sin exclusiones obsoletas de minimumReleaseAge; si alguna versión nueva exige una exclusión, se añade la mínima necesaria y se justifica",
+        "No hay cambios de comportamiento ni visuales: la app arranca en pnpm dev y /net-worth se ve como antes (sin el botón de DevTools)",
+        "pnpm install limpio sin avisos de peer dependencies no resueltas; pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde, con el e2e de humo sin cambios"
+      ],
+      "status": "done"
     }
   ]
 }

@@ -31,23 +31,26 @@
 
 ## Framework / Runtime
 
-- **Vue 3** `^3.5.40` — SFC (`.vue`) con Composition API. `jsx: preserve` /
+- **Vue 3** `^3.5.42` — SFC (`.vue`) con Composition API. `jsx: preserve` /
   `jsxImportSource: vue` habilitados por si se usa TSX.
 - **Runtime Node** — `engines`: `^22.22.2 || ^24.15.0 || >=26.0.0`. En desarrollo todo
   corre sobre Vite; no hay servidor propio (el backend es un proyecto hermano).
 
 ## Librerías clave
 
-- **Estado / store:** Pinia `^4.0.2` — se usan *setup stores* (función que
+- **Estado / store:** Pinia `^4.0.3` — se usan *setup stores* (función que
   devuelve refs/computed/acciones). Se registra en `src/main.ts` como plugin
   base. Desde la v4, Pinia es **ESM-only** (sin problema: el proyecto es
-  `"type": "module"` y se empaqueta con Vite) y **`@vue/devtools-api` `^8.2.1`
-  es una peer dependency NO opcional que hay que declarar a mano** — por eso
-  aparece en `dependencies` sin que ningún import de `src/` la nombre. No la
-  quites «por no usarse»: sin ella Pinia no resuelve su peer. El store de ejemplo del scaffold (`src/stores/counter.ts`) se retiró en
+  `"type": "module"` y se empaqueta con Vite). Declara `@vue/devtools-api` como
+  peer **no opcional**; desde la feature #12 **ya no se declara en
+  `package.json`**: la resuelve pnpm sola (`autoInstallPeers: true`, la opción
+  por defecto, registrada en `settings` de `pnpm-lock.yaml`) y además
+  `vue-router` 5 la trae como dependencia directa. `pnpm peers check` queda
+  limpio. Si algún día se desactiva `autoInstallPeers`, habrá que volver a
+  declararla. El store de ejemplo del scaffold (`src/stores/counter.ts`) se retiró en
   el bootstrap; los stores viven por feature en `src/features/<feature>/store.ts`
   (ver `docs/architecture.md`).
-- **Routing:** Vue Router `^5.2.0` — `createWebHistory(import.meta.env.BASE_URL)`.
+- **Routing:** Vue Router `^5.3.1` — `createWebHistory(import.meta.env.BASE_URL)`.
   Ver `src/router/index.ts`: desde la feature #8 declara las rutas reales del
   shell (`/` redirige a `/net-worth`), y su `meta.label` / `meta.icon` es la
   única fuente de verdad de la sidebar y del título de la topbar.
@@ -76,7 +79,7 @@
   Los valores del theme (colores, tipografía, radios, sombras) los aporta el
   design system: ver *Design system y tokens* más abajo. Qué ficheros mira
   Tailwind para decidir qué CSS emite: ver *Qué ficheros escanea Tailwind*.
-- **Test utils:** `@vue/test-utils` `^2.4.11`.
+- **Test utils:** `@vue/test-utils` `^2.5.0`.
 
 ## Design system y tokens
 
@@ -93,8 +96,8 @@ re-copiar los tokens si el design system se regenera. Su guía completa está en
 
 Está fuera de `src/` a propósito: `tsconfig.app.json` incluye `src/**/*`, así que
 dentro sus `.d.ts` de React entraban en el type-check. Además se excluye
-explícitamente en `eslint.config.ts`, `.oxlintrc.json` (ambos glob-ean desde la
-raíz, así que mudarla no bastaba) y `.prettierignore`.
+explícitamente en `.oxlintrc.json` (glob-ea desde la raíz, así que mudarla no
+bastaba) y `.prettierignore`.
 
 ### Dónde viven en el proyecto
 
@@ -309,9 +312,15 @@ feature #8; ver *Iconos (Lucide)*.
 
 ## Build / Dev tooling
 
-- **Bundler / build tool:** Vite `^8.2.0` (`@vitejs/plugin-vue` 6 +
-  `vite-plugin-vue-devtools`).
-- **Gestor de paquetes:** **pnpm** (`pnpm-lock.yaml`, `pnpm-workspace.yaml`).
+- **Bundler / build tool:** Vite `^8.3.0` con `@vitejs/plugin-vue` `^6.0.8` y
+  `@tailwindcss/vite`. **Sin `vite-plugin-vue-devtools`** desde la feature #12
+  (decisión del humano): ya no aparece el botón flotante de Vue DevTools en
+  `pnpm dev`. Para inspeccionar componentes o stores sigue valiendo la extensión
+  de navegador Vue.js devtools (ver `README.md`).
+- **Gestor de paquetes:** **pnpm** 11 (`pnpm-lock.yaml`). **No hay
+  `pnpm-workspace.yaml`**: solo contenía exclusiones de `minimumReleaseAge` y se
+  retiró al quedar todas obsoletas (feature #12; ver *Mantenimiento de
+  dependencias*).
 - **Alias de imports:** `@` → `./src` (definido en `vite.config.ts` y en los
   `paths` de `tsconfig.app.json`).
 - **Comandos** (definidos en `package.json`):
@@ -322,18 +331,75 @@ feature #8; ver *Iconos (Lucide)*.
   | Build | `pnpm build` | `run-p type-check "build-only"` → type-check + `vite build`. |
   | Preview | `pnpm preview` | Sirve el build de producción (`4173`). |
   | Type-check | `pnpm type-check` | `vue-tsc --build` (incluye `.vue`). |
-  | Lint | `pnpm lint` | `run-s lint:*` → `oxlint . --fix` y `eslint . --fix --cache`. |
+  | Lint | `pnpm lint` | `run-s lint:*` → solo `oxlint . --fix` (ver *Lint (solo oxlint)*). |
   | Format | `pnpm format` | `prettier --write src/`. |
+
+## Lint (solo oxlint)
+
+> Feature #12 (`dependency-cleanup-and-upgrade`, 2026-09-13). Decisión del
+> humano: **ESLint y todo su ecosistema se retiraron**; el único linter es
+> **oxlint** `~1.82.0`. `pnpm lint` = `run-s "lint:*"` → `oxlint . --fix`.
+
+Configuración en `.oxlintrc.json`:
+
+- **Plugins base:** `eslint`, `typescript`, `unicorn`, `oxc`, `vue`; `env.browser`.
+- **Categorías:** `correctness` y `suspicious` en `error`.
+- **Reglas explícitas** que antes activaba `vueTsConfigs.recommended` de ESLint y
+  que oxlint no mete en esas categorías: `no-array-constructor`, `no-var`,
+  `prefer-const`, `prefer-rest-params`, `prefer-spread`,
+  `typescript/ban-ts-comment`, `no-empty-object-type`, `no-explicit-any`,
+  `no-namespace`, `no-require-imports`, `no-unsafe-function-type`.
+- **Override `src/**/__tests__/**`:** plugin `vitest` (sus reglas `correctness` y
+  `suspicious`) más las de estilo que tenía el recomendado de
+  `@vitest/eslint-plugin` (`no-identical-title`, `no-import-node-test`,
+  `no-interpolation-in-snapshots`, `no-mocks-import`,
+  `no-unneeded-async-expect-function`, `prefer-called-exactly-once-with`).
+- **Desactivadas a propósito** (falsos positivos en este código):
+  - `unicorn/no-array-sort`: todos los `.sort()` del repo ordenan una copia
+    recién creada (`[...x].sort()`), y `toSorted()` no está tipado con
+    `lib: ES2022`.
+  - `unicorn/consistent-function-scoping`: los helpers locales de los tests son
+    intencionados, y en el e2e el helper de `page.evaluate()` **tiene** que vivir
+    dentro del callback (se ejecuta en el navegador).
+- `oxlint` va con `~` (solo parches): un minor nuevo puede meter reglas en
+  `correctness`/`suspicious` y poner el lint en rojo sin tocar código; se sube a
+  mano y se revisa.
+
+**Lo que oxlint NO cubre (cobertura perdida al quitar ESLint):**
+
+- **El `<template>` de los `.vue` no se lintea.** oxlint solo analiza el
+  `<script>`. Se pierden las ~56 reglas de plantilla de
+  `eslint-plugin-vue` `flat/essential`: `require-v-for-key`, `valid-v-*`,
+  `no-use-v-if-with-v-for`, `no-dupe-v-else-if`, `no-duplicate-attributes`,
+  `no-unused-components`, `no-unused-vars` (del template), `no-mutating-props`,
+  `no-ref-as-operand`, `multi-word-component-names`, `no-deprecated-*`… El
+  compilador de Vue (`vue-tsc` y `vite build`) sigue rompiendo con plantillas
+  inválidas, pero no avisa de claves de `v-for` ni de props mutadas.
+- **Playwright: sin reglas.** oxlint no tiene plugin de Playwright, y sus
+  plugins `jest`/`vitest` **no reconocen** `test`/`expect` importados de
+  `@playwright/test` (comprobado: `test.only`, títulos duplicados o `expect` sin
+  matcher no se detectan). El e2e solo pasa por las reglas base. Mitigación
+  existente: `forbidOnly` en CI (`playwright.config.ts`). Se pierden, entre
+  otras, `missing-playwright-await`, `no-focused-test`, `no-skipped-test`,
+  `no-wait-for-timeout`, `prefer-web-first-assertions`, `valid-expect`.
+- La vía para recuperarlas sería `jsPlugins` de oxlint cargando
+  `eslint-plugin-vue`/`eslint-plugin-playwright`, lo que reintroduce paquetes
+  del ecosistema ESLint: descartado por la decisión del humano.
 
 ## Testing
 
-- **Unitarios:** **Vitest** `^4.1.10`, entorno `jsdom` `^30.0.1`, con
+- **Unitarios:** **Vitest** `^5.0.0`, entorno `jsdom` `^30.0.1`, con
   `@vue/test-utils`. El requisito de Node del proyecto lo marca **jsdom**, que
   es más estricto que Vite o Vue: ver *Restricciones / decisiones de versionado*.
   - Comando: `pnpm test:unit`.
   - Ubicación: co-localizados por módulo en `src/**/__tests__/*.spec.ts`
-    (así lo esperan `eslint.config.ts` y `tsconfig.vitest.json`).
-- **E2E:** **Playwright** `^1.62.1`. Tras subir de versión hay que refrescar los
+    (así lo esperan el override de `.oxlintrc.json` y `tsconfig.vitest.json`).
+  - **Tipos DOM en los tests:** `tsconfig.vitest.json` declara
+    `lib: ["ES2022", "ES2023.Intl", "DOM", "DOM.Iterable"]` y `types: ["node"]`.
+    Antes los globals del DOM (`HTMLElement`, `location`…) llegaban de rebote por
+    `@types/jsdom`; al quitarlo (feature #12) se declaran explícitamente. Ningún
+    test usa la API de `jsdom` (`new JSDOM(...)`): el entorno lo monta Vitest.
+- **E2E:** **Playwright** `^1.63.0`. Tras subir de versión hay que refrescar los
   navegadores con `npx playwright install`; los binarios van atados a la versión.
   - Comando: `pnpm test:e2e`.
   - Ubicación: `e2e/`.
@@ -410,7 +476,8 @@ real, no la vista, y no depende de tener el backend en `:3000`.
 
 ## Mantenimiento de dependencias
 
-> Última pasada: **2026-08-03**. Tarea de mantenimiento, no una feature.
+> Última pasada: **2026-09-13**, feature #12 (`dependency-cleanup-and-upgrade`).
+> Informe completo: `progress/implementation/dependency-cleanup-and-upgrade.md`.
 
 ### Cómo se hace una actualización aquí
 
@@ -428,31 +495,46 @@ actualización de dependencias hay que lanzarlos a mano.
 
 ### Por qué TypeScript 7 no entra (todavía)
 
-TypeScript 7 está publicado (`~7.0.2`) y **la config del proyecto ya es
+TypeScript 7 está publicado (`7.0.2`) y **la config del proyecto ya es
 compatible**: no usa nada de lo que la 7 elimina (`baseUrl`, `outFile`,
 `target: ES5`, `moduleResolution: node10`…). Aun así se **descarta a propósito**
-y `typescript` se queda en `~6.0.3`, por dos motivos comprobados en el repo:
+y `typescript` se queda en `~6.0.3` (la última 6.0.x publicada):
 
-1. **`vue-tsc` 3.3.9 ni arranca.** TS 7 reestructuró los `exports` de su
-   `package.json` y `vue-tsc` sigue resolviendo `typescript/lib/tsc`:
-   `ERR_PACKAGE_PATH_NOT_EXPORTED`. Eso tumba `pnpm type-check` y, con él,
-   `pnpm build`. Es un fallo duro, no un aviso.
-2. **`typescript-eslint` no lo soporta.** Su peer es `>=4.8.4 <6.1.0` y sigue
-   siéndolo en la última publicada (8.66.0). Entra por
-   `@vue/eslint-config-typescript`, así que no se arregla subiendo nada.
+1. **TS 7 no tiene API programática estable.** Sus `exports` solo publican
+   `version` y rutas `unstable/*` (`unstable/sync`, `unstable/ast`…); ya no hay
+   `typescript/lib/*` ni la API JS clásica.
+2. **`vue-tsc` depende de esa API y no arranca.** Comprobado en la feature #12
+   con `vue-tsc` **3.3.11** (la última) en una copia del repo: `pnpm type-check`
+   revienta con `ERR_PACKAGE_PATH_NOT_EXPORTED` al resolver `typescript/lib/tsc`.
+   Eso tumba también `pnpm build`. Es un fallo duro, no un aviso.
 
-**Cuándo reintentarlo:** cuando `vue-tsc` publique una versión que resuelva TS 7
-y `typescript-eslint` amplíe su peer por encima de `<6.1.0`. Hasta entonces
-`ncu` seguirá ofreciendo la 7: es esperado, no es un despiste.
+El otro motivo que había (`typescript-eslint` limitaba TypeScript a `<6.1.0`)
+**desapareció con ESLint** en la feature #12; no cambia la conclusión.
+
+**Cuándo reintentarlo:** cuando `vue-tsc` publique una versión que funcione con
+TS 7 (o TS 7 estabilice su API). Hasta entonces `pnpm outdated` seguirá
+ofreciendo la 7: es esperado, no es un despiste.
 
 ### Otras trampas conocidas
 
 - **`pnpm add` de un major puede añadir peers nuevas sin avisar en claro.**
   Comprueba siempre `pnpm peers check` después (así salió la peer no opcional
-  `@vue/devtools-api` de Pinia 4).
-- **`pnpm-workspace.yaml` crece solo.** Cada instalación añade entradas a
-  `minimumReleaseAgeExclude` (política de antigüedad mínima de pnpm). Que el
-  diff lo toque es normal.
+  `@vue/devtools-api` de Pinia 4, que hoy resuelve `autoInstallPeers`).
+- **Antigüedad mínima de versiones (pnpm 11).** pnpm rechaza versiones
+  publicadas hace menos de `minimumReleaseAge` (1 día por defecto). Si hace
+  falta una más reciente, pnpm crea `pnpm-workspace.yaml` con
+  `minimumReleaseAgeExclude`. **Esas entradas caducan solas**: en cuanto la
+  versión cumple la antigüedad sobran. En cada pasada se revisan y se borran las
+  obsoletas; en la feature #12 se borraron todas (oxlint 1.73/1.77, Vue 3.5.41,
+  Vite 8.2.1, `@vitest/eslint-plugin`, `eslint-plugin-oxlint`) y con ellas el
+  fichero, porque no contenía nada más.
+- **Subir Playwright obliga a bajar navegadores** (`npx playwright install`): los
+  binarios van atados a la versión.
+- **Vitest 5** (feature #12) no exigió cambios en `vitest.config.ts`. Lo que
+  cambia de comportamiento y conviene recordar al escribir tests: limpia los
+  mocks antes de cada test por defecto, falla si un `expect` asíncrono no se
+  espera con `await`, exige `vi.mock`/`vi.hoisted` en el nivel superior del
+  fichero y deja sus salidas (json, junit, blob, adjuntos) en `.vitest/`.
 - **El e2e del scaffold (`e2e/vue.spec.ts`) estuvo roto de fábrica** desde la
   feature #1 (esperaba `<h1>You did it!</h1>` que `App.vue` ya no pinta) hasta
   la feature #6, que lo sustituyó por la prueba de humo `e2e/app-boot.spec.ts`.
