@@ -1,7 +1,7 @@
 // Exact money arithmetic and es-ES / en-GB formatting (feature 9).
 // Amounts arrive as decimal strings with two decimals. They are summed as
 // integer cents in bigint and formatted from the exact string, so no float ever
-// touches a cent (see specs/net-worth-view/design.md §3).
+// touches a cent (see specs/09-net-worth-view/design.md §3).
 
 import { ValidationError } from '@/shared/errors'
 

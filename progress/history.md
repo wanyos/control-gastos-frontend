@@ -579,3 +579,30 @@ Plantilla para cada entrada nueva:
   `specs/README.md`, `AGENTS.md`, `CLAUDE.md`, `CHECKPOINTS.md`, plantillas de
   `docs/` y `.claude/agents/*` actualizados, e `init.sh` exige el nombre con número.
   Las entradas anteriores de este historial conservan las rutas antiguas.
+
+## 2026-09-15 — Feature 13: import-dialog
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author` (agente general con
+  su rol), `implementer` y `reviewer`. Flujo SDD; plan de diseño aprobado por el
+  humano (progreso por fases sin tocar backend, botón en la barra, aviso incluido).
+- **Spec:** `specs/13-import-dialog/`, 15 requirements. Corrección del humano al
+  🔴2: todos los bancos tienen parser y no hay PDFs, así que el aviso baja a 0
+  (cabo suelto 6 del roadmap retirado).
+- **Cambios:** botón Import y aviso «N new files» en `AppTopBar` (slot `actions`)
+  montados desde `AppShell`; `/import` y su entrada de sidebar retiradas; feature
+  `src/features/import/` (types, service con `getPendingFiles`/`runImport` y parseo
+  completo del informe, store con máquina de estados, lógica pura y componentes);
+  compartidos nuevos `BaseButton`, `BaseSpinner`, `BaseDialog` (accesible, no
+  cerrable mientras importa), `src/shared/validation.ts` y `src/shared/banks.ts`
+  (con Revolut); `ApiError.apiCode`; un 200 no JSON pasa a `ValidationError`;
+  líneas `contrast:` nuevas; e2e de humo y `e2e/import-dialog.spec.ts` con toda
+  `/api` simulada.
+- **Revisión:** APROBADO condicionado a la prueba real (C7); antes de ella se
+  corrigieron tres notas (texto libre vacío tolerado, Revolut, 200 no JSON).
+- **C7 (leader, con autorización del humano):** con 0 pendientes, «You're up to
+  date». Con `revolut/2025/revolut_2026-09-15.csv` devuelto desde `procesados/`:
+  POST sin body ni `Content-Type` → 200 en ~5,4 s, 35 duplicados, archivo movido,
+  1 conflicto de categorización en la BD (titular «with a few things to check»,
+  detalle en la F14), aviso a 0 y Patrimonio recargado, sin errores de consola.
+- **Verificación:** type-check, lint, 443 tests, build, e2e y `./init.sh` en verde.
+- **Cierre:** feature 13 → **done**. Siguiente: F14, spec en `spec_ready`.

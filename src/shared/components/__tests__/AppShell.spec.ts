@@ -23,8 +23,8 @@ const linkTexts = (wrapper: Awaited<ReturnType<typeof mountShell>>['wrapper']) =
   wrapper.findAll('nav a').map((link) => link.text())
 
 describe('AppShell', () => {
-  // /net-worth renders the real view, which requests the API on mount: the HTTP
-  // boundary is held pending so the shell is tested without a backend.
+  // /net-worth renders the real view and the topbar asks for the pending Drive files,
+  // both on mount: the HTTP boundary is held pending so the shell is tested without a backend.
   beforeEach(() => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(() => new Promise<Response>(() => {}))
   })
@@ -75,12 +75,12 @@ describe('AppShell', () => {
 
     expect(wrapper.get('nav a[aria-current="page"]').text()).toBe('Net Worth')
 
-    await router.push('/import')
+    await router.push('/investments')
     await wrapper.vm.$nextTick()
 
-    expect(wrapper.get('nav a[aria-current="page"]').text()).toBe('Import')
-    expect(wrapper.get('[data-test="topbar-title"]').text()).toBe('Import')
-    expect(wrapper.get('[data-test="placeholder"]').text()).toContain('Import')
+    expect(wrapper.get('nav a[aria-current="page"]').text()).toBe('Investments')
+    expect(wrapper.get('[data-test="topbar-title"]').text()).toBe('Investments')
+    expect(wrapper.get('[data-test="placeholder"]').text()).toContain('Investments')
   })
 
   it('renders no title and no active entry on a route outside the navigation', async () => {
@@ -89,6 +89,17 @@ describe('AppShell', () => {
     expect(wrapper.get('[data-test="topbar-title"]').text()).toBe('')
     expect(wrapper.findAll('nav a[aria-current="page"]')).toHaveLength(0)
   })
+
+  it.each(['/net-worth', '/overview', '/nope'])(
+    'shows the Import button inside the topbar on %s (feature 13, R1)',
+    async (path) => {
+      const { wrapper } = await mountShell(path)
+
+      const button = wrapper.get('header [data-test="import-button"]')
+      expect(button.text()).toBe('Import')
+      expect(wrapper.findAll('nav a').map((link) => link.text())).not.toContain('Import')
+    },
+  )
 
   it('shows an English wordmark, not the design system Spanish one', async () => {
     const { wrapper } = await mountShell('/net-worth')

@@ -2,7 +2,11 @@
   <div class="flex min-h-screen">
     <AppSidebar />
     <div class="flex min-w-0 flex-1 flex-col">
-      <AppTopBar />
+      <AppTopBar>
+        <template #actions>
+          <ImportButton />
+        </template>
+      </AppTopBar>
       <main class="mx-auto w-full max-w-[var(--container-max)] flex-1 p-7">
         <RouterView />
       </main>
@@ -12,6 +16,8 @@
 
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
+
+import ImportButton from '@/features/import/components/ImportButton.vue'
 
 import AppSidebar from './AppSidebar.vue'
 import AppTopBar from './AppTopBar.vue'

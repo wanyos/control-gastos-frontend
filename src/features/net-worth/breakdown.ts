@@ -3,9 +3,13 @@
 // each breakdown, so the groups add up to `total` for a coherent response.
 // Products with `value: null` are left out of every group (they are gaps).
 
+import { bankLabel } from '@/shared/banks'
 import { sharePermille, sumAmounts, toCents } from '@/shared/money'
 
 import type { DecimalString, NetWorth } from './types'
+
+// Existing imports of bankLabel from this module keep working.
+export { bankLabel } from '@/shared/banks'
 
 export type NatureGroupId = 'checking' | 'savings' | 'market' | 'deposits'
 
@@ -32,19 +36,6 @@ const NATURE_LABELS: Record<NatureGroupId, string> = {
   savings: 'Savings',
   market: 'Market investments',
   deposits: 'Fixed-term deposits',
-}
-
-const BANK_LABELS: Record<string, string> = {
-  bankinter: 'Bankinter',
-  n26: 'N26',
-  openbank: 'Openbank',
-  myinvestor: 'MyInvestor',
-  'trade-republic': 'Trade Republic',
-}
-
-/** Readable bank name; an unknown slug is shown as it comes (banks are discovered). */
-export function bankLabel(slug: string): string {
-  return BANK_LABELS[slug] ?? slug
 }
 
 interface ClassifiedHolding extends Holding {

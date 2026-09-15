@@ -16,10 +16,10 @@ const DESIGN_SYSTEM_LABELS = [
 const newRouter = () => createRouter({ history: createMemoryHistory(), routes })
 
 describe('router', () => {
-  it('declares the five navigable routes with English paths', () => {
+  it('declares the four navigable routes with English paths', () => {
     const paths = routes.filter((route) => route.name).map((route) => route.path)
 
-    expect(paths).toEqual(['/net-worth', '/overview', '/movements', '/investments', '/import'])
+    expect(paths).toEqual(['/net-worth', '/overview', '/movements', '/investments'])
   })
 
   it('sends the root path to the net worth home', async () => {
@@ -32,7 +32,7 @@ describe('router', () => {
     expect(router.currentRoute.value.path).toBe('/net-worth')
   })
 
-  it.each(['/net-worth', '/overview', '/movements', '/investments', '/import'])(
+  it.each(['/net-worth', '/overview', '/movements', '/investments'])(
     'resolves %s to a component',
     (path) => {
       const matched = newRouter().resolve(path).matched
@@ -41,6 +41,11 @@ describe('router', () => {
       expect(matched[0]?.components?.default).toBeTruthy()
     },
   )
+
+  it('no longer resolves /import: importing lives in the topbar (feature 13)', () => {
+    expect(newRouter().resolve('/import').matched).toEqual([])
+    expect(routes.some((route) => route.name === 'import')).toBe(false)
+  })
 
   it('does not resolve an unknown path to any component', () => {
     expect(newRouter().resolve('/nope').matched).toEqual([])
@@ -52,14 +57,12 @@ describe('router', () => {
       'overview',
       'movements',
       'investments',
-      'import',
     ])
     expect(navEntries.map((entry) => entry.label)).toEqual([
       'Net Worth',
       'Overview',
       'Movements',
       'Investments',
-      'Import',
     ])
     for (const entry of navEntries) {
       expect(entry.icon, `${entry.name} has no icon`).toBeTruthy()

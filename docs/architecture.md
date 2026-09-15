@@ -62,10 +62,20 @@ src/
       service.ts          # acceso a la API + mapeo a tipos del frontend
       types.ts            # tipos/interfaces propios (derivados del contrato)
       __tests__/          # tests co-localizados (*.spec.ts)
+    import/               # feature #13: botón Import de la barra, aviso de pendientes y modal
+      components/         # ImportButton, ImportDialog, ImportPhases, PendingList, ImportSummary, FileIssueList
+      store.ts            # useImportStore: pendientes + máquina de estados del modal
+      service.ts          # GET /api/ingestion/pending, POST /api/import (informe completo)
+      outcome.ts, summary.ts, fileMessages.ts   # textos y titular, funciones puras
   shared/                 # componentes/composables/utils reutilizables entre features
-    components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8)
+    components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
+                          # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
+                          # BaseButton, BaseSpinner, BaseDialog (feature #13)
     config.ts             # AppConfig tipada + loadConfig() + singleton appConfig (feature #2)
-    errors.ts             # AppError y subtipos, toAppError, formatError, handleGlobalError (feature #2)
+    errors.ts             # AppError y subtipos (ApiError.apiCode desde la #13), toAppError, formatError…
+    validation.ts         # createValidators(context): guardas de respuestas de la API (feature #13)
+    banks.ts              # bankLabel(slug): nombre legible de banco, lista abierta (feature #13)
+    money.ts              # importes exactos y formato es-ES / en-GB (feature #9)
   services/
     http.ts               # cliente HTTP base: createHttp(config) + http (feature #2)
 ```
@@ -73,6 +83,12 @@ src/
 > El scaffold de ejemplo (`src/stores/counter.ts`) se retiró en el bootstrap.
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
+
+> **Dependencias entre features y con `shared/` (feature #13).** `AppShell.vue`
+> (shared) monta `ImportButton` de `features/import`, igual que el router monta
+> `NetWorthView`. Entre features hay una única dependencia y va en un sentido:
+> el store de `import` recarga el de `net-worth` tras importar (solo si ya estaba
+> cargado). `net-worth` no conoce `import`.
 
 ## Flujo de datos
 

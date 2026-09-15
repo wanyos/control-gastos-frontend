@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import BaseBadge from '../BaseBadge.vue'
+import BaseButton from '../BaseButton.vue'
 import BaseCard from '../BaseCard.vue'
+import BaseSpinner from '../BaseSpinner.vue'
 import ShareBar from '../ShareBar.vue'
 import StatCard from '../StatCard.vue'
 
@@ -81,5 +83,71 @@ describe('ShareBar', () => {
     const fill = wrapper.get('[data-test="share-bar-fill"]')
     expect((fill.element as HTMLElement).style.width).toBe(width)
     expect(fill.classes()).toContain(cls('bg', 'chart', '1'))
+  })
+})
+
+describe('BaseButton (feature 13)', () => {
+  it.each([
+    ['primary', [cls('bg', 'brand'), cls('text', 'ink', 'on', 'brand')]],
+    ['secondary', [cls('bg', 'surface', 'card'), cls('border', 'line', 'default')]],
+    ['ghost', [cls('bg', 'transparent'), cls('text', 'ink', 'muted')]],
+  ] as const)('paints the %s variant with semantic tokens', (variant, classes) => {
+    const wrapper = mount(BaseButton, { props: { variant }, slots: { default: 'Import' } })
+
+    expect(wrapper.element.tagName).toBe('BUTTON')
+    expect(wrapper.attributes('type')).toBe('button')
+    expect(wrapper.classes()).toEqual(expect.arrayContaining([...classes]))
+    expect(wrapper.text()).toBe('Import')
+  })
+
+  it('shows its icon slot and is enabled by default', () => {
+    const wrapper = mount(BaseButton, {
+      slots: { default: 'Import', icon: '<svg data-test="icon" />' },
+    })
+
+    expect(wrapper.find('[data-test="icon"]').exists()).toBe(true)
+    expect(wrapper.attributes('disabled')).toBeUndefined()
+    expect(wrapper.attributes('aria-busy')).toBeUndefined()
+  })
+
+  it('while loading swaps the icon for a spinner, disables itself and is busy, without dimming', () => {
+    const wrapper = mount(BaseButton, {
+      props: { loading: true },
+      slots: { default: 'Importing…', icon: '<svg data-test="icon" />' },
+    })
+
+    expect(wrapper.find('[data-test="icon"]').exists()).toBe(false)
+    expect(wrapper.findComponent(BaseSpinner).exists()).toBe(true)
+    expect(wrapper.attributes('disabled')).toBeDefined()
+    expect(wrapper.attributes('aria-busy')).toBe('true')
+    expect(wrapper.classes().join(' ')).not.toContain(cls('opacity', '50'))
+    expect(wrapper.text()).toBe('Importing…')
+  })
+
+  it('dims when disabled without loading', () => {
+    const wrapper = mount(BaseButton, { props: { disabled: true }, slots: { default: 'Go' } })
+
+    expect(wrapper.attributes('disabled')).toBeDefined()
+    expect(wrapper.classes().join(' ')).toContain(cls('opacity', '50'))
+  })
+})
+
+describe('BaseSpinner (feature 13)', () => {
+  it('is decorative by default and stops turning with reduced motion', () => {
+    const wrapper = mount(BaseSpinner)
+
+    expect(wrapper.attributes('aria-hidden')).toBe('true')
+    expect(wrapper.attributes('role')).toBeUndefined()
+    expect(wrapper.classes()).toEqual(
+      expect.arrayContaining([cls('animate', 'spin'), `motion-reduce:${cls('animate', 'none')}`]),
+    )
+    expect((wrapper.element as HTMLElement).style.width).toBe('14px')
+  })
+
+  it('is a status with its label when it has one', () => {
+    const wrapper = mount(BaseSpinner, { props: { label: 'Loading', size: 20 } })
+
+    expect(wrapper.attributes('role')).toBe('status')
+    expect(wrapper.text()).toBe('Loading')
   })
 })

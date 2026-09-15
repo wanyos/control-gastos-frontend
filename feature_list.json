@@ -340,12 +340,12 @@
       "acceptance": [
         "La ruta /net-worth renderiza la vista de Patrimonio con los bloques A, B y E",
         "Bloque A: se muestra el campo total de la respuesta tal cual (no una suma recalculada en el cliente) y debajo una frase interpretada del estado",
-        "Bloque B: reparto por naturaleza con barras horizontales, y reparto por banco. La partición exacta (qué grupos, dónde caen las cuentas que no son checking y qué cuenta como 'dinero parado') se fija en specs/net-worth-view/decisions.md; sea cual sea, los grupos deben sumar el total mostrado y ninguna cuenta ni producto computable puede quedarse fuera de todos los grupos",
+        "Bloque B: reparto por naturaleza con barras horizontales, y reparto por banco. La partición exacta (qué grupos, dónde caen las cuentas que no son checking y qué cuenta como 'dinero parado') se fija en specs/09-net-worth-view/decisions.md; sea cual sea, los grupos deben sumar el total mostrado y ninguna cuenta ni producto computable puede quedarse fuera de todos los grupos",
         "Bloque E: ficha por cada banco y producto con valuedAt y 'desde cuándo hay dato'",
         "Los productos con value: null aparecen como hueco visual, nunca como cero, y no entran en ninguna suma",
         "Los investments.issues se muestran como avisos con su reason traducida a texto legible en inglés (no_valuation, stale_valuation, matured_not_closed)",
         "Los textos de la UI están en inglés",
-        "El formato de moneda queda fijado en specs/net-worth-view/decisions.md en la puerta de aprobación (propuesta de partida: €12,480.55, locale en-US) y la vista lo aplica de forma consistente, con font-mono tabular-nums en las cifras",
+        "El formato de moneda queda fijado en specs/09-net-worth-view/decisions.md en la puerta de aprobación (propuesta de partida: €12,480.55, locale en-US) y la vista lo aplica de forma consistente, con font-mono tabular-nums en las cifras",
         "Se portan componentes del design system (StatCard, AccountCard, Card, Badge) de React a Vue3, traduciendo sus textos y sus tokens de color según docs/conventions.md",
         "Los errores de la llamada se muestran a partir del error del store (ApiError / toAppError), nunca como strings sueltos",
         "El e2e de humo sigue pasando",
@@ -473,6 +473,79 @@
         "pnpm install limpio sin avisos de peer dependencies no resueltas; pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde, con el e2e de humo sin cambios"
       ],
       "status": "done"
+    },
+    {
+      "id": 13,
+      "name": "import-dialog",
+      "title": "Botón Import en la barra superior, modal de importación por fases y aviso de archivos nuevos",
+      "intent": {
+        "que_quiero": "Seguir con el botón de importar: el que inicia en el backend el proceso de recuperar los archivos de Google Drive, hacer el parser de cada archivo y guardar todo en la base de datos. Al pulsarlo quiero un modal que muestre el progreso del trabajo, si todo salió bien, los posibles errores y un pequeño resumen de lo que se hizo. El botón va en la barra superior, visible desde cualquier vista, y junto a él un aviso con el número de archivos nuevos que hay en Drive. La entrada Import de la sidebar y su página placeholder desaparecen.",
+        "por_que": "Es la razón de ser de la app: meter los movimientos de los bancos sin tocar el Excel. El backend ya lo hace todo en una llamada, pero hoy solo se puede lanzar a mano; quiero poder hacerlo desde la web y ver qué ha pasado.",
+        "como_se_que_esta_bien": [
+          "Cuando abro la app, veo arriba a la derecha el botón Import y, si hay archivos nuevos en Drive, un aviso con cuántos son.",
+          "Cuando pulso Import, el modal me dice en qué fase está (comprobando Drive, cuántos archivos hay, importando) y no me deja cerrarlo a medias.",
+          "Si no hay nada que importar, me lo dice y no lanza nada.",
+          "Al terminar veo un resumen: cuántos movimientos nuevos, cuántos ya estaban, qué archivos de inversión se actualizaron y qué archivos no se pudieron importar y por qué, en inglés.",
+          "Si Drive o el servidor fallan, me lo dice claramente, me deja reintentar y no me engaña diciendo que no se hizo nada si pudo hacerse algo.",
+          "Después de importar, el aviso de archivos nuevos y la vista de Patrimonio se actualizan solos."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend en esta feature: el progreso se muestra por fases con lo que la API ya da, no archivo a archivo.",
+          "No quiero una lista cerrada de bancos en el frontend: el backend va a sumar Revolut y un banco nuevo.",
+          "No quiero que se pueda lanzar dos importaciones a la vez con un doble clic.",
+          "No quiero textos en español en la interfaz ni colores claros.",
+          "No quiero todavía el detalle fino del informe (filas no leídas, descuadres, traspasos ambiguos, conflictos de categoría): eso va en la feature 14."
+        ],
+        "delego_en_agente": [
+          "Cómo portar del design system el modal, el botón con estado de carga y el spinner (React) a componentes Vue reutilizables, accesibles y en oscuro.",
+          "Cómo conservar el código de error del backend para distinguir un fallo de Drive de uno del servidor sin romper lo existente.",
+          "Cómo reutilizar la validación en frontera que ya existe en la vista de Patrimonio en lugar de duplicarla.",
+          "Cómo mantener verde el e2e de humo ahora que el shell consulta los pendientes al arrancar."
+        ]
+      },
+      "acceptance": [
+        "La barra superior muestra en todas las rutas un botón Import y, si GET /api/ingestion/pending devuelve totalPending > 0, un aviso con el número; si es 0 o la consulta falla, el aviso no aparece y no se muestra ningún error en la barra",
+        "La ruta /import y la entrada Import de la sidebar desaparecen",
+        "Al pulsar Import se abre un modal que comprueba los pendientes y pasa a: 'nada que importar', confirmación con la lista por banco y año, o error de Drive/servidor con opción de reintentar",
+        "Al confirmar se hace un único POST /api/import sin body y sin Content-Type, aunque se pulse varias veces; mientras dura, el modal indica la fase y no se puede cerrar (ni Esc, ni fondo, ni X)",
+        "Con la respuesta 200 el modal muestra un titular de resultado, los contadores principales y la lista de archivos fallidos y omitidos con una explicación en inglés según error.code (texto genérico para códigos desconocidos y para skipped) y el texto original del backend como detalle",
+        "Un 503 DRIVE_CONNECTION_ERROR o un fallo de servidor durante la importación muestra un mensaje que advierte que algunos archivos pudieron importarse y que reintentar es seguro; un informe que no pasa la validación se comunica como tal",
+        "Tras la importación, con cualquier resultado, se refresca el aviso de pendientes y se recarga Patrimonio si ya estaba cargado",
+        "ApiError conserva el code del backend sin cambiar el comportamiento actual; la validación en frontera se comparte con la feature net-worth sin romper sus tests",
+        "El modal es accesible: role=dialog, aria-modal, foco dentro y devuelto al botón al cerrar, y anuncio de la fase con aria-live",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado en theme-dark.spec; componentes portados del design system a Vue",
+        "El e2e de humo sigue verde sin backend (respondiendo también /api/ingestion/pending)",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "done"
+    },
+    {
+      "id": 14,
+      "name": "import-report-details",
+      "title": "Detalle del informe de importación: lo que conviene revisar",
+      "intent": {
+        "que_quiero": "Completar el resumen del modal de importación con el detalle de lo que conviene revisar: líneas de los extractos que no se pudieron leer, descuadres de saldo, traspasos que no se pudieron emparejar solos, conflictos entre reglas de categoría, fallos de la detección de traspasos o de la categorización automática, y la lista de archivos importados con las cuentas o productos nuevos que se crearon.",
+        "por_que": "El resumen de la feature 13 dice qué pasó a grandes rasgos; para fiarme de los datos necesito ver dónde puede haber algo raro sin tener que mirar el backend.",
+        "como_se_que_esta_bien": [
+          "Cuando una importación deja cosas por revisar, el titular me lo dice y cada tipo de aviso aparece en su sección plegable.",
+          "Veo qué filas no se leyeron de cada archivo, los descuadres de saldo con las dos cifras y la diferencia, los traspasos ambiguos y los conflictos de reglas.",
+          "Veo qué archivos se importaron, con cuántos movimientos, y si se creó una cuenta o un producto nuevo.",
+          "Los importes y fechas salen con el formato de la app."
+        ],
+        "que_no_quiero": [
+          "No quiero resolver aquí los traspasos ni los conflictos: solo verlos.",
+          "No quiero tocar el backend."
+        ],
+        "delego_en_agente": [
+          "Cómo agrupar y plegar el detalle para que el modal no se haga eterno con importaciones grandes."
+        ]
+      },
+      "acceptance": [
+        "Pendiente de derivar por el spec_author cuando se aborde, a partir del intent y del informe de POST /api/import ya tipado en la feature 13"
+      ],
+      "sdd": true,
+      "status": "spec_ready"
     }
   ]
 }

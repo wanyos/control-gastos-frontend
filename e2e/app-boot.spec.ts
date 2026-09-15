@@ -45,6 +45,10 @@ test('app boots: shell mounts with the design system applied and no console erro
   page.on('pageerror', (error) => pageErrors.push(error))
 
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
+  // The topbar asks for the pending Drive files on mount (feature 13).
+  await page.route('**/api/ingestion/pending', (route) =>
+    route.fulfill({ json: { totalPending: 0, banks: [] } }),
+  )
   await page.goto('/')
 
   // The app really mounted: App.vue's shell is the only child of #app.

@@ -34,6 +34,7 @@
    contrast: --info on --surface-card >= 4.5 (info text)
    contrast: --brand on --surface-card >= 4.5 (brand text)
    contrast: --ink-body on --surface-hover >= 4.5 (hovered rows)
+   contrast: --ink-muted on --surface-sunken >= 4.5 (Details: original backend message in an issue row)
    contrast: --border-subtle on --surface-card >= 3 (card and row edges)
    contrast: --border-default on --surface-card >= 3 (inputs)
    contrast: --border-strong on --surface-card >= 3 (emphasized edges)
@@ -94,6 +95,13 @@
 
    Overlays
    contrast: --ink-on-dark on --surface-overlay over --surface-app >= 4.5 (text over a scrim)
+   The dialog panel is --surface-card over the scrim, 1.04 on its own: its border is what
+   separates it, so the edge is measured against the scrim over both page backgrounds.
+   contrast: --border-subtle on --surface-overlay over --surface-app >= 3 (dialog panel edge over the scrim)
+   contrast: --border-subtle on --surface-overlay over --surface-inverse >= 3 (dialog panel edge where the scrim covers the sidebar)
+   contrast: --ink-muted on --surface-hover >= 4.5 (dialog close button and ghost buttons, hovered)
+   contrast: --ink-strong on --surface-hover >= 4.5 (secondary buttons, hovered)
+   contrast: --brand on --surface-app >= 3 (focus outline of the Import button in the topbar)
 */
 
 :root {

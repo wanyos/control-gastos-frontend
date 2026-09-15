@@ -48,7 +48,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E2 | **Tipos y cliente tipado** — tipos propios a partir del contrato + proxy | ✅ | F7 |
 | E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ✅ | F8 |
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
-| E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ⬜ | *sin features* |
+| E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | 🟡 | F13 ✅, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ⬜ | *sin features* |
 | E7 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
@@ -100,18 +100,30 @@ E (detalle por banco y producto). Avisos de `investments.issues`. Portar
 `StatCard`, `AccountCard`, `Card` y `Badge` del design system. Barras
 horizontales, no donut. Cerrada el 2026-09-12 por la F9: cifras y porcentajes
 en es-ES (`1.234,56 €`, `38,3 %`), fechas en-GB (`12 Sept 2026`), 4 grupos por
-tipo, total leído de la API. Spec en `specs/net-worth-view/`. «Desde cuándo hay
+tipo, total leído de la API. Spec en `specs/09-net-worth-view/`. «Desde cuándo hay
 dato» queda fuera: la API no lo trae (cabo 4).
 
 > Los bloques C (cascada) y D (evolución) esperan a que el backend exponga
 > patrimonio a una fecha o como serie histórica.
 
-### E5 — La pantalla que dispara la ingesta ⬜ ← **el siguiente**
+### E5 — La pantalla que dispara la ingesta 🟡 ← **en curso**
 
 Es la razón de ser de la idea nº 1 y **el backend ya tiene los dos endpoints**:
 `GET /api/ingestion/pending` (el aviso de «N nuevos» al abrir) y
-`POST /api/ingestion/process` (el botón). Separadas a propósito: detectar es
-barato y automático; importar es explícito y revisado.
+`POST /api/import` (el botón). Separadas a propósito: detectar es barato y
+automático; importar es explícito y revisado.
+
+> Corregido el 2026-09-15: el botón **no** es `POST /api/ingestion/process`, que
+> desde la feature «import» del backend solo descarga y copia. `POST /api/import`
+> es síncrono (sin progreso por archivo) y devuelve el informe completo.
+> Decisiones del humano: progreso por fases, botón en la barra superior (se
+> retira `/import` de la sidebar) y aviso incluido. Features **F13**
+> `import-dialog` y **F14** `import-report-details`, ambas SDD.
+>
+> **F13 cerrada el 2026-09-15:** botón y aviso en la barra, modal por fases y
+> resumen; probada contra el backend real (un archivo ya importado → 35
+> duplicados). Falta la **F14** (detalle de lo que conviene revisar), con su spec
+> a la espera de aprobación.
 
 ### E6 — Revisar antes de confirmar ⬜
 
@@ -158,6 +170,7 @@ datos bancarios reales. No es urgente; es que no estaba.
 | 3 | Cascada y evolución de Patrimonio necesitan histórico del backend (`GET /api/net-worth?asOf=` o serie) | backend, luego **E4** bloques C y D |
 | 4 | La ficha de Patrimonio no puede decir «desde cuándo hay dato»: `GET /api/net-worth` no trae la fecha del primer dato por producto | backend, luego **E4** |
 | 5 | El ejemplo JSON de `GET /api/net-worth` en el contrato del backend no cuadra (`investments.total`) — defecto de documentación, no de datos | backend |
+| ~~6~~ | ~~`GET /api/ingestion/pending` cuenta también los archivos sin parser, así que el aviso «N new files» no bajaría a 0~~ | ✅ **retirado el 2026-09-15**: el humano confirma que todos los bancos tienen parser (Revolut incluido) y en Drive no hay PDFs, así que todo lo pendiente es importable |
 
 > Los cabos 3, 4 y 5 **no son tuyos**: son del backend. Está aquí porque bloquea bloques
 > de la vista de Patrimonio y la regla de oro del workspace dice que el backend

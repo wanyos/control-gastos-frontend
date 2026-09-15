@@ -6,12 +6,10 @@
 
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
-import { ValidationError } from '@/shared/errors'
+import { createValidators } from '@/shared/validation'
 
 import type {
   AccountType,
-  DateOnly,
-  DecimalString,
   InvestmentProduct,
   NetWorth,
   NetWorthAccount,
@@ -39,79 +37,18 @@ const ISSUE_REASONS: readonly NetWorthIssueReason[] = [
   'matured_not_closed',
 ]
 
-const DECIMAL = /^-?\d+\.\d{2}$/
-const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/
-
-type RawObject = Record<string, unknown>
-
-function reject(path: string, expected: string): never {
-  throw new ValidationError(`GET ${NET_WORTH_PATH}: ${path} is not ${expected}`)
-}
-
-function asObject(value: unknown, path: string): RawObject {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
-    reject(path, 'an object')
-  }
-  return value as RawObject
-}
-
-function asArray(value: unknown, path: string): unknown[] {
-  if (!Array.isArray(value)) {
-    reject(path, 'an array')
-  }
-  return value
-}
-
-function asText(value: unknown, path: string): string {
-  if (typeof value !== 'string' || value === '') {
-    reject(path, 'a non-empty string')
-  }
-  return value
-}
-
-function asInteger(value: unknown, path: string): number {
-  if (typeof value !== 'number' || !Number.isInteger(value)) {
-    reject(path, 'an integer')
-  }
-  return value
-}
-
-function asFlag(value: unknown, path: string): boolean {
-  if (typeof value !== 'boolean') {
-    reject(path, 'a boolean')
-  }
-  return value
-}
-
-/** Amounts stay strings end to end: parsing them as numbers would lose cents. */
-function asDecimal(value: unknown, path: string): DecimalString {
-  if (typeof value !== 'string' || !DECIMAL.test(value)) {
-    reject(path, 'a decimal string with two decimals')
-  }
-  return value
-}
-
-function asNullableDecimal(value: unknown, path: string): DecimalString | null {
-  return value === null ? null : asDecimal(value, path)
-}
-
-function asDateOnly(value: unknown, path: string): DateOnly {
-  if (typeof value !== 'string' || !DATE_ONLY.test(value)) {
-    reject(path, 'a YYYY-MM-DD date')
-  }
-  return value
-}
-
-function asNullableDateOnly(value: unknown, path: string): DateOnly | null {
-  return value === null ? null : asDateOnly(value, path)
-}
-
-function asMember<T extends string>(value: unknown, allowed: readonly T[], path: string): T {
-  if (typeof value !== 'string' || !(allowed as readonly string[]).includes(value)) {
-    reject(path, `one of ${allowed.join(' | ')}`)
-  }
-  return value as T
-}
+const {
+  asObject,
+  asArray,
+  asText,
+  asInteger,
+  asFlag,
+  asDecimal,
+  asNullableDecimal,
+  asDateOnly,
+  asNullableDateOnly,
+  asMember,
+} = createValidators(`GET ${NET_WORTH_PATH}`)
 
 function parseAccount(raw: unknown, path: string): NetWorthAccount {
   const account = asObject(raw, path)

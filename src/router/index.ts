@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { ArrowLeftRight, ChartLine, FileUp, LayoutDashboard, Wallet } from '@lucide/vue'
+import { ArrowLeftRight, ChartLine, LayoutDashboard, Wallet } from '@lucide/vue'
 import type { LucideIcon } from '@lucide/vue'
 
 import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
@@ -50,12 +50,6 @@ export const routes: RouteRecordRaw[] = [
     name: 'investments',
     component: PlaceholderView,
     meta: { label: 'Investments', icon: ChartLine },
-  },
-  {
-    path: '/import',
-    name: 'import',
-    component: PlaceholderView,
-    meta: { label: 'Import', icon: FileUp },
   },
 ]
 

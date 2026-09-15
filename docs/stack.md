@@ -64,6 +64,10 @@
   guardas que lanzan `ValidationError` con el campo que falla). Vuelve a
   plantearse cuando haya varios endpoints con esquemas grandes; con uno solo,
   una librería de schemas no paga todavía su dependencia.
+  **Feature #13:** las guardas se extraen a `src/shared/validation.ts`
+  (`createValidators(context)`, mismos mensajes `<context>: <path> is not <expected>`)
+  y las comparten `net-worth` y `import` (`parsePendingFiles`, `parseImportReport`).
+  Con tres endpoints se sigue sin librería.
 - **Cliente HTTP:** ninguno instalado (no axios); se usa `fetch` nativo.
   El cliente base vive en `src/services/http.ts` (feature #2): `createHttp()`
   con config inyectada + cliente `http` por defecto ligado a `appConfig`;
@@ -304,6 +308,9 @@ feature #8; ver *Iconos (Lucide)*.
   exactamente los 5 iconos del shell (`wallet`, `layout-dashboard`,
   `arrow-left-right`, `chart-line`, `file-up`) y ninguno más; el JS total de la
   app queda en ~95 kB (37 kB gzip).
+- **Feature #13:** `FileUp` sale del router (ya no hay ruta `/import`) y pasa al
+  botón Import de la barra superior (`ImportButton.vue`); se añaden `X`,
+  `CircleCheck`, `Circle`, `CircleX` y `TriangleAlert` para el modal de importación.
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,
@@ -427,6 +434,15 @@ Sin backend, el proxy responde 502 y Chromium lo escribe como error de consola,
 así que el smoke **intercepta `**/api/net-worth` con `page.route`** y responde
 una muestra pequeña y coherente con el contrato. Sigue probando el arranque
 real, no la vista, y no depende de tener el backend en `:3000`.
+
+Desde la feature #13 la barra superior pide `GET /api/ingestion/pending` al
+montar, en todas las rutas: el smoke intercepta también `**/api/ingestion/pending`
+(`{ totalPending: 0, banks: [] }`). Comprobado antes de añadirla: sin ella el
+smoke se pone rojo con el 502 del proxy. Además `e2e/import-dialog.spec.ts`
+prueba el modal (informe parcial con un único POST sin cuerpo ni `Content-Type`,
+y 503 de Drive en el POST) con todas las llamadas a `/api` interceptadas: una red
+de seguridad aborta cualquier `/api` no prevista, así que **nunca** llega un
+`POST /api/import` a un backend real.
 
 - **Modo local (`pnpm test:e2e`)**: Playwright arranca el **dev server**
   (`npm run dev` → 5173) si no hay uno corriendo. `VITE_API_URL` se lee de

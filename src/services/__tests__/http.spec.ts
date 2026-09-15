@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 
 import { createHttp } from '@/services/http'
-import { ApiError, API_HTTP, API_NETWORK } from '@/shared/errors'
+import { ApiError, API_HTTP, API_NETWORK, ValidationError } from '@/shared/errors'
 
 const BASE_URL = 'http://api.test:3000'
 
@@ -92,5 +92,75 @@ describe('createHttp', () => {
     const secondUrl = fetchSpy.mock.calls[1]?.[0]
     expect(String(firstUrl)).toBe('http://alpha.test:1111/expenses')
     expect(String(secondUrl)).toBe('http://beta.test:2222/incomes')
+  })
+
+  it('throws a ValidationError when a 2xx body is not JSON (feature 13, R11)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('<html>ok</html>', { status: 200 }),
+    )
+    const http = createHttp({ apiUrl: BASE_URL })
+
+    const error: unknown = await http('/api/import', { method: 'POST' }).catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(ValidationError)
+    expect((error as ValidationError).message).toBe('/api/import: response body is not JSON')
+  })
+
+  describe('apiCode (feature 13, R13)', () => {
+    it('keeps the backend code as apiCode without changing code, status or message', async () => {
+      vi.spyOn(globalThis, 'fetch').mockImplementation(() =>
+        Promise.resolve(
+          jsonResponse(
+            { statusCode: 503, code: 'DRIVE_CONNECTION_ERROR', message: 'Drive unavailable' },
+            { status: 503 },
+          ),
+        ),
+      )
+      const http = createHttp({ apiUrl: BASE_URL })
+
+      const error: unknown = await http('/api/ingestion/pending').catch((e: unknown) => e)
+
+      expect(error).toBeInstanceOf(ApiError)
+      expect(error).toMatchObject({
+        apiCode: 'DRIVE_CONNECTION_ERROR',
+        code: API_HTTP,
+        status: 503,
+        message: 'HTTP 503: Drive unavailable',
+      })
+    })
+
+    it('leaves apiCode undefined when the error body is not JSON', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('boom', { status: 500, statusText: 'Internal Server Error' }),
+      )
+      const http = createHttp({ apiUrl: BASE_URL })
+
+      const error = (await http('/api/import').catch((e: unknown) => e)) as ApiError
+
+      expect(error.apiCode).toBeUndefined()
+      expect(error.message).toBe('HTTP 500: Internal Server Error')
+    })
+
+    it('leaves apiCode undefined when the JSON body has no code', async () => {
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        jsonResponse({ message: 'expense not found' }, { status: 404 }),
+      )
+      const http = createHttp({ apiUrl: BASE_URL })
+
+      const error = (await http('/expenses/1').catch((e: unknown) => e)) as ApiError
+
+      expect(error.apiCode).toBeUndefined()
+      expect(error.message).toBe('HTTP 404: expense not found')
+    })
+
+    it('leaves apiCode undefined on a network failure', async () => {
+      vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))
+      const http = createHttp({ apiUrl: BASE_URL })
+
+      const error = (await http('/api/import').catch((e: unknown) => e)) as ApiError
+
+      expect(error.code).toBe(API_NETWORK)
+      expect(error.apiCode).toBeUndefined()
+    })
   })
 })

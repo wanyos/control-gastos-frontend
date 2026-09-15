@@ -5,6 +5,9 @@
     <h1 class="font-display text-xl font-bold text-ink-strong" data-test="topbar-title">
       {{ title }}
     </h1>
+    <div class="ml-auto flex items-center gap-3">
+      <slot name="actions" />
+    </div>
   </header>
 </template>
 

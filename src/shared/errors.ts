@@ -32,10 +32,17 @@ export class ConfigError extends AppError {
 
 export class ApiError extends AppError {
   readonly status?: number
+  /** The backend's stable `code` (e.g. DRIVE_CONNECTION_ERROR), when the body carries one. */
+  readonly apiCode?: string
 
-  constructor(message: string, code: string, options?: { status?: number; cause?: unknown }) {
+  constructor(
+    message: string,
+    code: string,
+    options?: { status?: number; apiCode?: string; cause?: unknown },
+  ) {
     super(message, code, { cause: options?.cause })
     this.status = options?.status
+    this.apiCode = options?.apiCode
   }
 }
 

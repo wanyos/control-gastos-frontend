@@ -4,33 +4,40 @@
 
 import { appConfig } from '@/shared/config'
 import type { AppConfig } from '@/shared/config'
-import { ApiError, API_HTTP, API_NETWORK } from '@/shared/errors'
+import { ApiError, API_HTTP, API_NETWORK, ValidationError } from '@/shared/errors'
 
 export type HttpClient = <T>(path: string, init?: RequestInit) => Promise<T>
 
-/** Extracts a human message from an error response body, if any. */
-async function readErrorMessage(response: Response): Promise<string> {
+/** Reads the message and the backend's stable `code` from an error response body, if any. */
+async function readErrorBody(response: Response): Promise<{ message: string; apiCode?: string }> {
+  let message = response.statusText
+  let apiCode: string | undefined
   try {
     const body: unknown = await response.json()
-    if (typeof body === 'object' && body !== null && 'message' in body) {
-      const message = (body as { message: unknown }).message
-      if (typeof message === 'string' && message !== '') {
-        return message
+    if (typeof body === 'object' && body !== null) {
+      const fields = body as { message?: unknown; code?: unknown }
+      if (typeof fields.message === 'string' && fields.message !== '') {
+        message = fields.message
+      }
+      if (typeof fields.code === 'string' && fields.code !== '') {
+        apiCode = fields.code
       }
     }
   } catch {
     // Non-JSON error body: fall back to statusText.
   }
-  return response.statusText
+  return { message, apiCode }
 }
 
 /**
  * Factory with injected config (testable). URLs are built exclusively from
  * `config.apiUrl` — no hardcoded API URLs anywhere in src/.
  *
- * - 2xx with JSON body → parsed body typed as T.
+ * - 2xx with JSON body → parsed body typed as T; a 2xx body that is not JSON →
+ *   ValidationError.
  * - 2xx without body (204 / empty) → `undefined as T`.
- * - non-2xx → throws ApiError (code API_HTTP) with the response status.
+ * - non-2xx → throws ApiError (code API_HTTP) with the response status and, when
+ *   the body carries it, the backend's `code` as `apiCode`.
  * - network failure (fetch rejects) → throws ApiError (code API_NETWORK)
  *   with the original error preserved as `cause`.
  */
@@ -49,9 +56,10 @@ export function createHttp(config: Pick<AppConfig, 'apiUrl'>): HttpClient {
     }
 
     if (!response.ok) {
-      const message = await readErrorMessage(response)
+      const { message, apiCode } = await readErrorBody(response)
       throw new ApiError(`HTTP ${response.status}: ${message}`, API_HTTP, {
         status: response.status,
+        apiCode,
       })
     }
 
@@ -62,7 +70,12 @@ export function createHttp(config: Pick<AppConfig, 'apiUrl'>): HttpClient {
     if (text === '') {
       return undefined as T
     }
-    return JSON.parse(text) as T
+    try {
+      return JSON.parse(text) as T
+    } catch (cause) {
+      // The server answered, but not with JSON: a contract problem, not a network one.
+      throw new ValidationError(`${url.pathname}: response body is not JSON`, { cause })
+    }
   }
 }
 
