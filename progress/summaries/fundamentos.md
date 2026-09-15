@@ -2,7 +2,7 @@
 
 Fecha de cierre: 2026-07-10
 Intención original: `feature_list.json` → feature `fundamentos`, bloque `intent`
-Spec (si SDD): `specs/fundamentos/`
+Spec (si SDD): `specs/02-fundamentos/`
 
 ## Qué hace ahora la app que antes no
 

@@ -15,7 +15,7 @@ La feature está en estado `in_progress` (o `pending` si no es SDD y el
 leader te la asigna directamente).
 
 - Si la feature tiene `"sdd": true`: debe estar en `in_progress` y deben
-  existir los 3 archivos en `specs/<name>/`: `requirements.md`,
+  existir los 3 archivos en `specs/<nn>-<name>/`: `requirements.md`,
   `design.md`, `tasks.md`. Si falta alguno, o el estado es `pending` /
   `spec_ready`, **paras** — el leader no debería haberte lanzado.
 - Si la feature NO tiene `"sdd": true`: trabajas a partir del `acceptance`
@@ -29,14 +29,14 @@ leader te la asigna directamente).
    - `docs/architecture.md` (qué significa "buen trabajo")
    - `docs/conventions.md` (cómo escribir el código)
    - `docs/verification.md` (cómo demostrar que funciona)
-   - Si la feature es SDD: `docs/specs.md` + `specs/<name>/` completo.
+   - Si la feature es SDD: `docs/specs.md` + `specs/<nn>-<name>/` completo.
      Cada `T<n>` de `tasks.md` es lo que vas a hacer; cada `R<n>` de
      `requirements.md` es lo que debe quedar verdadero al final.
 2. **Toma** la feature asignada. Si está en `pending` (caso no-SDD)
    cambia su estado a `in_progress` y guarda el archivo.
 3. **Anota** en `progress/current.md`:
    - `Feature en curso: <id> — <name>`
-   - SDD: `Plan: las tasks T1..Tn de specs/<name>/tasks.md`
+   - SDD: `Plan: las tasks T1..Tn de specs/<nn>-<name>/tasks.md`
    - no-SDD: `Plan: <3-5 bullets>` (basado en acceptance)
 4. **Implementa** siguiendo `docs/conventions.md`.
    - SDD: para cada task `T<n>` en orden, haz el cambio, escribe su test

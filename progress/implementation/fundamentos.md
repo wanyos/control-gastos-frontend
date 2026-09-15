@@ -2,8 +2,8 @@
 
 - **Fecha:** 2026-07-10
 - **Agente:** implementer
-- **Spec:** `specs/fundamentos/` (requirements.md, design.md, tasks.md) — aprobado por el humano
-- **Tasks:** T1–T13 completadas, todas marcadas `[x]` en `specs/fundamentos/tasks.md`
+- **Spec:** `specs/02-fundamentos/` (requirements.md, design.md, tasks.md) — aprobado por el humano
+- **Tasks:** T1–T13 completadas, todas marcadas `[x]` en `specs/02-fundamentos/tasks.md`
 
 ## Archivos creados
 
@@ -29,7 +29,7 @@
 | `docs/architecture.md` | ADR-003 (manejo de errores centralizado), ADR-004 (validación manual de config, revisar al consumir la API), árbol de `src/` actualizado con los módulos reales |
 | `docs/stack.md` | Tabla de variables de entorno con `VITE_API_URL`, cliente HTTP `services/http.ts` hecho, decisión de validación manual anotada |
 | `docs/verification.md` | Retirado el aviso "init.sh NO ejecuta Vitest"; gate final actualizado |
-| `specs/fundamentos/tasks.md` | T1–T13 marcadas `[x]` |
+| `specs/02-fundamentos/tasks.md` | T1–T13 marcadas `[x]` |
 
 ## Archivos eliminados
 

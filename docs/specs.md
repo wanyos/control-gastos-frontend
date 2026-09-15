@@ -24,14 +24,19 @@ Cada feature con `"sdd": true` tiene una carpeta dedicada en cuanto deja
 `pending`:
 
 ```
-specs/<feature-name>/
+specs/<nn>-<feature-name>/
 ├── decisions.md      # PARA EL HUMANO: una página, las decisiones y nada más
 ├── requirements.md   # QUÉ se necesita (EARS notation)
 ├── design.md         # CÓMO se construirá (decisiones técnicas)
 └── tasks.md          # PASOS concretos a implementar
 ```
 
-El `feature-name` coincide con el campo `name` de `feature_list.json`.
+El `feature-name` coincide con el campo `name` de `feature_list.json`, y `nn`
+es el `id` de la feature con **dos dígitos** (`09-net-worth-view`,
+`13-import-dialog`): así la carpeta se localiza por el número y la lista sale
+ordenada. Regla ya vigente en el backend desde el 2026-09-02; el humano pidió
+traerla aquí el 2026-09-15. `./init.sh` exige ese nombre exacto al validar
+`feature_list.json`.
 
 `decisions.md` sigue la plantilla de `docs/decisions-template.md`. Los otros
 tres son material del `implementer` y del `reviewer`.
@@ -107,7 +112,7 @@ intent (humano) → acceptance (derivado) → requirements/design/tasks (spec) �
 
 El flujo automático se detiene **una vez**: cuando el `spec_author` termina
 sus cuatro archivos, marca la feature como `spec_ready` y para. El humano lee
-**solo `specs/<feature>/decisions.md`** —una página— y dice "aprobado" (o pide
+**solo `specs/<nn>-<feature>/decisions.md`** —una página— y dice "aprobado" (o pide
 cambios). Los otros tres son material del `implementer` y del `reviewer`:
 **nunca se le manda a leerlos**; si necesita más detalle de una decisión, se lo
 resume el `leader`. Si pide cambios, recibe un **changelog de cinco líneas**, no

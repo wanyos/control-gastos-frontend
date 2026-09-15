@@ -4,7 +4,7 @@
 
 - **Fecha:** 2026-09-12
 - **Agente:** reviewer
-- **Contrastado contra:** `specs/net-worth-view/{decisions,requirements,design,tasks}.md`, `feature_list.json` (intent + acceptance de la 9), `docs/{specs,verification,conventions,architecture,stack}.md`, `CHECKPOINTS.md`, `../gastos-backend/docs/api-contract.md` §`GET /api/net-worth` (solo lectura), `progress/implementation/net-worth-view.md`, `git diff` + `git status`.
+- **Contrastado contra:** `specs/09-net-worth-view/{decisions,requirements,design,tasks}.md`, `feature_list.json` (intent + acceptance de la 9), `docs/{specs,verification,conventions,architecture,stack}.md`, `CHECKPOINTS.md`, `../gastos-backend/docs/api-contract.md` §`GET /api/net-worth` (solo lectura), `progress/implementation/net-worth-view.md`, `git diff` + `git status`.
 - **Método de trazabilidad:** leídos los tests uno a uno (no la tabla del informe) y comprobado que cada aserción falla si se rompe el requisito.
 
 ## Trazabilidad requirements ↔ tests (SDD)
@@ -28,7 +28,7 @@
 
 ## Tasks completas (SDD)
 
-- T0–T14: [x] las 15 marcadas `[x]` en `specs/net-worth-view/tasks.md`, contrastadas con el código y el diff.
+- T0–T14: [x] las 15 marcadas `[x]` en `specs/09-net-worth-view/tasks.md`, contrastadas con el código y el diff.
 
 ## Criterios de aceptación (feature_list.json)
 
@@ -114,7 +114,7 @@
 - [x] C4 — Verificación real: 78 tests nuevos, camino feliz + error + bordes; todo verde.
 - [x] C5 — Sesión: sin archivos sospechosos sin trackear (los scripts de revisión viven en el scratchpad, fuera del repo). La entrada en `progress/history.md` y el paso a `done` corresponden al cierre tras este veredicto.
 - [x] C6 — Proyectos hermanos: consume `GET /api/net-worth` tal como lo tipó la F7; no inventa endpoints; el defecto del ejemplo del contrato queda anotado para el backend.
-- [x] C7 — SDD: 4 archivos en `specs/net-worth-view/`; 15 R en EARS con procedencia completa; 0 puntos rojos abiertos; tasks `[x]`; cada R con test.
+- [x] C7 — SDD: 4 archivos en `specs/09-net-worth-view/`; 15 R en EARS con procedencia completa; 0 puntos rojos abiertos; tasks `[x]`; cada R con test.
 - [x] C8 — Resumen de cierre escrito.
 
 ## Resumen de cierre

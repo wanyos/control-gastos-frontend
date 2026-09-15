@@ -2,13 +2,13 @@
 
 - **Fecha:** 2026-09-12
 - **Agente:** implementer
-- **Spec:** `specs/net-worth-view/` (aprobado por el humano el 2026-09-12)
+- **Spec:** `specs/09-net-worth-view/` (aprobado por el humano el 2026-09-12)
 - **Estado en `feature_list.json`:** `in_progress` (sin tocar). A la espera del `reviewer`.
 - **Commits:** ninguno.
 
 ## Tareas cerradas
 
-Las 15 de `specs/net-worth-view/tasks.md`, en orden, todas `[x]`.
+Las 15 de `specs/09-net-worth-view/tasks.md`, en orden, todas `[x]`.
 
 | Task | Resultado |
 |---|---|
@@ -154,7 +154,7 @@ de producción (`E2E_PREVIEW_PORT=8099`).
 - `e2e/app-boot.spec.ts:25`, `:47`.
 - `tsconfig.app.json:11`, `tsconfig.vitest.json:13`.
 - `docs/conventions.md:211` (formato decidido) y la línea de «Pendientes»; `docs/stack.md:24` (`ES2023.Intl`) y la nota del smoke en *E2E en cada modo*.
-- `specs/net-worth-view/tasks.md` (T0–T14 `[x]`), `progress/current.md`.
+- `specs/09-net-worth-view/tasks.md` (T0–T14 `[x]`), `progress/current.md`.
 
 **No tocados:** `service.ts`, `types.ts`, `src/services/http.ts`,
 `src/router/index.ts`, `src/assets/styles/`, `design-system/`, `package.json`,

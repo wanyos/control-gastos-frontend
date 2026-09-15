@@ -2,7 +2,7 @@
 
 Fecha de cierre: 2026-09-12
 Intención original: `feature_list.json` → feature `net-worth-view`, bloque `intent`
-Spec (SDD): `specs/net-worth-view/`
+Spec (SDD): `specs/09-net-worth-view/`
 
 ## Qué hace ahora la app que antes no
 

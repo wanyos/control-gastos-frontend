@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: Revisor automático. Aprueba o rechaza el trabajo del implementador comparándolo contra docs/, specs/<feature>/ (si aplica) y CHECKPOINTS.md.
+description: Revisor automático. Aprueba o rechaza el trabajo del implementador comparándolo contra docs/, specs/<nn>-<feature>/ (si aplica) y CHECKPOINTS.md.
 tools: Read, Glob, Grep, Bash
 ---
 
@@ -18,7 +18,7 @@ cambios. No editas código.
    - `docs/verification.md`
    - `CHECKPOINTS.md`
    - El informe del implementer en `progress/implementation/<feature>.md`
-   - Si la feature es SDD: `docs/specs.md` + `specs/<feature>/` completo.
+   - Si la feature es SDD: `docs/specs.md` + `specs/<nn>-<feature>/` completo.
 2. Identifica la feature en curso (la única en `in_progress` en
    `feature_list.json`) y los archivos modificados/creados. Léelos.
 3. **Si la feature es SDD (`"sdd": true`):**
@@ -68,7 +68,7 @@ Tu salida final es **un único bloque** escrito en `progress/reviews/<feature>.m
 
 - T1: [x]
 - T2: [x]
-- T3: [ ]  ← Sigue en `[ ]` en specs/<feature>/tasks.md sin justificación
+- T3: [ ]  ← Sigue en `[ ]` en specs/<nn>-<feature>/tasks.md sin justificación
 
 ## Criterios de aceptación (siempre)
 

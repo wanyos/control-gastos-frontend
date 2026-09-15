@@ -73,11 +73,11 @@ Mira el status de la primera feature no-`done` / no-`blocked` en
 
 1. Lanza **1 subagente `spec_author`**.
 2. El `spec_author` redacta
-   `specs/<name>/{decisions.md, requirements.md, design.md, tasks.md}` y cambia
+   `specs/<nn>-<name>/{decisions.md, requirements.md, design.md, tasks.md}` y cambia
    el status a `spec_ready`.
 3. **PARAS**. No lanzas implementer. Tu mensaje al humano enlaza
    **`decisions.md` y solo ese**:
-   > "Decisiones en `specs/<name>/decisions.md` — una página. Di **'aprobado'**
+   > "Decisiones en `specs/<nn>-<name>/decisions.md` — una página. Di **'aprobado'**
    > o dime qué cambiar. Los otros tres archivos son material del implementer;
    > no hace falta que los abras."
 
@@ -98,7 +98,7 @@ trabaja a partir del `acceptance` del `feature_list.json`. Cuando termine
 ### Caso C — status == `spec_ready` Y el humano acaba de aprobar
 
 1. Cambia el status a `in_progress` en `feature_list.json`.
-2. Lanza **1 subagente `implementer`** pasándole la ruta `specs/<name>/`
+2. Lanza **1 subagente `implementer`** pasándole la ruta `specs/<nn>-<name>/`
    como input. El `implementer` trabaja a partir del spec, no del
    `acceptance` original.
 3. Cuando termine → lanza **1 `reviewer`** que verifica trazabilidad
@@ -179,12 +179,12 @@ Para tareas que no son "implementa la siguiente feature pendiente":
 Cuando lances subagentes, instrúyeles explícitamente para que **escriban
 sus resultados en archivos** (no en su respuesta de texto). Tú solo recibes
 referencias del tipo: "resultado en `progress/<nombre>.md`" o
-"`spec_ready -> specs/<name>/`".
+"`spec_ready -> specs/<nn>-<name>/`".
 
 Convención de nombres:
 
 - `progress/exploration/<tema>.md` — investigaciones previas
-- `specs/<feature>/` — output del spec_author
+- `specs/<nn>-<feature>/` — output del spec_author
 - `progress/implementation/<feature>.md` — informe del implementer
 - `progress/reviews/<feature>.md` — informe del reviewer
 - `progress/summaries/<feature>.md` — resumen de cierre (lo escribe el reviewer al aprobar)

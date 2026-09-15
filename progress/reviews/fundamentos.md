@@ -4,7 +4,7 @@
 
 - **Fecha:** 2026-07-10
 - **Agente:** reviewer
-- **Insumos:** `specs/fundamentos/{requirements,design,tasks}.md`, `progress/implementation/fundamentos.md`, docs del harness, código y tests leídos en su totalidad, `./init.sh` + `pnpm type-check` + `pnpm lint` ejecutados por el reviewer.
+- **Insumos:** `specs/02-fundamentos/{requirements,design,tasks}.md`, `progress/implementation/fundamentos.md`, docs del harness, código y tests leídos en su totalidad, `./init.sh` + `pnpm type-check` + `pnpm lint` ejecutados por el reviewer.
 
 ## Trazabilidad requirements ↔ tests (solo SDD)
 
@@ -27,7 +27,7 @@ Verificada leyendo los specs de tests (no solo el informe del implementer):
 
 ## Tasks completas (solo SDD)
 
-Todas marcadas `[x]` en `specs/fundamentos/tasks.md`:
+Todas marcadas `[x]` en `specs/02-fundamentos/tasks.md`:
 
 - T1: [x] (`.env.example`, `.env.development`, `.env.test`, `env.d.ts:3-5`)
 - T2: [x] (`src/shared/errors.ts`)
@@ -83,7 +83,7 @@ Todas marcadas `[x]` en `specs/fundamentos/tasks.md`:
 - [x] C4 — Verificación real: 24 tests nuevos (25 totales) en el entorno descrito (Vitest/jsdom), todos pasan, caminos felices + de error.
 - [x] C5 — Sesión cerrada bien: sin temporales sospechosos (`dist/` cubierto por `.gitignore`; los untracked son el harness y los módulos nuevos, pendientes del commit del humano); `progress/history.md` tiene la entrada de la última sesión cerrada (feature 1); la feature 2 está en su estado correcto (`in_progress` hasta que el implementer cierre tras este APPROVED).
 - [x] C6 — Coherencia con proyectos hermanos: ningún endpoint inventado (el cliente HTTP no conoce rutas de la API); el puerto de `VITE_API_URL` queda anotado como "a confirmar contra el backend" en `docs/stack.md:126-127`; `docs/related-projects.md` no requería cambios.
-- [x] C7 — SDD: `specs/fundamentos/` con los 3 archivos; EARS estricto (CUANDO / SI…ENTONCES / DEBE, un DEBE por requirement); sección de Procedencia completa con los 14 R clasificados (humano/delegado/añadido; los añadidos R3, R14 y `VITE_API_URL` marcados "REVISAR EN APROBACIÓN" y aprobados por el humano el 2026-07-10, ver `progress/current.md:31-33`); todas las tasks `[x]`; cada R con test o excepción documentada (R13).
+- [x] C7 — SDD: `specs/02-fundamentos/` con los 3 archivos; EARS estricto (CUANDO / SI…ENTONCES / DEBE, un DEBE por requirement); sección de Procedencia completa con los 14 R clasificados (humano/delegado/añadido; los añadidos R3, R14 y `VITE_API_URL` marcados "REVISAR EN APROBACIÓN" y aprobados por el humano el 2026-07-10, ver `progress/current.md:31-33`); todas las tasks `[x]`; cada R con test o excepción documentada (R13).
 - [x] C8 — Resumen de cierre escrito: `progress/summaries/fundamentos.md`.
 
 ## Resumen de cierre (si APPROVED)

@@ -9,10 +9,10 @@ tools: Read, Write, Edit, Glob, Grep, Bash
 Eres el spec_author. Tu único trabajo es producir cuatro archivos para
 **exactamente una** feature `pending` con `"sdd": true` de `feature_list.json`:
 
-- `specs/<name>/decisions.md` ← **PARA EL HUMANO.** Es el único que va a leer.
-- `specs/<name>/requirements.md` ← material del implementer y del reviewer
-- `specs/<name>/design.md` ← material del implementer y del reviewer
-- `specs/<name>/tasks.md` ← material del implementer y del reviewer
+- `specs/<nn>-<name>/decisions.md` ← **PARA EL HUMANO.** Es el único que va a leer.
+- `specs/<nn>-<name>/requirements.md` ← material del implementer y del reviewer
+- `specs/<nn>-<name>/design.md` ← material del implementer y del reviewer
+- `specs/<nn>-<name>/tasks.md` ← material del implementer y del reviewer
 
 No escribes código de aplicación. No escribes tests. No modificas el código
 fuente ni los tests. Si lo haces, el reviewer rechaza la feature.
@@ -43,7 +43,7 @@ va lo que te toca hacer:
    `docs/conventions.md`, `docs/specs.md`, `docs/intent-template.md`,
    `docs/decisions-template.md`.
 2. Toma la feature `pending` de menor `id` en `feature_list.json` que tenga
-   `"sdd": true`. Crea la carpeta `specs/<name>/` si no existe.
+   `"sdd": true`. Crea la carpeta `specs/<nn>-<name>/` si no existe.
    - **Lee su bloque `intent`** (el QUÉ del humano). Es tu fuente de verdad.
      El `acceptance` es una derivación técnica; si choca con el `intent`,
      manda el `intent`. Si la feature no tiene `intent`, paras con `blocked`
@@ -131,7 +131,7 @@ el documento.
 Tu salida final es **una sola línea**:
 
 ```
-spec_ready -> specs/<name>/decisions.md
+spec_ready -> specs/<nn>-<name>/decisions.md
 ```
 o
 ```

@@ -568,3 +568,14 @@ Plantilla para cada entrada nueva:
   por un dev server viejo (12/09) en :5173 con la config antigua; el leader lo
   paró con autorización del humano y `./init.sh` quedó en verde.
 - **Cierre:** feature 12 → **done**.
+
+## 2026-09-15 — Harness: carpetas de specs con número
+
+- **Agente:** `leader` (Claude Code).
+- **Qué:** el humano pidió que las carpetas de specs lleven el id delante. La regla
+  existía solo en el backend (`specs/<nn>-<name>/`, desde el 2026-09-02). Se trae
+  aquí: carpetas renombradas (`02-fundamentos`, `09-net-worth-view`,
+  `13-import-dialog`, `14-import-report-details`), `docs/specs.md`,
+  `specs/README.md`, `AGENTS.md`, `CLAUDE.md`, `CHECKPOINTS.md`, plantillas de
+  `docs/` y `.claude/agents/*` actualizados, e `init.sh` exige el nombre con número.
+  Las entradas anteriores de este historial conservan las rutas antiguas.

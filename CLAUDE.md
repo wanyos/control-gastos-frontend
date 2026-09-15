@@ -19,13 +19,13 @@ implementar.
 - ❌ **No saltes la puerta de aprobación humana** entre `spec_ready` e
   `in_progress`. Cuando una feature SDD llega a `spec_ready`, paras y le
   pides al humano que apruebe o pida cambios **leyendo solo
-  `specs/<name>/decisions.md`**.
+  `specs/<nn>-<name>/decisions.md`**.
 - ❌ **No mandes al humano a leer `requirements.md`, `design.md` o `tasks.md`.**
   Si necesita más detalle de una decisión, se lo resumes tú.
 - ✅ Para cualquier tarea de código, lanza el subagente apropiado vía la
   herramienta `Agent`:
   - `subagent_type: "spec_author"` → redacta
-    `specs/<name>/{decisions,requirements,design,tasks}.md` para una feature
+    `specs/<nn>-<name>/{decisions,requirements,design,tasks}.md` para una feature
     `pending` con `"sdd": true`. En la puerta de aprobación le enlazas al
     humano **solo `decisions.md`** — una página; los otros tres son material
     del implementer y del reviewer y **nunca le pides que los lea**. Si pide
@@ -52,7 +52,7 @@ implementar.
 ### Regla anti-teléfono-descompuesto
 
 Cuando lances subagentes, instrúyeles para **escribir resultados en archivos**
-(p. ej. `specs/<feature>/requirements.md`, `progress/exploration/<tema>.md`,
+(p. ej. `specs/<nn>-<feature>/requirements.md`, `progress/exploration/<tema>.md`,
 `progress/implementation/<feature>.md`, `progress/reviews/<feature>.md`) y devolverte
 solo la referencia, no el contenido. Esto preserva contexto y deja
 trazabilidad en disco.
