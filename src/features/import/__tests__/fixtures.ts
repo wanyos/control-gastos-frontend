@@ -432,3 +432,184 @@ export function deferred() {
 export const GET_PENDING = 'GET /api/ingestion/pending'
 export const POST_IMPORT = 'POST /api/import'
 export const GET_NET_WORTH = 'GET /api/net-worth'
+
+// Feature 14: report details. Invented data shaped like the contract; backend
+// texts in Spanish. The F13 fixtures above are reused, never edited.
+
+/** A clean imported statement to build the other reports on. */
+const CLEAN_STATEMENT = CLEAN_REPORT.files[0]!
+
+/** Every detail section has something: FULL_REPORT plus both final pass failures. */
+export const DETAILS_REPORT = {
+  ...FULL_REPORT,
+  transfers: {
+    ...FULL_REPORT.transfers,
+    error: {
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'Fallo al emparejar traspasos: tiempo agotado.',
+    },
+  },
+  categorization: {
+    ...FULL_REPORT.categorization,
+    error: { code: 'INTERNAL_SERVER_ERROR', message: 'Fallo al aplicar las reglas de categoría.' },
+  },
+}
+
+export const TRANSFERS_ERROR = {
+  code: 'INTERNAL_SERVER_ERROR',
+  message: 'No se pudo completar la detección de traspasos.',
+}
+export const CATEGORIZATION_ERROR = {
+  code: 'INTERNAL_SERVER_ERROR',
+  message: 'No se pudo completar la categorización automática.',
+}
+
+/** `n` unread rows starting at line 10. */
+export const unreadRows = (n: number) =>
+  Array.from({ length: n }, (_, i) => ({
+    row: 10 + i,
+    reason: `fecha no interpretable (${i + 1})`,
+  }))
+
+/** An imported statement with 42 unread lines. */
+export const STATEMENT_UNREAD_42 = {
+  ...CLEAN_STATEMENT,
+  fileId: 'u42',
+  name: 'movs-julio.xlsx',
+  unparsedCount: 42,
+  unparsedRows: unreadRows(42),
+}
+
+/** A statement where no line could be read: failed, with its 6 rows. */
+export const STATEMENT_ALL_UNPARSED = {
+  ...STATEMENT_MISSING_ACCOUNT,
+  bank: 'openbank',
+  fileId: 'u6',
+  name: 'openbank-julio.xls',
+  unparsedCount: 6,
+  unparsedRows: unreadRows(6),
+  error: { code: 'ALL_ROWS_UNPARSED', message: 'Ninguna fila del extracto se pudo interpretar.' },
+}
+
+/** Anchored and 3 saved balances filled in. */
+export const STATEMENT_ANCHORED_FILLED = {
+  ...CLEAN_STATEMENT,
+  fileId: 'af3',
+  name: 'movs-junio.xlsx',
+  anchored: true,
+  balancesFilled: 3,
+}
+
+/** 1 saved balance filled in, not anchored. */
+export const STATEMENT_FILLED_ONE = {
+  ...CLEAN_STATEMENT,
+  fileId: 'f1',
+  name: 'movs-mayo.xlsx',
+  anchored: false,
+  balancesFilled: 1,
+}
+
+/** A product type the net worth labels do not know. */
+export const PRODUCT_CRYPTO = {
+  ...PRODUCT_IMPORTED,
+  fileId: 'c1',
+  name: 'cripto.json',
+  bank: 'newbank',
+  product: { id: 11, bank: 'newbank', name: 'Cartera cripto', type: 'crypto', created: false },
+}
+
+const ambiguousGroup = (i: number) => ({
+  amount: `${100 + i}.00`,
+  movements: [
+    {
+      id: 1000 + i * 2,
+      accountId: 1,
+      accountAlias: 'bankinter 0236',
+      type: 'expense',
+      bookingDate: '2026-08-02',
+      description: `TRANSFERENCIA EMITIDA ${i}`,
+    },
+    {
+      id: 1001 + i * 2,
+      accountId: 2,
+      accountAlias: 'openbank 1111',
+      type: 'income',
+      bookingDate: '2026-08-02',
+      description: `TRANSFERENCIA RECIBIDA ${i}`,
+    },
+  ],
+})
+
+/** 12 ambiguous groups: over the 10 shown. */
+export const AMBIGUOUS_12 = {
+  pairsCreated: 0,
+  ambiguousCount: 12,
+  ambiguous: Array.from({ length: 12 }, (_, i) => ambiguousGroup(i + 1)),
+}
+
+const conflict = (i: number) => ({
+  movementId: 500 + i,
+  description: `COMPRA EJEMPLO ${i}`,
+  bookingDate: '2026-08-10',
+  matches: [
+    { ruleId: 1, matchText: 'compra', categoryId: 4, categoryName: 'Supermercado' },
+    { ruleId: 2, matchText: 'ejemplo', categoryId: 6, categoryName: 'Compras' },
+  ],
+})
+
+/** 11 category conflicts: over the 10 shown. */
+export const CONFLICTS_11 = {
+  categorized: 0,
+  conflictCount: 11,
+  conflicts: Array.from({ length: 11 }, (_, i) => conflict(i + 1)),
+  unmatched: 0,
+}
+
+/** One report per condition that makes the F13 headline say "with a few things to check". */
+export const THINGS_TO_CHECK_REPORTS: [string, unknown][] = [
+  ['a skipped file', { ...CLEAN_REPORT, skippedCount: 1, files: [CLEAN_STATEMENT, SKIPPED_FILE] }],
+  [
+    'unread lines',
+    { ...CLEAN_REPORT, unparsedCount: 42, files: [CLEAN_STATEMENT, STATEMENT_UNREAD_42] },
+  ],
+  [
+    'a balance mismatch',
+    {
+      ...CLEAN_REPORT,
+      balanceMismatchCount: 1,
+      files: [{ ...CLEAN_STATEMENT, balanceMismatches: STATEMENT_IMPORTED.balanceMismatches }],
+    },
+  ],
+  ['ambiguous transfers', { ...CLEAN_REPORT, transfers: AMBIGUOUS_12 }],
+  ['category conflicts', { ...CLEAN_REPORT, categorization: CONFLICTS_11 }],
+  [
+    'a transfers error',
+    { ...CLEAN_REPORT, transfers: { ...EMPTY_TRANSFERS, error: TRANSFERS_ERROR } },
+  ],
+  [
+    'a categorization error',
+    { ...CLEAN_REPORT, categorization: { ...EMPTY_CATEGORIZATION, error: CATEGORIZATION_ERROR } },
+  ],
+]
+
+/** Only imported files, with the per-file notes and every product shape. */
+export const IMPORTED_FILES_REPORT = {
+  ...CLEAN_REPORT,
+  importedCount: 41,
+  duplicateCount: 2,
+  unparsedCount: 1,
+  balanceMismatchCount: 1,
+  importedProductCount: 3,
+  anchoredCount: 2,
+  balanceFilledCount: 4,
+  files: [
+    STATEMENT_IMPORTED,
+    STATEMENT_ANCHORED_FILLED,
+    STATEMENT_FILLED_ONE,
+    PRODUCT_IMPORTED,
+    DEPOSIT_IMPORTED,
+    PRODUCT_CRYPTO,
+    PRODUCT_FAILED,
+  ],
+  failedCount: 1,
+}

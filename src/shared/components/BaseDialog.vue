@@ -12,10 +12,10 @@
         aria-modal="true"
         :aria-labelledby="titleId"
         tabindex="-1"
-        class="w-[440px] max-w-full rounded-xl border border-line-subtle bg-surface-card p-6 shadow-xl outline-none"
+        class="flex max-h-[calc(100dvh-40px)] w-[440px] max-w-full flex-col rounded-xl border border-line-subtle bg-surface-card shadow-xl outline-none"
         data-test="dialog-panel"
       >
-        <div class="mb-4 flex items-center justify-between gap-3">
+        <div class="flex shrink-0 items-center justify-between gap-3 px-6 pt-6 pb-4">
           <h2 :id="titleId" class="font-display text-xl font-bold text-ink-strong">
             {{ title }}
           </h2>
@@ -30,8 +30,19 @@
             <X :size="20" aria-hidden="true" />
           </button>
         </div>
-        <slot />
-        <div v-if="$slots.footer" class="mt-6 flex justify-end gap-2.5">
+        <!-- Only the body scrolls: the title and the footer stay in view (feature 14). -->
+        <div
+          class="min-h-0 flex-1 overflow-y-auto px-6"
+          :class="{ 'pb-6': !$slots.footer }"
+          data-test="dialog-body"
+        >
+          <slot />
+        </div>
+        <div
+          v-if="$slots.footer"
+          class="flex shrink-0 justify-end gap-2.5 px-6 pt-4 pb-6"
+          data-test="dialog-footer"
+        >
           <slot name="footer" />
         </div>
       </div>

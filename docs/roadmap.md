@@ -48,7 +48,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E2 | **Tipos y cliente tipado** — tipos propios a partir del contrato + proxy | ✅ | F7 |
 | E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ✅ | F8 |
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
-| E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | 🟡 | F13 ✅, F14 |
+| E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ⬜ | *sin features* |
 | E7 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
@@ -106,7 +106,7 @@ dato» queda fuera: la API no lo trae (cabo 4).
 > Los bloques C (cascada) y D (evolución) esperan a que el backend exponga
 > patrimonio a una fecha o como serie histórica.
 
-### E5 — La pantalla que dispara la ingesta 🟡 ← **en curso**
+### E5 — La pantalla que dispara la ingesta ✅
 
 Es la razón de ser de la idea nº 1 y **el backend ya tiene los dos endpoints**:
 `GET /api/ingestion/pending` (el aviso de «N nuevos» al abrir) y
@@ -122,10 +122,12 @@ automático; importar es explícito y revisado.
 >
 > **F13 cerrada el 2026-09-15:** botón y aviso en la barra, modal por fases y
 > resumen; probada contra el backend real (un archivo ya importado → 35
-> duplicados). Falta la **F14** (detalle de lo que conviene revisar), con su spec
-> a la espera de aprobación.
+> duplicados). **F14 cerrada el mismo día:** detalle plegable de lo que conviene
+> revisar (fallos de pasadas finales, descuadres, líneas no leídas, traspasos por
+> emparejar, conflictos de reglas, archivos importados); solo lectura. Resolver
+> traspasos y conflictos desde la web queda para etapas posteriores.
 
-### E6 — Revisar antes de confirmar ⬜
+### E6 — Revisar antes de confirmar ⬜ ← **el siguiente**
 
 Todo lo que importe el backend nace en estado `pending_review`. Esta pantalla es
 la que lo confirma o lo corrige. El endpoint `PATCH /api/movements/:id` ya

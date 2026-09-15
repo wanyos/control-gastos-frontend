@@ -62,11 +62,14 @@ src/
       service.ts          # acceso a la API + mapeo a tipos del frontend
       types.ts            # tipos/interfaces propios (derivados del contrato)
       __tests__/          # tests co-localizados (*.spec.ts)
-    import/               # feature #13: botón Import de la barra, aviso de pendientes y modal
-      components/         # ImportButton, ImportDialog, ImportPhases, PendingList, ImportSummary, FileIssueList
+    import/               # features #13-#14: botón Import de la barra, aviso de pendientes y modal
+      components/         # ImportButton, ImportDialog, ImportPhases, PendingList, ImportSummary, FileIssueList (#13);
+                          # ImportDetails, ReportSection, FinalPassAlerts, BalanceMismatchList, UnreadLineList,
+                          # AmbiguousTransferList, CategoryConflictList, ImportedFileList, FileHeadingLine (#14)
       store.ts            # useImportStore: pendientes + máquina de estados del modal
       service.ts          # GET /api/ingestion/pending, POST /api/import (informe completo)
-      outcome.ts, summary.ts, fileMessages.ts   # textos y titular, funciones puras
+      outcome.ts, summary.ts, fileMessages.ts   # textos y titular, funciones puras (#13)
+      details.ts          # agrupa y recorta el detalle del informe, funciones puras (#14)
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
@@ -84,11 +87,14 @@ src/
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
 
-> **Dependencias entre features y con `shared/` (feature #13).** `AppShell.vue`
+> **Dependencias entre features y con `shared/` (features #13-#14).** `AppShell.vue`
 > (shared) monta `ImportButton` de `features/import`, igual que el router monta
-> `NetWorthView`. Entre features hay una única dependencia y va en un sentido:
-> el store de `import` recarga el de `net-worth` tras importar (solo si ya estaba
-> cargado). `net-worth` no conoce `import`.
+> `NetWorthView`. Entre features las dependencias van en un solo sentido,
+> `import` → `net-worth`, y son dos: el store de `import` recarga el de
+> `net-worth` tras importar (solo si ya estaba cargado, #13), y `details.ts` usa
+> `holdingTypeLabel` de `net-worth/issues.ts` para nombrar el tipo de producto
+> (#14). `net-worth` no conoce `import`. Si una tercera pieza hiciera falta en
+> las dos, se mueve a `shared/`.
 
 ## Flujo de datos
 

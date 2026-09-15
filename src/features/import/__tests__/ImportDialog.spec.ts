@@ -278,6 +278,25 @@ describe('ImportDialog', () => {
       expect(document.activeElement).toBe($('[data-test="import-close"]'))
       expectEnglishOnly()
     })
+
+    it('paints the report detail after the files that need attention (feature 14, R1)', async () => {
+      mockApi({ pending: json(PENDING_TWO), import: json(FULL_REPORT) })
+      await mountTopbar()
+      await clickImport()
+
+      await click('[data-test="import-confirm"]')
+
+      const step = $('[data-test="import-step-finished"]')
+      const issues = step?.querySelector('[data-test="file-issues"]')
+      const details = step?.querySelector('[data-test="import-details"]')
+      expect(issues).not.toBeNull()
+      expect(details).not.toBeNull()
+      expect(
+        issues!.compareDocumentPosition(details!) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy()
+      expect(details?.querySelector('[data-test="report-section-mismatches"]')).not.toBeNull()
+      expectEnglishOnly()
+    })
   })
 
   describe('import failures (R11)', () => {

@@ -64,6 +64,7 @@
     >
       <ImportSummary :report="flow.report" />
       <FileIssueList :files="issueFiles(flow.report)" />
+      <ImportDetails :report="flow.report" />
     </div>
 
     <div
@@ -156,6 +157,7 @@ import {
   phaseAnnouncement,
 } from '../summary'
 import FileIssueList from './FileIssueList.vue'
+import ImportDetails from './ImportDetails.vue'
 import ImportPhases from './ImportPhases.vue'
 import ImportSummary from './ImportSummary.vue'
 import PendingList from './PendingList.vue'

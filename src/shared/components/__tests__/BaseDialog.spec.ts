@@ -65,6 +65,26 @@ describe('BaseDialog (R14)', () => {
     expect($('[data-test="dialog-scrim"]')?.classList).toContain(cls('bg', 'surface', 'overlay'))
   })
 
+  it('caps the panel to the viewport and scrolls only the body (feature 14, R13)', async () => {
+    await mountDialog({ body: '<p id="content">Body</p>', footer: '<button id="ok">OK</button>' })
+
+    const panel = $('[data-test="dialog-panel"]')
+    expect(panel?.classList).toContain(`max-h-[calc(100dvh-40px)]`)
+    expect(panel?.classList).toContain('flex')
+    expect(panel?.classList).toContain(cls('flex', 'col'))
+    const body = $('[data-test="dialog-body"]')
+    expect(body?.classList).toContain(cls('overflow', 'y', 'auto'))
+    expect(body?.classList).toContain(cls('min', 'h', '0'))
+    expect(body?.querySelector('#content')).not.toBeNull()
+    const footer = $('[data-test="dialog-footer"]')
+    expect(footer?.classList).toContain('shrink-0')
+    expect(footer?.querySelector('#ok')).not.toBeNull()
+    expect(body?.contains(footer ?? null)).toBe(false)
+    expect(
+      body?.contains(document.getElementById(panel?.getAttribute('aria-labelledby') ?? '')),
+    ).toBe(false)
+  })
+
   it('renders nothing while closed', () => {
     wrapper = mount(BaseDialog, { attachTo: document.body, props: { open: false, title: 'x' } })
 

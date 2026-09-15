@@ -174,3 +174,105 @@ test('warns that some files may be in when the import gets a Drive 503', async (
   // The only console error allowed is the browser reporting the expected 503.
   expect(watch.consoleErrors.filter((error) => !error.url.endsWith('/api/import'))).toEqual([])
 })
+
+// Feature 14: a large report must not push the title or Close out of the window.
+// Built here, not imported from the unit fixtures: those load vitest.
+function largeReport() {
+  const files = Array.from({ length: 40 }, (_, i) => ({
+    ...statement,
+    fileId: `large-${i}`,
+    name: `movs-${String(i + 1).padStart(2, '0')}.xlsx`,
+    ...(i === 0
+      ? {
+          unparsedCount: 30,
+          unparsedRows: Array.from({ length: 30 }, (_row, row) => ({
+            row: row + 2,
+            reason: 'fecha no interpretable',
+          })),
+        }
+      : {}),
+  }))
+  return {
+    ...PARTIAL_REPORT,
+    importedCount: 39 * 40,
+    duplicateCount: 2 * 40,
+    unparsedCount: 30,
+    failedCount: 0,
+    files,
+    transfers: {
+      pairsCreated: 0,
+      ambiguousCount: 12,
+      ambiguous: Array.from({ length: 12 }, (_, i) => ({
+        amount: `${100 + i}.00`,
+        movements: [
+          {
+            id: 100 + i * 2,
+            accountId: 1,
+            accountAlias: 'bankinter 0236',
+            type: 'expense',
+            bookingDate: '2026-08-02',
+            description: `TRANSFERENCIA EMITIDA ${i}`,
+          },
+          {
+            id: 101 + i * 2,
+            accountId: 2,
+            accountAlias: 'openbank 1111',
+            type: 'income',
+            bookingDate: '2026-08-02',
+            description: `TRANSFERENCIA RECIBIDA ${i}`,
+          },
+        ],
+      })),
+    },
+    categorization: {
+      categorized: 0,
+      conflictCount: 11,
+      conflicts: Array.from({ length: 11 }, (_, i) => ({
+        movementId: 500 + i,
+        description: `COMPRA EJEMPLO ${i}`,
+        bookingDate: '2026-08-10',
+        matches: [
+          { ruleId: 1, matchText: 'compra', categoryId: 4, categoryName: 'Supermercado' },
+          { ruleId: 2, matchText: 'ejemplo', categoryId: 6, categoryName: 'Compras' },
+        ],
+      })),
+      unmatched: 0,
+    },
+  }
+}
+
+test('keeps the title and Close in view with a large report fully unfolded', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 })
+  const watch = await prepare(page, (route) => route.fulfill({ json: largeReport() }))
+
+  const dialog = await confirmImport(page)
+
+  await expect(dialog.getByTestId('outcome-headline')).toHaveText(
+    'Imported, with a few things to check',
+  )
+  const details = dialog.getByTestId('import-details')
+  const summaries = details.locator('summary')
+  await expect(summaries).toHaveCount(4)
+  for (const summary of await summaries.all()) await summary.click()
+  await expect(details.locator('details[open]')).toHaveCount(4)
+  await expect(dialog.getByTestId('unread-line')).toHaveCount(5)
+  await expect(dialog.getByTestId('imported-file')).toHaveCount(40)
+
+  const body = dialog.getByTestId('dialog-body')
+  await body.evaluate((element) => element.scrollTo(0, element.scrollHeight))
+  const scroll = await body.evaluate((element) => ({
+    top: element.scrollTop,
+    overflowing: element.scrollHeight > element.clientHeight,
+  }))
+  expect(scroll.overflowing).toBe(true)
+  expect(scroll.top).toBeGreaterThan(0)
+
+  await expect(dialog.getByTestId('import-close')).toBeInViewport()
+  await expect(dialog.getByRole('heading', { name: 'Import from Google Drive' })).toBeInViewport()
+  const box = await dialog.boundingBox()
+  expect(box?.height ?? Infinity).toBeLessThanOrEqual(720)
+
+  expect(watch.importRequests).toHaveLength(1)
+  expect(watch.pageErrors).toEqual([])
+  expect(watch.consoleErrors).toEqual([])
+})

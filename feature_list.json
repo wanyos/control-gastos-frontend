@@ -542,10 +542,19 @@
         ]
       },
       "acceptance": [
-        "Pendiente de derivar por el spec_author cuando se aborde, a partir del intent y del informe de POST /api/import ya tipado en la feature 13"
+        "En el resumen final del modal, debajo de la lista «Needs attention» de la F13, aparecen en orden fijo las secciones de detalle con elementos: fallos de las pasadas finales, Balance mismatches, Unread lines, Transfers to match, Category rule conflicts e Imported files; las vacías no se pintan",
+        "Cada sección (salvo los fallos de las pasadas finales, que van siempre visibles) es plegable, empieza cerrada y muestra su título y su recuento",
+        "Un fallo de transfers.error o categorization.error se muestra con «Your imported movements are safe.» y el mensaje original plegado con lang=\"es\"",
+        "Los descuadres muestran cuenta, fecha, cifra calculada, cifra del archivo y diferencia con money.ts, y el tipo de comprobación (per-line / statement-balance) traducido a inglés",
+        "Las filas no leídas se agrupan por archivo, con un máximo de 5 visibles y «and N more lines»; traspasos ambiguos y conflictos de categoría muestran hasta 10 elementos y «and N more»; los textos del backend van en lang=\"es\"",
+        "La lista de archivos importados muestra por archivo los movimientos nuevos y ya existentes (o el producto, su tipo y la fecha de la foto) y marca «New account» / «New product» cuando se crearon",
+        "Las secciones son de solo lectura: sin botones ni enlaces de acción y sin llamadas HTTP nuevas",
+        "Con un informe grande, el modal no supera la altura de la ventana: el cuerpo hace scroll y el título y el botón Close siguen visibles (e2e)",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado en theme-dark.spec; sin cambios en el backend ni dependencias nuevas; tipos, service y store de la F13 sin cambios",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
       ],
       "sdd": true,
-      "status": "spec_ready"
+      "status": "done"
     }
   ]
 }

@@ -606,3 +606,30 @@ Plantilla para cada entrada nueva:
   detalle en la F14), aviso a 0 y Patrimonio recargado, sin errores de consola.
 - **Verificación:** type-check, lint, 443 tests, build, e2e y `./init.sh` en verde.
 - **Cierre:** feature 13 → **done**. Siguiente: F14, spec en `spec_ready`.
+
+## 2026-09-15 — Feature 14: import-report-details
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author` (agente general con
+  su rol), `implementer` y `reviewer`. Flujo SDD; el humano aprobó las 6
+  decisiones de `specs/14-import-report-details/decisions.md` sin cambios.
+- **Spec:** escrito antes de implementar la F13; el implementer lo adaptó al código
+  real (12 adaptaciones, ninguna contradice decisiones del humano). Acceptance
+  copiado por el leader desde la sección propuesta de `requirements.md`.
+- **Cambios:** debajo de «Needs attention», avisos de fallo de pasadas finales
+  (siempre visibles, «Your imported movements are safe.») y cinco secciones
+  plegables cerradas con recuento: descuadres (tres cifras en columna), líneas no
+  leídas (máx. 5 por archivo), traspasos por emparejar y conflictos de reglas
+  (máx. 10), y archivos importados con cuenta o producto nuevo. Solo lectura.
+  `details.ts` y componentes nuevos en `src/features/import/components/`;
+  `BaseDialog` limitado a la altura de la ventana con cuerpo con scroll. Sin
+  cambios en tipos, service ni store de la F13; sin dependencias nuevas.
+- **Docs:** `docs/architecture.md` lista las piezas nuevas y la segunda
+  dependencia `import` → `net-worth` (`holdingTypeLabel`); roadmap E5 ✅.
+- **Revisión:** APROBADO sin cambios. Notas no bloqueantes: sección con recuento
+  y lista vacía si el backend violara el contrato; contorno de foco que puede
+  recortarse en el borde del scroll; separadores para lector de pantalla.
+- **Verificación:** type-check, lint, 529 tests, build, 4 e2e y `./init.sh` en
+  verde (e2e en modo CI). Sin prueba con un informe real del backend: pendiente de
+  la próxima importación real del humano.
+- **Cierre:** feature 14 → **done**. E5 completa. Siguiente etapa: E6 (revisar
+  antes de confirmar).
