@@ -54,8 +54,21 @@ implementer → reviewer.
   → vuelve a Suministros; Confirm → la fila sale y la cola baja de 1607 a 1606 →
   Undo → vuelve a pendiente y a 1607. Antes/después idénticos salvo `updatedAt`.
   4 PATCH, solo `categoryId`/`status`/`ids`; cero errores de consola.
+- 2026-09-22 — F16 en `done` (implementer; init.sh verde). F15 y F16 en un solo
+  commit (f427175): la F16 amplió los mismos archivos que creó la F15 sin
+  commitear, así que partirlo no daba dos estados reales. Feature de reglas: a la
+  espera del `intent` del humano (se le pasó un borrador).
+- 2026-09-22 — Spec de la F17 escrito (`specs/17-category-rules/`, 14 requisitos y
+  6 decisiones 🔴: pantalla `Rules` propia, texto propuesto = primera palabra con
+  sentido, aplicar como gesto aparte, confirmación siempre, la regla no categoriza su
+  movimiento, todos los conflictos a la vista); feature en `spec_ready`, a la espera
+  de la puerta humana.
+- 2026-09-22 — El humano aprueba el spec de la F17 tal cual, las 6 🔴 incluidas
+  (pantalla propia Rules, texto propuesto por palabra con sentido, aplicar aparte
+  y con confirmación, no categorizar el movimiento de origen, todos los
+  conflictos). F17 pasa a `in_progress`.
 
 ## Próximo paso
 
-Commitear F15 y F16 (dos commits, uno por feature). Después, alta de la feature
-de reglas de categorización.
+Implementar la F17 siguiendo `specs/17-category-rules/tasks.md` y pasarla por el
+reviewer. La T22 (prueba contra el backend real) necesita visto bueno aparte.

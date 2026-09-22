@@ -644,6 +644,49 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 17,
+      "name": "category-rules",
+      "title": "Reglas de categorización: que categorizar sirva para las próximas importaciones",
+      "intent": {
+        "que_quiero": "Cuando categorizo un movimiento, poder decir «a partir de ahora, todo lo que contenga este texto va a esta categoría». Poder ver las reglas que tengo, cambiarlas y borrarlas. Y poder pasarlas sobre lo pendiente sin reimportar.",
+        "por_que": "Categorizar a mano no le enseña nada al sistema: lo que sirve para las próximas importaciones son las reglas.",
+        "como_se_que_esta_bien": [
+          "Creo una regla desde un movimiento y, al aplicarlas, los parecidos sin categoría se categorizan.",
+          "Veo cuántos se categorizaron, cuántos quedaron sin regla y qué movimientos chocan entre dos reglas.",
+          "Si el texto ya existe en otra regla o es demasiado corto, me lo dice y no se crea nada.",
+          "Borrar o cambiar una regla no toca lo ya categorizado."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero que aplicar reglas pise movimientos confirmados ni con categoría ya puesta.",
+          "No quiero todavía resolver los conflictos desde la web: solo verlos.",
+          "No quiero crear ni editar categorías."
+        ],
+        "delego_en_agente": [
+          "Dónde vive la lista de reglas: pantalla propia o panel dentro de Review.",
+          "Qué texto se propone por defecto al crear una regla desde un concepto como «RECIB /IBERDROLA CLIENTES, S.A».",
+          "Si aplicar las reglas pide confirmación.",
+          "Si las reglas se aplican solas al crear una o solo con un gesto aparte (el backend no aplica nada al crearlas)."
+        ]
+      },
+      "acceptance": [
+        "Desde un movimiento de la cola de Review se puede crear una regla con POST /api/category-rules (matchText + categoryId), con un texto propuesto editable y solo categorías cuyo kind case con el type del movimiento",
+        "Hay una lista de reglas (GET /api/category-rules) con su texto y su categoría, desde la que se puede cambiar matchText y/o categoryId (PATCH /api/category-rules/:id) y borrar (DELETE /api/category-rules/:id)",
+        "Se pueden aplicar las reglas bajo demanda con POST /api/category-rules/apply, y la UI muestra categorized, unmatched y la lista de conflicts (movimiento, fecha y reglas que chocan), solo lectura",
+        "Tras aplicar, la cola de Review, sus totales y el contador de pendientes se refrescan sin recargar la página",
+        "Errores en inglés sin pintar el message del backend: 400 (texto < 3 caracteres tras normalizar o body inválido), 404 (regla o categoría inexistente), 409 (matchText ya existe); no se escribe nada a medias",
+        "Si la respuesta de apply trae error (la pasada falló), se dice en inglés y se recarga la cola",
+        "Los cuerpos se construyen campo a campo: POST y PATCH solo llevan matchText y/o categoryId; apply va sin body",
+        "No se crean, editan ni borran categorías, ni se resuelven conflictos desde la web",
+        "Las respuestas se validan en frontera (ADR-002) con tipos propios derivados del contrato",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "Las features 15 y 16 siguen funcionando sin cambios de comportamiento",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }

@@ -49,7 +49,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ✅ | F8 |
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
-| E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16 |
+| E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | 🟡 | F15, F16, F17 |
 | E7 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
@@ -127,7 +127,7 @@ automático; importar es explícito y revisado.
 > emparejar, conflictos de reglas, archivos importados); solo lectura. Resolver
 > traspasos y conflictos desde la web queda para etapas posteriores.
 
-### E6 — Revisar antes de confirmar ✅
+### E6 — Revisar antes de confirmar 🟡
 
 Todo lo que importe el backend nace en estado `pending_review`. Esta pantalla es
 la que lo confirma o lo corrige. El endpoint `PATCH /api/movements/:id` ya
@@ -153,6 +153,12 @@ existe (feature 37 del backend).
 > entera), con deshacer y la cola y el contador al día sin recargar. Probada
 > contra el backend real sobre un solo movimiento: categorizar, confirmar y
 > deshacer, la cola bajando de 1.607 a 1.606 y volviendo.
+>
+> **F17 `category-rules` dada de alta el 2026-09-22** (SDD): crear reglas desde un
+> movimiento, listarlas, cambiarlas, borrarlas y aplicarlas sobre lo pendiente con
+> `POST /api/category-rules/apply`, viendo los conflictos sin resolverlos. Es lo que
+> hace que categorizar sirva para las próximas importaciones; la E6 vuelve a estar
+> a medias hasta cerrarla.
 
 ### E7 — El extracto ⬜
 
