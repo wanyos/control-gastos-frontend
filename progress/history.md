@@ -661,3 +661,46 @@ Plantilla para cada entrada nueva:
 - **Verificación:** type-check, lint, 691 tests (51 ficheros), build, 8 e2e y
   `./init.sh` en verde.
 - **Cierre:** feature 15 → **done**. Siguiente: F16 `review-actions`.
+
+## 2026-09-22 — Features 16 y 17: review-actions y category-rules
+
+- **Agente:** `leader` (Claude Code) orquestando `implementer` y `reviewer` (la F17
+  además con `spec_author`). Flujo SDD en las dos.
+- **F16 `review-actions`** (implementada el 2026-09-20, cerrada hoy): categorizar y
+  confirmar desde `/review`, uno a uno y en bloque hasta la página entera, con
+  `Undo` de la última acción. Primera pantalla de la web que escribe en la base de
+  datos. Aprobada por el reviewer sin cambios.
+- **T21, prueba contra el backend real** (con el visto bueno del humano): sobre el
+  movimiento 42368 (IBERDROLA, 96,29 €, pendiente, Suministros), pulsando en la
+  interfaz. Categorizar a Vivienda → `Undo` → vuelve a Suministros; `Confirm` → sale
+  de la cola y el contador baja de 1.607 a 1.606 → `Undo` → vuelve a pendiente y a
+  1.607. Antes y después idénticos salvo `updatedAt`; cuatro `PATCH` con solo
+  `ids`/`categoryId`/`status`; cero errores de consola.
+- **Commit único para F15 y F16** (`f427175`): la F16 amplió sin commitear los
+  mismos archivos que creó la F15, así que un commit «solo F15» no habría
+  correspondido a ningún estado compilado y probado. Queda explicado en el mensaje.
+- **F17 `category-rules`** (alta, spec y cierre el mismo día): crear una regla desde
+  una fila de Review, pantalla propia `Rules` para verlas, cambiarlas y borrarlas, y
+  aplicarlas bajo demanda viendo cuántos se categorizaron, cuántos no casan y qué
+  movimientos chocan. El humano aprobó las 6 decisiones tal cual: pantalla propia,
+  texto propuesto por la primera palabra con sentido, aplicar como gesto aparte y
+  con confirmación previa, no categorizar el movimiento de origen y enseñar todos
+  los conflictos. Aprobada por el reviewer sin cambios.
+- **T22, prueba contra el backend real** (con el visto bueno del humano, que eligió
+  «aplicar y dejar lo que salga»): regla `tulotero` → Ocio creada desde Review y
+  aplicada desde el aviso. La pantalla dijo «5 movements categorized · 1372 still
+  without a matching rule · 1 conflict» y la API confirmó esos mismos cinco ids
+  (21750, 33099, 33260, 33371, 42521). Solo dos escrituras: `POST
+  /api/category-rules` y `POST /api/category-rules/apply` sin cuerpo.
+- **Dos cosas que salieron de esa prueba y se corrigieron después:** el texto
+  propuesto podía quedar demasiado corto (`mega` casaba también con «ACADEMIA OMEGA
+  SL»; ahora crece hasta `MIN_PROPOSAL_LENGTH`), y el `data-test` de `BaseDialog` se
+  perdía en la raíz `Teleport`, lo que dejaba pasando siempre un test de
+  `RulesView.spec.ts`; ahora se traslada al panel y el test prueba las dos caras.
+- **Rastro en los datos reales:** 63 reglas (nuevas `mega deportes` → Salud y deporte
+  y `tulotero` → Ocio) y seis movimientos categorizados; 1.373 pendientes sin
+  categoría.
+- **Verificación:** type-check, lint, 905 tests (64 ficheros), build, 16 e2e y
+  `./init.sh` en verde, ejecutado por el leader al final.
+- **Cierre:** features 16 y 17 → **done**. E6 completa. Siguiente etapa: E7 (el
+  extracto).

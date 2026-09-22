@@ -9,6 +9,12 @@
 
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
+import {
+  CATEGORIES_PATH,
+  CATEGORY_KINDS,
+  getCategories,
+  parseCategories,
+} from '@/shared/categories'
 import { createValidators } from '@/shared/validation'
 import type { Validators } from '@/shared/validation'
 
@@ -17,8 +23,6 @@ import { MAX_IDS } from './actions'
 import type {
   BulkResult,
   BulkUpdate,
-  Category,
-  CategoryKind,
   Movement,
   MovementChanges,
   MovementAccount,
@@ -33,16 +37,17 @@ import type {
 
 export { MAX_IDS }
 
+// The category tree moved to `@/shared/categories` in feature 17; re-exported so
+// every caller written for features 15 and 16 keeps importing it from here.
+export { CATEGORIES_PATH, getCategories, parseCategories }
+
 /** Paths are absolute so they resolve against the API origin (see docs/stack.md). */
 export const MOVEMENTS_PATH = '/api/movements'
-export const CATEGORIES_PATH = '/api/categories'
 
 const MOVEMENT_TYPES: readonly MovementType[] = ['expense', 'income', 'neutral']
 const MOVEMENT_STATUSES: readonly MovementStatus[] = ['confirmed', 'pending_review']
-const CATEGORY_KINDS: readonly CategoryKind[] = ['expense', 'income']
 
 const movementChecks = createValidators(`GET ${MOVEMENTS_PATH}`)
-const categoryChecks = createValidators(`GET ${CATEGORIES_PATH}`)
 const updateChecks = createValidators(`PATCH ${MOVEMENTS_PATH}/:id`)
 const bulkChecks = createValidators(`PATCH ${MOVEMENTS_PATH}`)
 
@@ -167,28 +172,6 @@ export function parseMovementPage(raw: unknown): MovementPage {
   }
 }
 
-/** Maps `GET /api/categories`, or throws ValidationError. Recursive: one extra level would not break it. */
-export function parseCategories(raw: unknown): Category[] {
-  const v = categoryChecks
-
-  const parseNode = (value: unknown, path: string): Category => {
-    const category = v.asObject(value, path)
-    return {
-      id: v.asInteger(category.id, `${path}.id`),
-      name: v.asString(category.name, `${path}.name`),
-      kind: v.asMember(category.kind, CATEGORY_KINDS, `${path}.kind`),
-      parentId:
-        category.parentId === null ? null : v.asInteger(category.parentId, `${path}.parentId`),
-      createdAt: v.asText(category.createdAt, `${path}.createdAt`),
-      children: v
-        .asArray(category.children, `${path}.children`)
-        .map((child, i) => parseNode(child, `${path}.children[${i}]`)),
-    }
-  }
-
-  return v.asArray(raw, 'response').map((item, i) => parseNode(item, `[${i}]`))
-}
-
 /** Lists movements. Read only: no side effects on the backend. */
 export async function getMovements(
   query: MovementQuery,
@@ -197,11 +180,6 @@ export async function getMovements(
   const search = buildMovementsQuery(query)
   const path = search === '' ? MOVEMENTS_PATH : `${MOVEMENTS_PATH}?${search}`
   return parseMovementPage(await client<unknown>(path))
-}
-
-/** Lists the root categories with their children. Read only. */
-export async function getCategories(client: HttpClient = http): Promise<Category[]> {
-  return parseCategories(await client<unknown>(CATEGORIES_PATH))
 }
 
 /** Maps the movement `PATCH /api/movements/:id` answers with, or throws ValidationError. */

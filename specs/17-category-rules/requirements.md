@@ -72,8 +72,16 @@ texto editable el resultado de `proposeMatchText(description)`: la descripción
 normalizada como el backend (sin tildes, en minúsculas, sin espacios en los extremos),
 partida en palabras por todo lo que no sea letra o dígito, y de ellas **la primera**
 que tenga al menos 3 caracteres, solo letras, y no esté en la lista fija de palabras
-de trámite bancario (`BANK_BOILERPLATE`, `design.md` §6); SI ninguna palabra cumple
-ENTONCES DEBE proponer la descripción normalizada entera.
+de trámite bancario (`BANK_BOILERPLATE`, `design.md` §6); SI esa palabra tiene menos de
+`MIN_PROPOSAL_LENGTH` (6) caracteres ENTONCES DEBE alargar la propuesta con las palabras
+siguientes del concepto, **tal cual están en él** (nunca más allá del concepto), hasta
+llegar a esa longitud, parando antes de cualquier palabra que lleve dígitos; SI ninguna
+palabra cumple ENTONCES DEBE proponer la descripción normalizada entera.
+
+> Corregido tras la prueba contra el backend real (T22): «MEGA DEPORTES» proponía `mega`,
+> que por la comparación «contiene» del backend casaba también con «ACADEMIA OMEGA SL».
+> Ahora propone `mega deportes`; «RECIB /IBERDROLA CLIENTES, S.A» sigue dando
+> `iberdrola`. La decisión 🔴 2 (primera palabra con sentido, editable) no cambia.
 
 > Verificación: `rules.spec.ts` — `RECIB /IBERDROLA CLIENTES, S.A` → `iberdrola`;
 > `COMPRA TARJ. 5540XXXXXXXX1234 MERCADONA VALENCIA` → `mercadona` (salta `compra`,
@@ -96,7 +104,9 @@ SI el texto, normalizado como el backend, queda con menos de 3 caracteres ENTONC
 sistema DEBE mostrar bajo el campo `Use at least 3 letters or digits.`, DEBE
 deshabilitar el botón de guardar y NO DEBE enviar ninguna petición.
 
-> Verificación: `rules.spec.ts` — `isMatchTextTooShort(' ab ')` y `('á b')` son `true`,
+> Verificación: `rules.spec.ts` — `isMatchTextTooShort(' ab ')` y `(' á ')` son `true`,
+> y `('á b')` es `false` (el backend no colapsa los espacios interiores: `a b` mide 3
+> y lo acepta; la pantalla no puede ser más estricta que el contrato),
 > `('abc')` es `false`; `RuleDialog.spec.ts` — con `ab` aparece el texto y el botón
 > está `disabled`; `store.spec.ts` — `create({ matchText: 'ab', … })` no llama al
 > cliente HTTP.

@@ -59,15 +59,29 @@
       <template #icon><Check :size="14" aria-hidden="true" /></template>
       Confirm
     </BaseButton>
+
+    <BaseButton
+      variant="ghost"
+      size="sm"
+      :disabled="cannotRule"
+      :aria-label="`Create a rule from ${movement.description}`"
+      data-test="movement-create-rule"
+      @click="emit('create-rule')"
+    >
+      <template #icon><WandSparkles :size="14" aria-hidden="true" /></template>
+      Create rule
+    </BaseButton>
   </li>
 </template>
 
 <script setup lang="ts">
 // Port of design-system/components/finance/TransactionRow.jsx. The row shows the
-// banking fact and never edits it: the only two controls it offers write `categoryId`
-// and `status`, the two fields the contract lets anyone touch (C4).
+// banking fact and never edits it: the only two controls that write on the movement
+// touch `categoryId` and `status`, the two fields the contract lets anyone touch (C4).
+// The third one, Create rule (feature 17), writes nothing here: it only asks for the
+// dialog where a rule is born.
 import { computed } from 'vue'
-import { Check } from '@lucide/vue'
+import { Check, WandSparkles } from '@lucide/vue'
 
 import { bankLabel } from '@/shared/banks'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
@@ -87,7 +101,20 @@ const props = defineProps<{
   busy?: boolean
 }>()
 
-const emit = defineEmits<{ toggle: []; categorize: [number | null]; confirm: [] }>()
+const emit = defineEmits<{
+  toggle: []
+  categorize: [number | null]
+  confirm: []
+  'create-rule': []
+}>()
+
+/**
+ * A rule born from a neutral movement would never categorize anything (the pass
+ * skips them), and without the category tree there is nothing to point it at (R1).
+ */
+const cannotRule = computed(
+  () => props.busy === true || props.movement.type === 'neutral' || !props.categories,
+)
 
 // Full literal class names: Tailwind scans source as text (docs/stack.md).
 const CATEGORY_FILLS = [

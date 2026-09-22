@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+
+import { useCategoryRulesStore } from '@/features/category-rules/store'
 
 import { API_NETWORK, ApiError, ValidationError } from '@/shared/errors'
 
@@ -708,6 +711,43 @@ describe('useReviewStore', () => {
     expect(store.notice).toBe(OUT_OF_RANGE_NOTICE)
     expect(store.result?.movements.map((movement) => movement.id)).toEqual([10, 11, 12])
     expect(api.patches()).toHaveLength(1)
+  })
+
+  describe('after a rules pass (feature 17, R14)', () => {
+    it('asks for the page and the count again, and drops the selection and the undo', async () => {
+      const queue = fakeQueue()
+      const api = mockApi({ movements: queue.movements, patch: queue.patch })
+      const store = useReviewStore()
+      const rules = useCategoryRulesStore()
+      await store.load()
+      await store.confirmOne(10)
+      store.toggleSelection(11)
+      expect(store.lastAction).not.toBeNull()
+      const reads = api.movementQueries().length
+
+      rules.applyRun += 1
+      await flushPromises()
+
+      const asked = api.movementQueries().slice(reads)
+      expect(asked).toHaveLength(2)
+      expect(asked[0]).toBe('status=pending_review&page=1&pageSize=100')
+      expect(asked[1]).toBe('status=pending_review&page=1&pageSize=1')
+      expect(store.selectedIds).toEqual([])
+      expect(store.lastAction).toBeNull()
+      expect(api.patches()).toHaveLength(1) // the Confirm above, nothing else
+    })
+
+    it('asks only for the count when no page has been loaded', async () => {
+      const api = mockApi({ movements: json(COUNT_PAGE) })
+      const store = useReviewStore()
+      const rules = useCategoryRulesStore()
+
+      rules.applyRun += 1
+      await flushPromises()
+
+      expect(api.movementQueries()).toEqual(['status=pending_review&page=1&pageSize=1'])
+      expect(store.pendingCount).toBe(7)
+    })
   })
 
   it('only ever talks to the two read endpoints (R13)', async () => {

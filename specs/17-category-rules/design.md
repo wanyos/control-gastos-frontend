@@ -216,9 +216,13 @@ export function applySummaryLines(result: ApplyResult): string[]
 
 - `normalizeMatchText` copia **exactamente** `normalizeForMatch` del backend
   (`category-rules.service.ts:30`): los espacios interiores no se tocan.
-- `proposeMatchText` (R2): normaliza, parte por `/[^\p{L}\p{N}]+/u`, y devuelve el
-  primer token con `length >= 3`, que case con `/^\p{L}+$/u` y no esté en
-  `BANK_BOILERPLATE`; si no hay ninguno, la descripción normalizada entera.
+- `proposeMatchText` (R2): normaliza, recorre los tokens `/[\p{L}\p{N}]+/gu` y busca el
+  primero con `length >= 3`, que case con `/^\p{L}+$/u` y no esté en `BANK_BOILERPLATE`;
+  si no hay ninguno, la descripción normalizada entera. Mientras la propuesta no llegue a
+  `MIN_PROPOSAL_LENGTH = 6`, la alarga hasta el final del token siguiente —cortando la
+  descripción normalizada, así que el texto sale **verbatim del concepto** y el backend lo
+  encuentra con su «contiene»— y para si ese token lleva dígitos (número de tarjeta,
+  fecha: son de un solo movimiento). Corregido tras T22 (`mega` → `mega deportes`).
 - `BANK_BOILERPLATE` (lista cerrada, en minúsculas y sin tildes): `recib`, `recibo`,
   `recibos`, `compra`, `compras`, `tarj`, `tarjeta`, `pago`, `pagos`, `transf`,
   `transferencia`, `trf`, `traspaso`, `bizum`, `adeudo`, `cargo`, `abono`, `cajero`,

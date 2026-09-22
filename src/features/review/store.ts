@@ -1,6 +1,7 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 
+import { useCategoryRulesStore } from '@/features/category-rules/store'
 import type { HttpClient } from '@/services/http'
 import { API_NETWORK, ApiError, ValidationError, toAppError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
@@ -402,6 +403,28 @@ export const useReviewStore = defineStore('review', () => {
     })
   }
 
+  // ─── After a rules pass (feature 17, R14) ─────────────────────────────────
+
+  /**
+   * A rules pass writes `categoryId` on many pending movements at once and the
+   * backend does not say which: the page on screen, its totals and the sidebar count
+   * are asked for again. The selection and the Undo go too — putting an action back
+   * over a queue that just changed in bulk could overwrite what the pass wrote.
+   */
+  async function refreshAfterRules(client?: HttpClient): Promise<void> {
+    clearSelection()
+    if (result.value) await refreshAfterAction(client)
+    await refreshPendingCount(client)
+  }
+
+  // Review watches the rules store, never the other way round: the dependency
+  // between the two features stays one way (design.md §1).
+  const rulesStore = useCategoryRulesStore()
+  watch(
+    () => rulesStore.applyRun,
+    () => void refreshAfterRules(),
+  )
+
   return {
     filters,
     page,
@@ -431,5 +454,6 @@ export const useReviewStore = defineStore('review', () => {
     goToPage,
     loadCategories,
     refreshPendingCount,
+    refreshAfterRules,
   }
 })

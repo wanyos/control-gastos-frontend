@@ -30,11 +30,18 @@
       @clear="store.clearSelection()"
     />
 
+    <RuleCreatedNotice
+      v-if="rules.lastCreated"
+      :rule="rules.lastCreated"
+      @apply="rules.openApply()"
+    />
+
     <ActionNotice
+      v-else
       :summary="store.lastAction?.summary"
       :error="store.actionMessage"
       :busy="store.isActing"
-      @undo="store.undoLast()"
+      @undo="onUndo"
     />
 
     <p v-if="store.notice" class="text-sm text-ink-muted" data-test="review-notice">
@@ -80,12 +87,34 @@
           @clear="onFilters({ ...EMPTY_FILTERS })"
           @toggle="store.toggleSelection"
           @select-all="store.selectPage"
-          @confirm="(id) => store.confirmOne(id)"
-          @categorize="(id, categoryId) => store.categorizeOne(id, categoryId)"
+          @confirm="onConfirmOne"
+          @categorize="onCategorizeOne"
+          @create-rule="onCreateRule"
         />
       </div>
       <ReviewPager :pagination="store.result.pagination" @go="onPage" />
     </template>
+
+    <RuleDialog
+      v-if="ruling"
+      :open="true"
+      mode="create"
+      :description="ruling.description"
+      :initial-text="proposeMatchText(ruling.description)"
+      :initial-category-id="ruling.categoryId"
+      :kind="ruling.type === 'income' ? 'income' : 'expense'"
+      :categories="store.categories"
+      :busy="rules.isSaving"
+      :message="rules.saveMessage"
+      @save="onSaveRule"
+      @cancel="closeRuleDialog"
+    />
+
+    <ApplyRulesDialog
+      :flow="rules.applyFlow"
+      @confirm="rules.confirmApply()"
+      @close="rules.closeApply()"
+    />
 
     <BulkConfirmDialog
       v-if="pending"
@@ -106,6 +135,12 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import ApplyRulesDialog from '@/features/category-rules/components/ApplyRulesDialog.vue'
+import RuleCreatedNotice from '@/features/category-rules/components/RuleCreatedNotice.vue'
+import RuleDialog from '@/features/category-rules/components/RuleDialog.vue'
+import { proposeMatchText } from '@/features/category-rules/rules'
+import { useCategoryRulesStore } from '@/features/category-rules/store'
+import type { NewRule } from '@/features/category-rules/types'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
 
@@ -120,11 +155,12 @@ import ReviewPager from '../components/ReviewPager.vue'
 import ReviewTotals from '../components/ReviewTotals.vue'
 import { EMPTY_FILTERS, fromRouteQuery, hasActiveFilters, toRouteQuery } from '../filters'
 import { reviewErrorMessage, useReviewStore } from '../store'
-import type { CategoryKind, MovementAccount, ReviewFilters } from '../types'
+import type { CategoryKind, Movement, MovementAccount, ReviewFilters } from '../types'
 
 const route = useRoute()
 const router = useRouter()
 const store = useReviewStore()
+const rules = useCategoryRulesStore()
 
 const listTop = ref<HTMLElement | null>(null)
 
@@ -196,6 +232,7 @@ function askOrRun(action: 'confirm' | 'category', count: number): void {
 }
 
 function run(action: 'confirm' | 'category'): Promise<void> {
+  rules.dismissCreated()
   if (action === 'confirm') return store.confirmSelected()
   return store.categorizeSelected(choice.value === 'none' ? null : Number(choice.value))
 }
@@ -208,6 +245,43 @@ function runPending(): void {
 
 const onConfirmSelected = (): void => askOrRun('confirm', store.selectedIds.length)
 const onApplyCategory = (): void => askOrRun('category', eligibleCount.value)
+
+// ─── Rules (feature 17) ────────────────────────────────────────────────────
+// A rule is born from a row, but creating it writes nothing on that movement
+// (decisions.md 🔴 5) and applies nothing by itself (🔴 3).
+
+/** The movement the rule dialog is open for, or null. */
+const ruling = ref<Movement | null>(null)
+
+function onCreateRule(movement: Movement): void {
+  rules.saveMessage = null
+  ruling.value = movement
+}
+
+function closeRuleDialog(): void {
+  rules.saveMessage = null
+  ruling.value = null
+}
+
+async function onSaveRule(rule: NewRule): Promise<void> {
+  if (await rules.create(rule)) ruling.value = null
+}
+
+/** The newest notice wins: a queue action puts the rule one away (design.md §7). */
+function onConfirmOne(id: number): void {
+  rules.dismissCreated()
+  void store.confirmOne(id)
+}
+
+function onCategorizeOne(id: number, categoryId: number | null): void {
+  rules.dismissCreated()
+  void store.categorizeOne(id, categoryId)
+}
+
+function onUndo(): void {
+  rules.dismissCreated()
+  void store.undoLast()
+}
 
 /** The account selector is filled from the loaded page: no GET /api/accounts (design.md §8). */
 const accounts = computed<MovementAccount[]>(() =>

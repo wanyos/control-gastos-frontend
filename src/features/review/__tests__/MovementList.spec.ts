@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import MovementList from '../components/MovementList.vue'
-import { parseMovementPage } from '../service'
-import { PAGE_OF_THREE } from './fixtures'
+import { parseCategories, parseMovementPage } from '../service'
+import { CATEGORY_TREE, PAGE_OF_THREE } from './fixtures'
 
 const movements = parseMovementPage(PAGE_OF_THREE).movements
 
@@ -82,6 +82,18 @@ describe('MovementList (R3, R12)', () => {
       expect(wrapper.emitted('toggle')).toEqual([[10]])
       expect(wrapper.emitted('confirm')).toEqual([[12]])
     })
+  })
+
+  it('passes the whole movement up when a row asks for a rule (feature 17, R1)', async () => {
+    const wrapper = mount(MovementList, {
+      props: { movements, categories: parseCategories(CATEGORY_TREE) },
+    })
+
+    await wrapper.findAll('[data-test="movement-create-rule"]')[0]?.trigger('click')
+
+    expect(wrapper.emitted('createRule')).toHaveLength(1)
+    const [[movement] = []] = wrapper.emitted('createRule') as [{ id: number }][]
+    expect(movement?.id).toBe(10)
   })
 
   it('offers Clear filters when it is the filters that match nothing', async () => {

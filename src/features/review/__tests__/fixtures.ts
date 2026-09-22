@@ -242,6 +242,8 @@ export function mockApi(answers: {
   movements?: Answer | ((query: URLSearchParams) => Promise<Response>)
   categories?: Answer
   patch?: Answer | ((call: ApiCall) => Promise<Response>)
+  /** Anything under /api/category-rules (feature 17). */
+  rules?: Answer | ((call: ApiCall) => Promise<Response>)
 }) {
   const calls: ApiCall[] = []
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
@@ -264,6 +266,9 @@ export function mockApi(answers: {
     if (url.pathname === '/api/categories' && answers.categories) {
       return answers.categories()
     }
+    if (url.pathname.startsWith('/api/category-rules') && answers.rules) {
+      return answers.rules(call)
+    }
     return Promise.reject(new TypeError(`unexpected ${method} ${url.pathname}`))
   })
   return {
@@ -282,6 +287,42 @@ export function mockApi(answers: {
 
 export const MOVEMENTS = '/api/movements'
 export const CATEGORIES = '/api/categories'
+export const RULES = '/api/category-rules'
+export const APPLY_RULES = '/api/category-rules/apply'
+
+/** A rule as `POST /api/category-rules` gives it back: matchText already normalized. */
+export const CREATED_RULE = {
+  id: 7,
+  matchText: 'cafeteria',
+  categoryId: 1,
+  category: FOOD,
+  createdAt: '2026-09-06T10:00:00.000Z',
+  updatedAt: '2026-09-06T10:00:00.000Z',
+}
+
+/** What a finished rules pass answers (feature 17). */
+export const APPLY_RESULT = {
+  categorized: 12,
+  conflictCount: 1,
+  conflicts: [
+    {
+      movementId: 210,
+      description: 'PAGO SINTETICO EJEMPLO',
+      bookingDate: '2026-08-14',
+      matches: [
+        { ruleId: 3, matchText: 'sintetico', categoryId: 1, categoryName: 'Food' },
+        { ruleId: 9, matchText: 'ejemplo', categoryId: 2, categoryName: 'Groceries' },
+      ],
+    },
+  ],
+  unmatched: 5,
+}
+
+export const CONFLICT_BODY = {
+  statusCode: 409,
+  code: 'CONFLICT',
+  message: 'Ya existe una regla con el texto «cafeteria»',
+}
 
 const CATEGORY_BY_ID: Record<number, object> = { 1: FOOD, 2: GROCERIES, 4: SALARY }
 

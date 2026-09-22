@@ -45,6 +45,7 @@
           @toggle="emit('toggle', movement.id)"
           @confirm="emit('confirm', movement.id)"
           @categorize="(categoryId) => emit('categorize', movement.id, categoryId)"
+          @create-rule="emit('createRule', movement)"
         />
       </ul>
     </template>
@@ -84,6 +85,8 @@ const emit = defineEmits<{
   selectAll: [boolean]
   confirm: [number]
   categorize: [number, number | null]
+  /** The whole movement, not its id: the rule dialog needs its description (R1). */
+  createRule: [Movement]
 }>()
 
 /** "Select all" is ticked only with the whole page taken, and in between shows a dash (R2). */

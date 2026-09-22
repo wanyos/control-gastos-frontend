@@ -14,6 +14,7 @@
         tabindex="-1"
         class="flex max-h-[calc(100dvh-40px)] w-[440px] max-w-full flex-col rounded-xl border border-line-subtle bg-surface-card shadow-xl outline-none"
         data-test="dialog-panel"
+        v-bind="$attrs"
       >
         <div class="flex shrink-0 items-center justify-between gap-3 px-6 pt-6 pb-4">
           <h2 :id="titleId" class="font-display text-xl font-bold text-ink-strong">
@@ -57,6 +58,11 @@
 // separates it from the scrim (the card fill alone is 1.04:1).
 import { nextTick, onBeforeUnmount, ref, useId, watch } from 'vue'
 import { X } from '@lucide/vue'
+
+// The root is a <Teleport>, so an attribute left to fall through (a caller's
+// `data-test`) never reaches the DOM and Vue warns about it. They go to the panel, where
+// a caller's own `data-test` replaces `dialog-panel`.
+defineOptions({ inheritAttrs: false })
 
 const props = withDefaults(defineProps<{ open: boolean; title: string; dismissible?: boolean }>(), {
   dismissible: true,

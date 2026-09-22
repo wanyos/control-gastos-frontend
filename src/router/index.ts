@@ -1,9 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { ArrowLeftRight, ChartLine, LayoutDashboard, ListChecks, Wallet } from '@lucide/vue'
+import {
+  ArrowLeftRight,
+  ChartLine,
+  LayoutDashboard,
+  ListChecks,
+  Wallet,
+  WandSparkles,
+} from '@lucide/vue'
 import type { LucideIcon } from '@lucide/vue'
 
 import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
+import RulesView from '@/features/category-rules/views/RulesView.vue'
 import ReviewView from '@/features/review/views/ReviewView.vue'
 import PlaceholderView from '@/shared/components/PlaceholderView.vue'
 
@@ -44,6 +52,12 @@ export const routes: RouteRecordRaw[] = [
     name: REVIEW_ROUTE_NAME,
     component: ReviewView,
     meta: { label: 'Review', icon: ListChecks },
+  },
+  {
+    path: '/rules',
+    name: 'rules',
+    component: RulesView,
+    meta: { label: 'Rules', icon: WandSparkles },
   },
   {
     path: '/overview',

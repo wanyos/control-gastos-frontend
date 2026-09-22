@@ -16,10 +16,18 @@ const DESIGN_SYSTEM_LABELS = [
 const newRouter = () => createRouter({ history: createMemoryHistory(), routes })
 
 describe('router', () => {
-  it('declares the five navigable routes with English paths', () => {
+  // The list grew with /rules in feature 17; Rules sits right below Review.
+  it('declares the six navigable routes with English paths', () => {
     const paths = routes.filter((route) => route.name).map((route) => route.path)
 
-    expect(paths).toEqual(['/net-worth', '/review', '/overview', '/movements', '/investments'])
+    expect(paths).toEqual([
+      '/net-worth',
+      '/review',
+      '/rules',
+      '/overview',
+      '/movements',
+      '/investments',
+    ])
   })
 
   it('sends the root path to the net worth home', async () => {
@@ -32,7 +40,7 @@ describe('router', () => {
     expect(router.currentRoute.value.path).toBe('/net-worth')
   })
 
-  it.each(['/net-worth', '/review', '/overview', '/movements', '/investments'])(
+  it.each(['/net-worth', '/review', '/rules', '/overview', '/movements', '/investments'])(
     'resolves %s to a component',
     (path) => {
       const matched = newRouter().resolve(path).matched
@@ -64,6 +72,7 @@ describe('router', () => {
     expect(navEntries.map((entry) => entry.name)).toEqual([
       HOME_ROUTE_NAME,
       REVIEW_ROUTE_NAME,
+      'rules',
       'overview',
       'movements',
       'investments',
@@ -71,6 +80,7 @@ describe('router', () => {
     expect(navEntries.map((entry) => entry.label)).toEqual([
       'Net Worth',
       'Review',
+      'Rules',
       'Overview',
       'Movements',
       'Investments',

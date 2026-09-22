@@ -82,6 +82,13 @@ src/
                           # PATCH /api/movements y PATCH /api/movements/:id (#16)
       filters.ts          # filtros ↔ querystring de la API y de la URL, guardas de `q` (puras)
       actions.ts          # elegibilidad, plan de deshacer y textos de acción, puras (#16)
+    category-rules/       # feature #17: reglas de categorización («lo que contenga X va a Y»)
+      components/         # RuleDialog (crear y editar), RuleList, RuleRow, DeleteRuleDialog,
+                          # RuleCreatedNotice, ApplyRulesDialog, ApplyResult, RuleConflictList
+      views/              # RulesView (ruta /rules)
+      store.ts            # useCategoryRulesStore: lista, diálogos y la pasada bajo demanda
+      service.ts          # GET/POST /api/category-rules, PATCH y DELETE /:id, POST /apply
+      rules.ts            # normalización del backend, texto propuesto y textos de error (puras)
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
@@ -111,6 +118,16 @@ src/
 > cuerpos construidos campo a campo (solo `ids`, `categoryId` y `status`). Es la
 > primera pantalla que escribe en la base de datos; el hecho bancario —importe, fecha,
 > descripción— sigue sin poder tocarse.
+
+> **La pantalla de reglas y su sentido de dependencia (feature #17).** `review` monta
+> los componentes de `category-rules` (el diálogo de nueva regla, el aviso y el de
+> aplicar) y su store **observa** `applyRun` del store de reglas para refrescar la cola
+> tras cada pasada. El sentido es único, `review` → `category-rules`: la feature de
+> reglas no importa nada de `review` ni de `import` (lo contrario cerraría un ciclo).
+> Por eso las categorías, que necesitan las dos, viven ahora en `shared/categories.ts`;
+> `review/types.ts` y `review/service.ts` las re-exportan. Crear una regla **no**
+> escribe nada sobre ningún movimiento; la única escritura en masa es
+> `POST /api/category-rules/apply`, y siempre pasa por una confirmación.
 
 > **Dependencias entre features y con `shared/` (features #13-#14).** `AppShell.vue`
 > (shared) monta `ImportButton` de `features/import`, igual que el router monta

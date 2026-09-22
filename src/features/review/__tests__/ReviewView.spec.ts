@@ -6,7 +6,12 @@ import type { Router } from 'vue-router'
 
 import ReviewView from '../views/ReviewView.vue'
 import {
+  APPLY_RESULT,
+  APPLY_RULES,
   CATEGORIES,
+  CONFLICT_BODY,
+  CREATED_RULE,
+  RULES,
   CATEGORY_TREE,
   EMPTY_PAGE,
   EXPENSE,
@@ -23,6 +28,7 @@ import {
   mockApi,
   networkDown,
 } from './fixtures'
+import type { ApiCall } from './fixtures'
 
 type Answer = Parameters<typeof mockApi>[0]
 
@@ -48,6 +54,9 @@ describe('ReviewView', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    // Teleported dialogs outlive their wrapper: without this, one test's open
+    // dialog is the one the next test would click on.
+    document.body.innerHTML = ''
   })
 
   describe('loading the queue (R3, R11)', () => {
@@ -456,6 +465,123 @@ describe('ReviewView', () => {
       const sent = api.patches()[0]?.body as { ids: number[] } | undefined
       expect(sent?.ids).toHaveLength(20)
       expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(0)
+    })
+  })
+
+  describe('creating a rule from a row (feature 17, R1, R5, R10)', () => {
+    const rulesApi =
+      (answers: { post?: () => Promise<Response>; apply?: () => Promise<Response> } = {}) =>
+      (call: ApiCall): Promise<Response> => {
+        if (call.path === APPLY_RULES) {
+          return (answers.apply ?? (() => Promise.resolve(jsonResponse(APPLY_RESULT))))()
+        }
+        return (
+          answers.post ?? (() => Promise.resolve(jsonResponse(CREATED_RULE, { status: 201 })))
+        )()
+      }
+
+    const openDialog = async (wrapper: {
+      findAll: (s: string) => { trigger: (e: string) => Promise<void> }[]
+    }) => {
+      await wrapper.findAll('[data-test="movement-create-rule"]')[0]?.trigger('click')
+      await flushPromises()
+    }
+
+    it('opens the dialog with the movement and the proposed text (R1, R2)', async () => {
+      const queue = fakeQueue()
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi(),
+      })
+
+      await openDialog(wrapper)
+
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog?.textContent).toContain('Create a rule')
+      expect(dialog?.textContent).toContain('CAFETERÍA CENTRAL')
+      expect(document.querySelector<HTMLInputElement>('[data-test="rule-text"] input')?.value).toBe(
+        'cafeteria',
+      )
+      // Opening a dialog asks for nothing.
+      expect(api.count(RULES)).toBe(0)
+    })
+
+    it('creates it with one POST of two fields, and applies nothing by itself (R5)', async () => {
+      const queue = fakeQueue()
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi(),
+      })
+      await openDialog(wrapper)
+
+      document.querySelector<HTMLElement>('[data-test="rule-save"]')?.click()
+      await flushPromises()
+
+      const posted = api.calls.filter((call) => call.path === RULES)
+      expect(posted).toHaveLength(1)
+      expect(posted[0]?.method).toBe('POST')
+      expect(posted[0]?.body).toEqual({ matchText: 'cafeteria', categoryId: 1 })
+      expect(api.count(APPLY_RULES)).toBe(0)
+      expect(api.patches()).toEqual([])
+      expect(document.querySelector('[role="dialog"]')).toBeNull()
+
+      const notice = wrapper.get('[data-test="rule-created-notice"]')
+      expect(notice.text()).toContain('cafeteria')
+      expect(notice.text()).toContain('Food')
+      expect(notice.text()).toContain('Apply rules now')
+    })
+
+    it('asks before applying, and one confirmation sends one pass (R10, R11)', async () => {
+      const queue = fakeQueue()
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi(),
+      })
+      await openDialog(wrapper)
+      document.querySelector<HTMLElement>('[data-test="rule-save"]')?.click()
+      await flushPromises()
+
+      await wrapper.get('[data-test="apply-rules-now"]').trigger('click')
+      await flushPromises()
+
+      const dialog = document.querySelector('[role="dialog"]')
+      expect(dialog?.textContent).toContain('Only pending movements without a category')
+      expect(dialog?.textContent).toContain("can't be undone")
+      expect(api.count(APPLY_RULES)).toBe(0)
+
+      document.querySelector<HTMLElement>('[data-test="apply-confirmed"]')?.click()
+      await flushPromises()
+
+      expect(api.count(APPLY_RULES)).toBe(1)
+      expect(document.body.textContent).toContain('12 movements categorized')
+      // The queue and the count are asked for again, and nothing was PATCHed.
+      expect(api.movementQueries().at(-1)).toBe('status=pending_review&page=1&pageSize=1')
+      expect(api.patches()).toEqual([])
+    })
+
+    it('keeps the dialog open with an English message when the text is taken (R6)', async () => {
+      const queue = fakeQueue()
+      const { wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi({
+          post: () => Promise.resolve(jsonResponse(CONFLICT_BODY, { status: 409 })),
+        }),
+      })
+      await openDialog(wrapper)
+
+      document.querySelector<HTMLElement>('[data-test="rule-save"]')?.click()
+      await flushPromises()
+
+      expect(document.querySelector('[data-test="rule-error"]')?.textContent).toContain(
+        'Nothing was saved: another rule already uses that text.',
+      )
+      expect(document.body.textContent).not.toContain(CONFLICT_BODY.message)
+      expect(document.querySelector('[role="dialog"]')).not.toBeNull()
+      expect(wrapper.find('[data-test="rule-created-notice"]').exists()).toBe(false)
     })
   })
 

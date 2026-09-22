@@ -3,12 +3,18 @@
 // Types are not shared between features (docs/architecture.md), so the decimal and
 // date aliases are declared here like import/types.ts does.
 
+// `Category` and `CategoryKind` live in `@/shared/categories` since feature 17
+// (the rules screen needs the same tree); they are re-exported here so every
+// import written for features 15 and 16 keeps working.
+export type { Category, CategoryKind } from '@/shared/categories'
+
+import type { CategoryKind } from '@/shared/categories'
+
 export type DecimalString = string
 export type DateOnly = string
 
 export type MovementType = 'expense' | 'income' | 'neutral'
 export type MovementStatus = 'confirmed' | 'pending_review'
-export type CategoryKind = 'expense' | 'income'
 
 /** The account as it travels embedded in a movement (no `balance`). */
 export interface MovementAccount {
@@ -98,16 +104,6 @@ export interface LastAction {
   /** English sentence already built: "3 movements confirmed". */
   summary: string
   undo: UndoGroup[]
-}
-
-/** A root category with its children embedded (subcategories are one level deep). */
-export interface Category {
-  id: number
-  name: string
-  kind: CategoryKind
-  parentId: number | null
-  createdAt: string
-  children: Category[]
 }
 
 /** What the user chose. Empty string / null means "not filtering by this". */

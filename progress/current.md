@@ -3,16 +3,16 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 16 — review-actions (implementación)
-- **Inicio:** 2026-09-20
+- **Feature en curso:** 17 — category-rules (implementación)
+- **Inicio:** 2026-09-22
 - **Agente:** leader (Claude Code) → implementer
 
 ## Plan
 
-Segunda mitad de la E6: desde la cola de `/review` (F15, cerrada), poder
-categorizar y confirmar, uno a uno con `PATCH /api/movements/:id` y en bloque con
-`PATCH /api/movements` (hasta 200 ids, todo o nada). Spec → puerta humana →
-implementer → reviewer.
+Reglas de categorización (F17): crear una regla desde una fila de Review, verlas,
+cambiarlas y borrarlas en la pantalla nueva `Rules`, y pasarlas sobre lo pendiente
+con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
+`specs/17-category-rules/tasks.md`; la T22 (backend real) queda para el humano.
 
 ## Bitácora
 
@@ -68,7 +68,63 @@ implementer → reviewer.
   y con confirmación, no categorizar el movimiento de origen, todos los
   conflictos). F17 pasa a `in_progress`.
 
+- 2026-09-22 — implementer arranca la F17. Plan: las tasks T0..T21 de
+  `specs/17-category-rules/tasks.md` (la T22, contra el backend real, queda fuera:
+  necesita el visto bueno del humano). T0 cerrado sin sorpresas: `http.ts` manda un
+  `POST` con `init = { method: 'POST' }` sin `Content-Type` y devuelve `undefined`
+  en un 204; un `watch` de un store de Pinia sobre un ref de otro se dispara en los
+  tests (no hace falta `$onAction`); la normalización copia la del backend (`Café` →
+  `cafe`, espacios interiores intactos); y las parejas de color de §9 ya tienen su
+  línea `contrast:` (no se toca `theme-dark.css`).
+- 2026-09-22 — T1: las categorías (`Category`, `CategoryKind`, `parseCategories`,
+  `getCategories`, `CATEGORIES_PATH`) se mueven a `src/shared/categories.ts`;
+  `review/types.ts` y `review/service.ts` las re-exportan y la suite de `review`
+  pasa sin tocarla (229 tests).
+
+- 2026-09-22 — F17 implementada: T0–T21 de `tasks.md` en `[x]`, 14 requisitos con
+  test, +108 tests unitarios (901 en total) y 4 escenarios e2e nuevos con todas las
+  llamadas interceptadas y red de seguridad. Pantalla `Rules` en `/rules`, botón
+  `Create rule` en la fila de Review, aviso con `Apply rules now` y diálogo de
+  aplicar con confirmación siempre. Las categorías viven ahora en
+  `src/shared/categories.ts` (las usan `review` y `category-rules`); el sentido de
+  dependencia es único, `review` → `category-rules`. Puerta completa en verde
+  (`type-check`, `lint`, `test:unit`, `build`, e2e chromium, `./init.sh`).
+  **Una desviación documentada**: `isMatchTextTooShort('á b')` es `false`, no `true`
+  como decía la nota de verificación de R4 — el backend cuenta los espacios
+  interiores del texto normalizado y lo acepta; se eligió la paridad con el contrato
+  (detalle en el informe). **T22 pendiente**: la prueba contra el backend real de
+  `:3000` necesita el visto bueno del humano y no se hizo (ninguna petición salió de
+  los mocks). Informe en `progress/implementation/category-rules.md`. Falta el reviewer.
+- 2026-09-22 — reviewer aprueba la F17 sin cambios (901 tests, 16 e2e, puerta
+  repetida por él). Corregido el ejemplo de la nota de R4 en requirements.md.
+- 2026-09-22 — **T22 hecha** con el visto bueno del humano («aplicar y dejar lo que
+  salga»). Regla `tulotero` → Ocio creada desde la fila de Review y aplicada desde
+  el aviso: la pantalla dijo «5 movements categorized · 1372 still without a
+  matching rule · 1 conflict» y la API confirma exactamente esos 5 (TULOTERO,
+  ids 21750, 33099, 33260, 33371 y 42521). Cero errores de consola; solo dos
+  escrituras: POST /api/category-rules y POST /api/category-rules/apply sin body.
+  Antes, probando, se creó la regla `mega` (propuesta por defecto), se corrigió a
+  `mega deportes` desde Rules (PATCH) y una llamada directa a apply categorizó el
+  movimiento 42520 como Salud y deporte. Estado final: 63 reglas, 1.373 pendientes
+  sin categoría.
+- 2026-09-22 — Dos cosas para decidir: (1) el texto propuesto puede quedar
+  demasiado corto (`mega` casaba también con ACADEMIA OMEGA); (2) `data-test` no
+  llega a BaseDialog (raíz Teleport, Vue avisa) y el test que comprueba
+  `rule-dialog` en RulesView.spec.ts:96 pasa siempre.
+- 2026-09-22 — Las dos corregidas (encargo acotado, sin reabrir la feature ni tocar
+  las 6 🔴): (1) `proposeMatchText` alarga la propuesta con las palabras siguientes
+  del concepto, cortando verbatim, mientras no llegue a `MIN_PROPOSAL_LENGTH = 6`
+  («MEGA DEPORTES» → `mega deportes`, `iberdrola` igual que antes); R2 y design §6
+  actualizados con la nota de T22. (2) `BaseDialog` pasa a `inheritAttrs: false` y
+  lleva los atributos al panel `role="dialog"`: el aviso de Vue desaparece y el
+  `data-test` del llamante llega al DOM; `RulesView.spec.ts` prueba ahora las dos
+  caras (abierto y cerrado) y `RuleDialog.spec.ts` + el e2e del 409 nombran el
+  diálogo concreto. Puerta completa verde: 905 tests, 16 e2e, build e `init.sh`.
+- 2026-09-22 — Correcciones hechas y puerta repetida por el leader (init.sh:
+  «Entorno listo»). F17 en `done`, E6 cerrada, entrada de historial escrita.
+
 ## Próximo paso
 
-Implementar la F17 siguiendo `specs/17-category-rules/tasks.md` y pasarla por el
-reviewer. La T22 (prueba contra el backend real) necesita visto bueno aparte.
+E6 completa (F15, F16 y F17 en `done`). Siguiente etapa: E7, el extracto.
+Nota: el backend de :3000 se cayó al final de la sesión; hay que levantarlo antes
+de la próxima prueba contra datos reales.

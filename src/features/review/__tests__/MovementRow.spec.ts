@@ -70,8 +70,9 @@ describe('MovementRow (R4)', () => {
     expect(rowOf(INCOME).get('[data-test="movement-category"]').text()).toBe('Uncategorized')
   })
 
-  // Replaces the F15 test that asserted the row had no controls at all (design.md §9).
-  it('offers exactly one tick box, one category selector and one Confirm, and nothing else', () => {
+  // Replaces the F16 test that fixed the row at one selector and one Confirm
+  // (specs/17-category-rules/design.md §10).
+  it('offers one tick box, one category selector, Confirm and Create rule, and nothing else', () => {
     const wrapper = rowOf(EXPENSE)
 
     const boxes = wrapper.findAll('input[type="checkbox"]')
@@ -79,8 +80,38 @@ describe('MovementRow (R4)', () => {
     expect(boxes[0]?.attributes('aria-label')).toBe('Select CAFETERÍA CENTRAL')
     expect(wrapper.findAll('select')).toHaveLength(1)
     const buttons = wrapper.findAll('button')
-    expect(buttons).toHaveLength(1)
-    expect(buttons[0]?.text()).toBe('Confirm')
+    expect(buttons.map((button) => button.text())).toEqual(['Confirm', 'Create rule'])
+  })
+
+  describe('Create rule (feature 17, R1)', () => {
+    it('names the movement it would come from, and asks for the dialog', async () => {
+      const wrapper = rowOf(EXPENSE)
+
+      const button = wrapper.get('[data-test="movement-create-rule"]')
+      expect(button.attributes('aria-label')).toBe('Create a rule from CAFETERÍA CENTRAL')
+      expect(button.attributes('disabled')).toBeUndefined()
+
+      await button.trigger('click')
+
+      expect(wrapper.emitted('create-rule')).toHaveLength(1)
+      // Asking for the dialog changes nothing about the movement.
+      expect(wrapper.emitted('categorize')).toBeUndefined()
+      expect(wrapper.emitted('confirm')).toBeUndefined()
+    })
+
+    it('is disabled on a neutral movement, which no rule can ever categorize', () => {
+      const wrapper = rowOf(NEUTRAL)
+
+      expect(wrapper.get('[data-test="movement-create-rule"]').attributes('disabled')).toBeDefined()
+    })
+
+    it('is disabled while the categories are unknown', () => {
+      const wrapper = mount(MovementRow, {
+        props: { movement: movementOf(EXPENSE), categories: null },
+      })
+
+      expect(wrapper.get('[data-test="movement-create-rule"]').attributes('disabled')).toBeDefined()
+    })
   })
 
   it('never lets the banking fact be edited: no amount, date or description control (C4)', () => {
@@ -97,7 +128,7 @@ describe('MovementRow (R4)', () => {
 
     await wrapper.get('input[type="checkbox"]').setValue(true)
     await wrapper.get('select').setValue('2')
-    await wrapper.get('button').trigger('click')
+    await wrapper.get('[data-test="movement-confirm"]').trigger('click')
 
     expect(wrapper.emitted('toggle')).toHaveLength(1)
     expect(wrapper.emitted('categorize')).toEqual([[2]])
@@ -124,7 +155,8 @@ describe('MovementRow (R4)', () => {
       props: { movement: movementOf(EXPENSE), busy: true, categories },
     })
 
-    expect(wrapper.get('button').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-test="movement-confirm"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-test="movement-create-rule"]').attributes('disabled')).toBeDefined()
     expect(wrapper.get('select').attributes('disabled')).toBeDefined()
   })
 })
