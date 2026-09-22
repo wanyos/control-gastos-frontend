@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import { ArrowLeftRight, ChartLine, LayoutDashboard, Wallet } from '@lucide/vue'
+import { ArrowLeftRight, ChartLine, LayoutDashboard, ListChecks, Wallet } from '@lucide/vue'
 import type { LucideIcon } from '@lucide/vue'
 
 import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
+import ReviewView from '@/features/review/views/ReviewView.vue'
 import PlaceholderView from '@/shared/components/PlaceholderView.vue'
 
 declare module 'vue-router' {
@@ -17,13 +18,18 @@ declare module 'vue-router' {
 
 export const HOME_ROUTE_NAME = 'net-worth'
 
+/** The sidebar needs it to know which entry carries the pending count (feature 15). */
+export const REVIEW_ROUTE_NAME = 'review'
+
 /**
  * Routes double as the navigation model: `meta.label` and `meta.icon` are the
  * single source of truth for the sidebar entries and the topbar title, so a
  * route and its navigation entry can never drift apart.
  *
- * Array order is sidebar order. Every route but the home one renders the shared
- * placeholder: the shell is navigable end to end before the views exist.
+ * Array order is sidebar order. The routes without a view yet render the shared
+ * placeholder: the shell is navigable end to end before the views exist. `/movements`
+ * stays a placeholder on purpose — the full statement is the E7, a different screen
+ * from this queue of pending movements.
  */
 export const routes: RouteRecordRaw[] = [
   { path: '/', redirect: { name: HOME_ROUTE_NAME } },
@@ -32,6 +38,12 @@ export const routes: RouteRecordRaw[] = [
     name: HOME_ROUTE_NAME,
     component: NetWorthView,
     meta: { label: 'Net Worth', icon: Wallet },
+  },
+  {
+    path: '/review',
+    name: REVIEW_ROUTE_NAME,
+    component: ReviewView,
+    meta: { label: 'Review', icon: ListChecks },
   },
   {
     path: '/overview',

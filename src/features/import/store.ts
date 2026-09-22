@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { useNetWorthStore } from '@/features/net-worth/store'
+import { useReviewStore } from '@/features/review/store'
 import type { HttpClient } from '@/services/http'
 import { ValidationError, toAppError } from '@/shared/errors'
 
@@ -73,6 +74,8 @@ export const useImportStore = defineStore('import', () => {
           : { step: 'importFailed', kind: failureKind(rejection), error }
     } finally {
       void refreshPending(client)
+      // An import always adds movements to the review queue, whatever the outcome.
+      void useReviewStore().refreshPendingCount(client)
       const netWorthStore = useNetWorthStore()
       if (netWorthStore.netWorth !== null) {
         void netWorthStore.load(client)

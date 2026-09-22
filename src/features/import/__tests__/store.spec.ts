@@ -4,14 +4,17 @@ import { flushPromises } from '@vue/test-utils'
 
 import { coherentNetWorth } from '@/features/net-worth/__tests__/fixtures'
 import { useNetWorthStore } from '@/features/net-worth/store'
+import { useReviewStore } from '@/features/review/store'
 import { ApiError, ValidationError } from '@/shared/errors'
 
 import { useImportStore } from '../store'
 import {
   DRIVE_ERROR_BODY,
   FULL_REPORT,
+  GET_MOVEMENTS,
   GET_NET_WORTH,
   GET_PENDING,
+  PENDING_COUNT_PAGE,
   PENDING_NONE,
   PENDING_TWO,
   POST_IMPORT,
@@ -305,6 +308,26 @@ describe('useImportStore', () => {
       await flushPromises()
 
       expect(api.count(GET_NET_WORTH)).toBe(2)
+    })
+
+    it.each([
+      ['a 200', json(FULL_REPORT)],
+      ['a 503', json(DRIVE_ERROR_BODY, 503)],
+      ['an unreadable report', json({ ...FULL_REPORT, files: {} })],
+    ])('refreshes the review count after %s (feature 15, R2)', async (_name, answer) => {
+      const api = mockApi({
+        pending: json(PENDING_TWO),
+        import: answer,
+        movements: json(PENDING_COUNT_PAGE),
+      })
+      const store = useImportStore()
+      await atConfirm(store)
+
+      await store.start()
+      await flushPromises()
+
+      expect(api.count(GET_MOVEMENTS)).toBe(1)
+      expect(useReviewStore().pendingCount).toBe(41)
     })
 
     it('does not request the net worth when it was never loaded', async () => {

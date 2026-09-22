@@ -555,6 +555,95 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 15,
+      "name": "review-queue",
+      "title": "Pantalla de revisión: la cola de movimientos pendientes, con filtros y búsqueda",
+      "intent": {
+        "que_quiero": "La pantalla que me deja ver lo que he importado y todavía no he dado por bueno. Una entrada Review en la barra lateral con el número de pendientes, y dentro la lista de movimientos pendientes de revisar: fecha, descripción, cuenta, importe y categoría. Con filtros para poder buscar lo que quiero mirar: por cuenta, por fechas, por tipo, por categoría, por «los que no tienen categoría» y buscando un texto del concepto. Y que me diga cuántos hay en total y cuánto suman.",
+        "por_que": "Todo lo que importo nace pendiente de revisar y hoy no puedo ni verlo desde la web: la cola crece con cada importación. Antes de poder confirmar nada necesito poder mirarlo y filtrarlo, porque son más de mil movimientos y sin filtros no hay forma de trabajar.",
+        "como_se_que_esta_bien": [
+          "Cuando abro la app, la barra lateral tiene una entrada Review con cuántos movimientos me quedan por revisar.",
+          "Cuando entro, veo la lista de pendientes ordenada de lo más reciente a lo más antiguo, paginada, y sé cuántos hay en total.",
+          "Cuando filtro por cuenta, fechas, tipo, categoría o «sin categoría», la lista y los totales se ajustan a lo que he pedido.",
+          "Cuando escribo un trozo del concepto, encuentro los movimientos aunque yo escriba sin tildes o en minúsculas.",
+          "Cuando cambio de página o de filtro, no se me pierde lo que estaba mirando.",
+          "Si no hay nada pendiente, la pantalla me lo dice en lugar de mostrarme una tabla vacía."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend: el contrato ya tiene todo lo que esta pantalla necesita.",
+          "No quiero todavía confirmar ni cambiar categorías desde aquí: eso es la feature siguiente.",
+          "No quiero editar el importe, la fecha ni la descripción de un movimiento; son el hecho bancario.",
+          "No quiero que la pantalla se quede colgada o me mienta si la API falla."
+        ],
+        "delego_en_agente": [
+          "Cómo presentar la lista para que se lea bien con muchos movimientos: tabla, filas del design system, cuánto poner por página.",
+          "Cómo llevar los filtros: si viven en la URL para poder volver a ellos, cuándo se lanza la búsqueda mientras escribo y cómo se limpian.",
+          "De dónde saco el número de pendientes de la barra lateral y cada cuánto se refresca.",
+          "Si conviene partir la feature en más trozos, que lo proponga antes de escribir el spec."
+        ]
+      },
+      "acceptance": [
+        "La sidebar tiene una entrada Review con el número de movimientos en pending_review; el placeholder /movements se sustituye o se reubica según decida el spec",
+        "La vista lista los movimientos de GET /api/movements con status=pending_review, paginada, con su fecha, descripción, cuenta, importe (formato de money.ts) y categoría",
+        "Filtros combinables por accountId, from, to, type, categoryId, uncategorized=true y q, según el contrato de la feature 47 del backend; categoryId y uncategorized=true nunca se mandan juntos (el backend responde 400)",
+        "El selector de categoría se construye con GET /api/categories, que devuelve categorías raíz con sus children embebidos",
+        "Se muestran pagination.total y totals (income, expense, net) del filtro pedido, sin recalcularlos en el cliente",
+        "q respeta las reglas del contrato: entre 2 y 100 caracteres, se recorta, y el usuario entiende qué busca (trozo de la descripción, sin distinguir mayúsculas ni tildes)",
+        "Estados visibles: cargando, error a partir del error del store (ApiError/toAppError), lista vacía y sin pendientes",
+        "Un 404 por cuenta o categoría inexistente y un 400 por filtro inválido se muestran de forma comprensible y dejan la pantalla usable",
+        "Solo lectura: esta feature no llama a PATCH ni escribe nada",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado en theme-dark.spec; componentes portados del design system (TransactionRow y afines) a Vue3",
+        "El e2e de humo sigue verde sin backend y la vista se cubre con e2e propio si el spec lo pide",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "done"
+    },
+    {
+      "id": 16,
+      "name": "review-actions",
+      "title": "Revisar de verdad: categorizar y confirmar, uno a uno y en bloque",
+      "intent": {
+        "que_quiero": "Poder vaciar la cola desde la pantalla de revisión: ponerle categoría a un movimiento y darlo por revisado, y también marcar varios y confirmarlos o categorizarlos de una vez. Con más de mil pendientes, de uno en uno no es viable: quiero filtrar por un concepto, marcar todos los de la página y resolverlos juntos.",
+        "por_que": "Es lo que convierte la pantalla en útil: mientras no pueda confirmar, la cola solo crece. Y si además puedo categorizar en bloque, limpio meses de movimientos en un rato.",
+        "como_se_que_esta_bien": [
+          "Cuando le pongo categoría a un movimiento y lo confirmo, desaparece de la cola de pendientes y el contador baja.",
+          "Cuando marco varios y pulso confirmar, se confirman todos de una vez, no uno por uno.",
+          "Cuando marco todos los de la página y los categorizo, se aplica la categoría a todos los que la admiten.",
+          "Si algo de lo que he marcado no se puede cambiar, me lo dice y no se cambia nada a medias.",
+          "Puedo deshacer mi decisión: volver a dejar un movimiento como pendiente o quitarle la categoría.",
+          "No se me queda la pantalla desactualizada: lo que cambio se refleja sin tener que recargar a mano."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero confirmar cosas sin querer: una acción en bloque tiene que ser explícita y decirme a cuántos afecta.",
+          "No quiero editar importe, fecha ni descripción.",
+          "No quiero todavía emparejar traspasos ni tocar reglas de categorías: eso va después."
+        ],
+        "delego_en_agente": [
+          "Cómo se marcan los movimientos y qué pasa al cambiar de página o de filtro con lo que tenía marcado.",
+          "Si hace falta confirmación previa para una acción en bloque y a partir de cuántos movimientos.",
+          "Cómo refrescar la lista y el contador aprovechando que PATCH /api/movements devuelve los movimientos ya cambiados.",
+          "Cómo explicar en inglés los errores del backend cuando el tipo de la categoría no encaja con el del movimiento o hay movimientos neutrales."
+        ]
+      },
+      "acceptance": [
+        "Desde la lista se puede asignar o quitar categoría y cambiar el estado de un movimiento con PATCH /api/movements/:id",
+        "Se pueden marcar movimientos y aplicarles status y/o categoryId en bloque con PATCH /api/movements, respetando el tope de 200 ids sin repetir",
+        "Marcar todos los de la página nunca supera el tope, porque pageSize máximo es 200",
+        "La operación en bloque es explícita y dice a cuántos movimientos afecta antes de ejecutarse",
+        "El backend es todo o nada: si la petición falla (400 por kind que no encaja, neutral con categoría o esquema; 404 por id o categoría inexistente), la UI muestra que no se cambió nada y por qué, en inglés",
+        "Tras una acción, la lista y el contador de pendientes se actualizan usando los movimientos que devuelve la respuesta, sin recargar la página",
+        "Se puede volver atrás: devolver un movimiento a pending_review y quitarle la categoría",
+        "No se envía ninguna propiedad fuera de ids, categoryId y status",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "La feature 15 sigue funcionando: filtros, paginación y totales sin cambios de comportamiento",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "done"
     }
   ]
 }

@@ -21,6 +21,8 @@
    contrast: --ink-muted on --surface-app >= 4.5 (loading message)
    contrast: --ink-link on --surface-app >= 4.5 (links painted by base.css)
    contrast: --border-subtle on --surface-app >= 3 (topbar bottom line, card edge)
+   contrast: --positive on --surface-app >= 4.5 (review: what the last action did)
+   contrast: --negative on --surface-app >= 4.5 (review: why an action failed)
 
    Cards
    contrast: --ink-strong on --surface-card >= 4.5 (titles, key figures, amounts)
@@ -34,8 +36,13 @@
    contrast: --info on --surface-card >= 4.5 (info text)
    contrast: --brand on --surface-card >= 4.5 (brand text)
    contrast: --ink-body on --surface-hover >= 4.5 (hovered rows)
+   Review rows hover to --surface-sunken, not --surface-hover: the income amount is
+   painted in --positive, which only reaches 3.95 on --surface-hover.
+   contrast: --positive on --surface-sunken >= 4.5 (income amount on a hovered review row)
+   contrast: --ink-faint on --surface-sunken >= 3 (uncategorized dot on a hovered row)
    contrast: --ink-muted on --surface-sunken >= 4.5 (Details: original backend message in an issue row)
    contrast: --ink-strong on --surface-sunken >= 4.5 (import report: figures and headings inside a report row)
+   contrast: --brand on --surface-sunken >= 3 (left edge of a selected review row)
    contrast: --ink-body on --warning-subtle >= 4.5 (import report: final pass failure body)
    contrast: --ink-muted on --warning-subtle >= 4.5 (import report: Details summary inside a failure)
    contrast: --border-subtle on --surface-card >= 3 (card and row edges)
@@ -94,6 +101,7 @@
    contrast: --ink-on-dark/70 on --surface-inverse >= 4.5 (idle entries and icons)
    contrast: --ink-on-dark/70 on --ink-on-dark/5 over --surface-inverse >= 4.5 (hovered entry)
    contrast: --accent on --accent/15 over --surface-inverse >= 4.5 (active entry)
+   contrast: --ink-on-dark on --accent/15 over --surface-inverse >= 4.5 (Review pending count)
    contrast: --surface-app on --surface-inverse >= 1.25 (sidebar stands apart from the main area)
 
    Overlays

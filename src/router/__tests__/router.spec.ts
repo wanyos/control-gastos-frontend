@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
-import { HOME_ROUTE_NAME, navEntries, routes } from '../index'
+import { HOME_ROUTE_NAME, REVIEW_ROUTE_NAME, navEntries, routes } from '../index'
 
 /** The Spanish labels the design system's Shell.jsx ships; none may survive the port. */
 const DESIGN_SYSTEM_LABELS = [
@@ -16,10 +16,10 @@ const DESIGN_SYSTEM_LABELS = [
 const newRouter = () => createRouter({ history: createMemoryHistory(), routes })
 
 describe('router', () => {
-  it('declares the four navigable routes with English paths', () => {
+  it('declares the five navigable routes with English paths', () => {
     const paths = routes.filter((route) => route.name).map((route) => route.path)
 
-    expect(paths).toEqual(['/net-worth', '/overview', '/movements', '/investments'])
+    expect(paths).toEqual(['/net-worth', '/review', '/overview', '/movements', '/investments'])
   })
 
   it('sends the root path to the net worth home', async () => {
@@ -32,7 +32,7 @@ describe('router', () => {
     expect(router.currentRoute.value.path).toBe('/net-worth')
   })
 
-  it.each(['/net-worth', '/overview', '/movements', '/investments'])(
+  it.each(['/net-worth', '/review', '/overview', '/movements', '/investments'])(
     'resolves %s to a component',
     (path) => {
       const matched = newRouter().resolve(path).matched
@@ -47,6 +47,15 @@ describe('router', () => {
     expect(routes.some((route) => route.name === 'import')).toBe(false)
   })
 
+  it('keeps /movements as a placeholder: the statement is the E7, not this queue (C1)', () => {
+    const review = newRouter().resolve('/review').matched[0]?.components?.default
+    const movements = newRouter().resolve('/movements').matched[0]?.components?.default
+
+    expect(review).toBeTruthy()
+    expect(movements).toBeTruthy()
+    expect(movements).not.toBe(review)
+  })
+
   it('does not resolve an unknown path to any component', () => {
     expect(newRouter().resolve('/nope').matched).toEqual([])
   })
@@ -54,12 +63,14 @@ describe('router', () => {
   it('exposes one navigation entry per navigable route, in sidebar order', () => {
     expect(navEntries.map((entry) => entry.name)).toEqual([
       HOME_ROUTE_NAME,
+      REVIEW_ROUTE_NAME,
       'overview',
       'movements',
       'investments',
     ])
     expect(navEntries.map((entry) => entry.label)).toEqual([
       'Net Worth',
+      'Review',
       'Overview',
       'Movements',
       'Investments',

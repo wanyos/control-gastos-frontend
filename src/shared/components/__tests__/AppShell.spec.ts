@@ -101,6 +101,13 @@ describe('AppShell', () => {
     },
   )
 
+  it('lists a Review entry that goes to /review (feature 15, R1)', async () => {
+    const { wrapper } = await mountShell('/net-worth')
+
+    const review = wrapper.findAll('nav a').find((link) => link.text() === 'Review')
+    expect(review?.attributes('href')).toBe('/review')
+  })
+
   it('shows an English wordmark, not the design system Spanish one', async () => {
     const { wrapper } = await mountShell('/net-worth')
 

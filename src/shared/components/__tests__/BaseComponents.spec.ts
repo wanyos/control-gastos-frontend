@@ -4,6 +4,9 @@ import { mount } from '@vue/test-utils'
 import BaseBadge from '../BaseBadge.vue'
 import BaseButton from '../BaseButton.vue'
 import BaseCard from '../BaseCard.vue'
+import BaseCheckbox from '../BaseCheckbox.vue'
+import BaseInput from '../BaseInput.vue'
+import BaseSelect from '../BaseSelect.vue'
 import BaseSpinner from '../BaseSpinner.vue'
 import ShareBar from '../ShareBar.vue'
 import StatCard from '../StatCard.vue'
@@ -129,6 +132,131 @@ describe('BaseButton (feature 13)', () => {
 
     expect(wrapper.attributes('disabled')).toBeDefined()
     expect(wrapper.classes().join(' ')).toContain(cls('opacity', '50'))
+  })
+})
+
+describe('BaseInput (feature 15)', () => {
+  it('ties its label to the field and emits what the user types', async () => {
+    const wrapper = mount(BaseInput, { props: { modelValue: '', label: 'Search' } })
+
+    const input = wrapper.get('input')
+    expect(wrapper.get('label').attributes('for')).toBe(input.attributes('id'))
+    expect(wrapper.get('label').text()).toBe('Search')
+    expect(input.attributes('type')).toBe('text')
+
+    await input.setValue('cafeteria')
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([['cafeteria']])
+  })
+
+  it('renders a date field and shows its hint', () => {
+    const wrapper = mount(BaseInput, {
+      props: { modelValue: '2026-08-01', label: 'From', type: 'date', hint: 'Booking date' },
+    })
+
+    expect(wrapper.get('input').attributes('type')).toBe('date')
+    expect((wrapper.get('input').element as HTMLInputElement).value).toBe('2026-08-01')
+    expect(wrapper.text()).toContain('Booking date')
+  })
+
+  it('marks itself invalid for assistive technology and paints the hint as an error', () => {
+    const wrapper = mount(BaseInput, {
+      props: { modelValue: 'x', label: 'Search', invalid: true, hint: 'Too long' },
+    })
+
+    expect(wrapper.get('input').attributes('aria-invalid')).toBe('true')
+    expect(wrapper.get('input').classes()).toContain(cls('border', 'negative'))
+    expect(wrapper.get('p').classes()).toContain(cls('text', 'negative'))
+  })
+})
+
+describe('BaseSelect (feature 15)', () => {
+  it('ties its label to the field, renders the slot and emits the chosen value', async () => {
+    const wrapper = mount(BaseSelect, {
+      props: { modelValue: '', label: 'Account' },
+      slots: { default: '<option value="">All accounts</option><option value="3">N26</option>' },
+    })
+
+    const select = wrapper.get('select')
+    expect(wrapper.get('label').attributes('for')).toBe(select.attributes('id'))
+    expect(wrapper.findAll('option')).toHaveLength(2)
+
+    await select.setValue('3')
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([['3']])
+  })
+
+  it('disables itself and shows why when told to', () => {
+    const wrapper = mount(BaseSelect, {
+      props: { modelValue: '', label: 'Category', disabled: true, hint: 'Categories unavailable' },
+    })
+
+    expect(wrapper.get('select').attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Categories unavailable')
+  })
+
+  it('hides the label without losing it, so a row can repeat the field (feature 16)', () => {
+    const wrapper = mount(BaseSelect, {
+      props: { modelValue: '', label: 'Category', labelHidden: true },
+    })
+
+    const label = wrapper.get('label')
+    expect(label.text()).toBe('Category')
+    expect(label.classes()).toContain(cls('sr', 'only'))
+    expect(label.attributes('for')).toBe(wrapper.get('select').attributes('id'))
+  })
+})
+
+describe('BaseCheckbox (feature 15)', () => {
+  it('shows its label and emits the new state', async () => {
+    const wrapper = mount(BaseCheckbox, { props: { modelValue: false, label: 'Uncategorized' } })
+
+    const input = wrapper.get('input')
+    expect(input.attributes('type')).toBe('checkbox')
+    expect(wrapper.get('label').attributes('for')).toBe(input.attributes('id'))
+    expect(wrapper.text()).toBe('Uncategorized')
+
+    await input.setValue(true)
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([[true]])
+  })
+
+  it('reflects the model without owning it', () => {
+    const wrapper = mount(BaseCheckbox, { props: { modelValue: true, label: 'Uncategorized' } })
+
+    expect((wrapper.get('input').element as HTMLInputElement).checked).toBe(true)
+  })
+
+  it('shows the in-between state when only some of the group is ticked (feature 16)', async () => {
+    const wrapper = mount(BaseCheckbox, {
+      props: { modelValue: false, label: '', indeterminate: true },
+    })
+
+    const box = wrapper.get('input').element as HTMLInputElement
+    expect(box.indeterminate).toBe(true)
+
+    await wrapper.setProps({ indeterminate: false })
+    expect(box.indeterminate).toBe(false)
+  })
+
+  it('takes a name of its own when the visible text is elsewhere (feature 16)', () => {
+    const wrapper = mount(BaseCheckbox, {
+      props: { modelValue: false, label: '', ariaLabel: 'Select CAFETERÍA CENTRAL' },
+    })
+
+    expect(wrapper.get('input').attributes('aria-label')).toBe('Select CAFETERÍA CENTRAL')
+  })
+
+  it('can be switched off, and then emits nothing (feature 16)', async () => {
+    const wrapper = mount(BaseCheckbox, {
+      props: { modelValue: false, label: 'Select all', disabled: true },
+    })
+
+    expect(wrapper.get('input').attributes('disabled')).toBeDefined()
+
+    await wrapper.get('input').trigger('click')
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
   })
 })
 

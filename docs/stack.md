@@ -311,6 +311,9 @@ feature #8; ver *Iconos (Lucide)*.
 - **Feature #13:** `FileUp` sale del router (ya no hay ruta `/import`) y pasa al
   botón Import de la barra superior (`ImportButton.vue`); se añaden `X`,
   `CircleCheck`, `Circle`, `CircleX` y `TriangleAlert` para el modal de importación.
+- **Feature #15:** `ListChecks` (entrada Review de la barra lateral), `Search` (campo
+  de búsqueda) y `ChevronLeft` / `ChevronRight` (paginación de la cola). Nombres
+  confirmados contra `@lucide/vue` antes de usarlos.
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,
@@ -438,7 +441,16 @@ real, no la vista, y no depende de tener el backend en `:3000`.
 Desde la feature #13 la barra superior pide `GET /api/ingestion/pending` al
 montar, en todas las rutas: el smoke intercepta también `**/api/ingestion/pending`
 (`{ totalPending: 0, banks: [] }`). Comprobado antes de añadirla: sin ella el
-smoke se pone rojo con el 502 del proxy. Además `e2e/import-dialog.spec.ts`
+smoke se pone rojo con el 502 del proxy.
+
+Desde la feature #15 la **barra lateral** pide `GET /api/movements` (el recuento de
+pendientes, `pageSize=1`) también al montar y en todas las rutas, así que el smoke
+intercepta además `**/api/movements*` con una página vacía. Misma comprobación previa:
+sin esa ruta el smoke se pone rojo con el 502. Por el mismo motivo la intercepta
+`e2e/import-dialog.spec.ts`. La pantalla de revisión tiene su propio e2e,
+`e2e/review-queue.spec.ts` (lista, paginación, búsqueda y «sin categoría»), con todas
+las llamadas a `/api` interceptadas y una red de seguridad que aborta cualquier otra:
+es una feature de **solo lectura** y ninguna petición suya escribe nada. Además `e2e/import-dialog.spec.ts`
 prueba el modal (informe parcial con un único POST sin cuerpo ni `Content-Type`,
 y 503 de Drive en el POST) con todas las llamadas a `/api` interceptadas: una red
 de seguridad aborta cualquier `/api` no prevista, así que **nunca** llega un

@@ -49,7 +49,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ✅ | F8 |
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
-| E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ⬜ | *sin features* |
+| E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16 |
 | E7 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
@@ -127,11 +127,32 @@ automático; importar es explícito y revisado.
 > emparejar, conflictos de reglas, archivos importados); solo lectura. Resolver
 > traspasos y conflictos desde la web queda para etapas posteriores.
 
-### E6 — Revisar antes de confirmar ⬜ ← **el siguiente**
+### E6 — Revisar antes de confirmar ✅
 
 Todo lo que importe el backend nace en estado `pending_review`. Esta pantalla es
 la que lo confirma o lo corrige. El endpoint `PATCH /api/movements/:id` ya
 existe (feature 37 del backend).
+
+> ✅ **Desbloqueada el 2026-09-18** por la feature 47 del backend
+> (`movements-review-bulk`): `GET /api/movements` filtra además por `categoryId`,
+> `uncategorized=true` y `q` (trozo de la descripción, sin mayúsculas ni tildes),
+> y `PATCH /api/movements` aplica `status` y/o `categoryId` a una lista de hasta
+> 200 ids, todo o nada, devolviendo los movimientos ya cambiados. La variante «por
+> filtro» se descartó, y para crear reglas se usa `POST /api/category-rules`.
+>
+> Parte 2 del traspaso hecha: **F15** `review-queue` (la cola con filtros,
+> búsqueda y totales, solo lectura) y **F16** `review-actions` (categorizar y
+> confirmar, uno a uno y en bloque). Emparejar traspasos ambiguos y resolver
+> conflictos de reglas queda para una feature posterior.
+>
+> **F15 cerrada el 2026-09-20:** `/review` con la cola, filtros en la URL,
+> búsqueda por descripción, 100 por página y contador en la sidebar. Probada
+> contra el backend real: 1.607 pendientes, 1.379 sin categoría y la búsqueda
+> encontrando con y sin tildes, todo igual que la API. **F16 cerrada el
+> 2026-09-22:** categorizar y confirmar uno a uno y en bloque (hasta la página
+> entera), con deshacer y la cola y el contador al día sin recargar. Probada
+> contra el backend real sobre un solo movimiento: categorizar, confirmar y
+> deshacer, la cola bajando de 1.607 a 1.606 y volviendo.
 
 ### E7 — El extracto ⬜
 

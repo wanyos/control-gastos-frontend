@@ -396,7 +396,13 @@ export function jsonResponse(body: unknown, init?: ResponseInit): Response {
 export type Answer = () => Promise<Response>
 
 /** A fetch whose answers are chosen per test; every call is recorded as `METHOD path`. */
-export function mockApi(answers: { pending?: Answer; import?: Answer; netWorth?: Answer }) {
+export function mockApi(answers: {
+  pending?: Answer
+  import?: Answer
+  netWorth?: Answer
+  /** The review queue count, asked after every import (feature 15). */
+  movements?: Answer
+}) {
   const calls: string[] = []
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
     const path = new URL(String(input)).pathname
@@ -407,7 +413,9 @@ export function mockApi(answers: { pending?: Answer; import?: Answer; netWorth?:
         ? answers.pending
         : path === '/api/import'
           ? answers.import
-          : answers.netWorth
+          : path === '/api/movements'
+            ? answers.movements
+            : answers.netWorth
     return answer ? answer() : Promise.reject(new TypeError(`unexpected ${method} ${path}`))
   })
   const count = (call: string) => calls.filter((c) => c === call).length
@@ -432,6 +440,14 @@ export function deferred() {
 export const GET_PENDING = 'GET /api/ingestion/pending'
 export const POST_IMPORT = 'POST /api/import'
 export const GET_NET_WORTH = 'GET /api/net-worth'
+export const GET_MOVEMENTS = 'GET /api/movements'
+
+/** What the review count query answers: only `pagination.total` is read (feature 15). */
+export const PENDING_COUNT_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 41, totalPages: 41 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
 
 // Feature 14: report details. Invented data shaped like the contract; backend
 // texts in Spanish. The F13 fixtures above are reused, never edited.

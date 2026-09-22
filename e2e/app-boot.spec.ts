@@ -49,6 +49,17 @@ test('app boots: shell mounts with the design system applied and no console erro
   await page.route('**/api/ingestion/pending', (route) =>
     route.fulfill({ json: { totalPending: 0, banks: [] } }),
   )
+  // The sidebar asks for the review count on mount (feature 15). Checked first:
+  // without this route the proxy answers 502 and the smoke goes red.
+  await page.route('**/api/movements*', (route) =>
+    route.fulfill({
+      json: {
+        movements: [],
+        pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+        totals: { income: '0.00', expense: '0.00', net: '0.00' },
+      },
+    }),
+  )
   await page.goto('/')
 
   // The app really mounted: App.vue's shell is the only child of #app.

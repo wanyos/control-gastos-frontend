@@ -70,10 +70,24 @@ src/
       service.ts          # GET /api/ingestion/pending, POST /api/import (informe completo)
       outcome.ts, summary.ts, fileMessages.ts   # textos y titular, funciones puras (#13)
       details.ts          # agrupa y recorta el detalle del informe, funciones puras (#14)
+    review/               # feature #15: la cola de pendientes; feature #16: categorizar y confirmar
+      components/         # MovementList, MovementRow, ReviewFilterBar, CategorySelect,
+                          # ReviewTotals, ReviewPager, ReviewCountBadge (#15);
+                          # ReviewActionBar, MovementCategorySelect, ActionNotice,
+                          # BulkConfirmDialog (#16)
+      views/              # ReviewView (ruta /review)
+      store.ts            # useReviewStore: filtros, página, datos, categorías y recuento (#15);
+                          # selección, acciones y deshacer (#16)
+      service.ts          # GET /api/movements, GET /api/categories (#15);
+                          # PATCH /api/movements y PATCH /api/movements/:id (#16)
+      filters.ts          # filtros ↔ querystring de la API y de la URL, guardas de `q` (puras)
+      actions.ts          # elegibilidad, plan de deshacer y textos de acción, puras (#16)
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
-                          # BaseButton, BaseSpinner, BaseDialog (feature #13)
+                          # BaseButton, BaseSpinner, BaseDialog (feature #13);
+                          # BaseInput, BaseSelect, BaseCheckbox (feature #15;
+                          # BaseSelect.labelHidden y BaseCheckbox indeterminate/disabled/ariaLabel, #16)
     config.ts             # AppConfig tipada + loadConfig() + singleton appConfig (feature #2)
     errors.ts             # AppError y subtipos (ApiError.apiCode desde la #13), toAppError, formatError…
     validation.ts         # createValidators(context): guardas de respuestas de la API (feature #13)
@@ -86,6 +100,17 @@ src/
 > El scaffold de ejemplo (`src/stores/counter.ts`) se retiró en el bootstrap.
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
+
+> **Dependencias nuevas de la feature #15.** `AppSidebar.vue` (shared) monta
+> `ReviewCountBadge` de `features/review`, igual que `AppShell` monta `ImportButton`.
+> Y `import/store.ts` refresca el recuento de pendientes tras cada importación
+> (`import` → `review`, un solo sentido; `review` no conoce `import`).
+
+> **La pantalla ya escribe (feature #16).** `features/review/` dejó de ser de solo
+> lectura: `service.ts` manda `PATCH /api/movements/:id` y `PATCH /api/movements` con
+> cuerpos construidos campo a campo (solo `ids`, `categoryId` y `status`). Es la
+> primera pantalla que escribe en la base de datos; el hecho bancario —importe, fecha,
+> descripción— sigue sin poder tocarse.
 
 > **Dependencias entre features y con `shared/` (features #13-#14).** `AppShell.vue`
 > (shared) monta `ImportButton` de `features/import`, igual que el router monta

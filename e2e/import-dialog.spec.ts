@@ -109,6 +109,16 @@ async function prepare(page: Page, answerImport: Parameters<Page['route']>[1]): 
   await page.route('**/api/**', (route) => route.abort())
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
   await page.route('**/api/ingestion/pending', (route) => route.fulfill({ json: PENDING_TWO }))
+  // The sidebar asks for the review count on mount and after every import (feature 15).
+  await page.route('**/api/movements*', (route) =>
+    route.fulfill({
+      json: {
+        movements: [],
+        pagination: { page: 1, pageSize: 1, total: 41, totalPages: 41 },
+        totals: { income: '0.00', expense: '0.00', net: '0.00' },
+      },
+    }),
+  )
   await page.route('**/api/import', answerImport)
   return watch
 }

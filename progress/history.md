@@ -633,3 +633,31 @@ Plantilla para cada entrada nueva:
   la próxima importación real del humano.
 - **Cierre:** feature 14 → **done**. E5 completa. Siguiente etapa: E6 (revisar
   antes de confirmar).
+
+## 2026-09-20 — Feature 15: review-queue
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author`, `implementer` y
+  `reviewer`. Flujo SDD. La parte 1 del traspaso
+  (`../docs/handoff-pantalla-revision.md`) la cerró el backend con su feature 47.
+- **Spec:** `specs/15-review-queue/`, 14 requirements. El humano aprobó las 6
+  decisiones tal cual: ruta `/review` (Movements se queda para la E7), solo
+  `pending_review` sin filtro de estado, filtros y página en la URL, búsqueda con
+  espera de 350 ms, 100 por página y contador en la sidebar que se oculta si su
+  consulta falla.
+- **Cambios:** `src/features/review/` (types, service, filters, store, lógica pura
+  y componentes), compartidos nuevos `BaseInput`, `BaseSelect` y `BaseCheckbox`,
+  ruta `/review` y entrada en la sidebar con contador, y dos líneas en
+  `import/store.ts` para refrescar ese contador tras importar. Solo lectura: ni un
+  `PATCH`. Sin dependencias nuevas.
+- **Incidencia:** el implementer se cortó a mitad por un límite de uso de la API y
+  se retomó desde T10 sin perder trabajo.
+- **Revisión:** APROBADO condicionado a C7. Notas no bloqueantes: un `data-test`
+  citado en el spec que no existe, `?q=a` de una letra que se queda en la URL sin
+  buscar, y falta la línea `contrast:` del punto de color de categoría.
+- **C7 (leader, con el backend real):** contador 1.607 = API, totales idénticos,
+  «Page 1 of 17» con 100 filas, `cafeteria` y `CAFETERÍA` → 3 y 3, sin categoría
+  1.379, filtros conservados tras recargar, cero escrituras y cero errores de
+  consola.
+- **Verificación:** type-check, lint, 691 tests (51 ficheros), build, 8 e2e y
+  `./init.sh` en verde.
+- **Cierre:** feature 15 → **done**. Siguiente: F16 `review-actions`.

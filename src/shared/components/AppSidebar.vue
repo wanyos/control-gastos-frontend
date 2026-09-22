@@ -35,6 +35,7 @@
           >
             <component :is="entry.icon" :size="17" aria-hidden="true" />
             {{ entry.label }}
+            <ReviewCountBadge v-if="entry.name === REVIEW_ROUTE_NAME" />
           </span>
         </a>
       </RouterLink>
@@ -45,7 +46,9 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 
-import { navEntries } from '@/router'
+// shared → feature, as AppShell already does with the import button (feature 13).
+import ReviewCountBadge from '@/features/review/components/ReviewCountBadge.vue'
+import { REVIEW_ROUTE_NAME, navEntries } from '@/router'
 </script>
 
 <style scoped>
