@@ -50,7 +50,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17 |
-| E7 | **El extracto** — tabla con filtros y búsqueda, la que sustituye al Excel | ⬜ | *sin features* |
+| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | ⬜ | *sin features* |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
@@ -168,17 +168,18 @@ existe (feature 37 del backend).
 
 ### E7 — El extracto ⬜
 
-La tabla tipo extracto con búsqueda y filtros por fecha, cuenta, categoría,
-forma de pago y texto: la vista que de verdad sustituye al Excel.
+La tabla tipo extracto con búsqueda y filtros por fecha, cuenta, categoría y
+texto: la vista del histórico completo, confirmados incluidos.
 
-> 🟡 **Parcialmente servida por el backend, comprobado el 2026-09-12.**
-> `GET /api/movements` ya filtra por `accountId`, `from`, `to`, `type` y
-> `status`, y pagina con `page`/`pageSize` (feature 36 del backend). **Le
-> faltan los dos filtros que esta vista más necesita**: por **categoría** y la
-> **búsqueda por texto del concepto**. Están anotados como pendientes en la E7
-> del roadmap del backend. El de **forma de pago no va a existir**:
-> `Movement.paymentMethod` se quedó sin fuente al descartar el Excel
-> (`../../docs/ideas.md` §6), así que esta etapa **no debe prometerlo**.
+> ✅ **Servida por el backend, comprobado el 2026-09-22.** `GET /api/movements`
+> filtra por `accountId`, `from`, `to`, `type` y `status` (feature 36 del backend) y,
+> desde su feature 47, también por `categoryId`, `uncategorized` y `q` (trozo del
+> concepto, sin mayúsculas ni tildes). La F15 ya usa los seis contra el backend real,
+> así que esta etapa no está bloqueada por nada.
+>
+> **Filtro por forma de pago: no existe ni va a existir.** `Movement.paymentMethod`
+> se quedó sin fuente y el histórico del Excel está descartado (decisión del humano,
+> 2026-09-22: no se va a hacer nada con él). Esta etapa no debe prometerlo.
 
 ### E8 — Los dashboards ⬜
 

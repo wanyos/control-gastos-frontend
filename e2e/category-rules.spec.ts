@@ -209,7 +209,11 @@ test('a rule is born from a row, and creating it applies nothing', async ({ page
   await expect(page.getByTestId('rule-created-notice')).toContainText('Suministros')
   await expect(page.getByTestId('apply-rules-now')).toBeVisible()
   expect(writes(watch)).toEqual([
-    { method: 'POST', path: '/api/category-rules', body: { matchText: 'iberdrola', categoryId: 6 } },
+    {
+      method: 'POST',
+      path: '/api/category-rules',
+      body: { matchText: 'iberdrola', categoryId: 6 },
+    },
   ])
   expect(watch.consoleErrors).toEqual([])
   expect(watch.pageErrors).toEqual([])
@@ -228,13 +232,17 @@ test('applying asks first, sends one bodyless POST and refreshes the queue', asy
   await expect(page.getByTestId('apply-confirm')).toContainText(
     'Only pending movements without a category are touched.',
   )
-  await expect(page.getByTestId('apply-confirm')).toContainText("This can't be undone from the app.")
+  await expect(page.getByTestId('apply-confirm')).toContainText(
+    "This can't be undone from the app.",
+  )
   expect(writes(watch).filter((call) => call.path.endsWith('/apply'))).toEqual([])
 
   await page.getByTestId('apply-confirmed').click()
 
   await expect(page.getByTestId('apply-figure').first()).toHaveText('12 movements categorized')
-  await expect(page.getByTestId('apply-figure').nth(1)).toHaveText('5 still without a matching rule')
+  await expect(page.getByTestId('apply-figure').nth(1)).toHaveText(
+    '5 still without a matching rule',
+  )
   await expect(page.getByTestId('apply-figure').nth(2)).toHaveText('1 conflict')
   await expect(page.getByTestId('rule-conflict')).toHaveCount(1)
   await expect(page.getByTestId('rule-conflict')).toContainText('PAGO SINTETICO EJEMPLO')

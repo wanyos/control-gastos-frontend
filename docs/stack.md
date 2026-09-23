@@ -342,7 +342,35 @@ feature #8; ver *Iconos (Lucide)*.
   | Preview | `pnpm preview` | Sirve el build de producción (`4173`). |
   | Type-check | `pnpm type-check` | `vue-tsc --build` (incluye `.vue`). |
   | Lint | `pnpm lint` | `run-s lint:*` → solo `oxlint . --fix` (ver *Lint (solo oxlint)*). |
-  | Format | `pnpm format` | `prettier --write src/`. |
+  | Format | `pnpm format` | `prettier --write` sobre **todo el código** (ver *Formato (Prettier)*). |
+
+## Formato (Prettier)
+
+> Tarea de higiene, 2026-09-23. Sin dependencias nuevas.
+
+**Prettier** `3.9.6`, configurado en `.prettierrc.json`: `semi: false`,
+`singleQuote: true`, **`printWidth: 100`**. Se invoca con `--experimental-cli`.
+
+`pnpm format` va por **lista de rutas explícita**, no por `.` :
+
+```
+prettier --write --experimental-cli src/ e2e/ "*.config.ts" env.d.ts index.html \
+  "tsconfig*.json" .oxlintrc.json package.json
+```
+
+- **Por qué lista y no `.`**: en la raíz conviven código y **estado del harness**
+  (`feature_list.json`, `progress/`, `specs/`, `docs/`). Pasar Prettier por todo
+  reformatearía ficheros que escriben los agentes y la documentación, mezclando
+  ruido de formato con cambios reales. La lista declara «esto es código».
+- **`e2e/` entró aquí** (antes el script solo cubría `src/`, así que la carpeta
+  nunca se formateaba y acumulaba líneas de más de 100 columnas). Al ampliarlo
+  se reformatearon `e2e/category-rules.spec.ts`, `index.html`,
+  `playwright.config.ts`, `tsconfig.node.json` y `vite.config.ts`.
+- **Al añadir una carpeta de código nueva fuera de `src/`, hay que añadirla al
+  script**; si no, queda sin formatear en silencio (misma trampa que la lista
+  blanca de `@source` de Tailwind).
+- Exclusiones en `.prettierignore`: `src/assets/styles/` (copia literal del
+  design system, debe seguir byte-idéntica) y `design-system/`.
 
 ## Lint (solo oxlint)
 
@@ -442,6 +470,15 @@ Desde la feature #13 la barra superior pide `GET /api/ingestion/pending` al
 montar, en todas las rutas: el smoke intercepta también `**/api/ingestion/pending`
 (`{ totalPending: 0, banks: [] }`). Comprobado antes de añadirla: sin ella el
 smoke se pone rojo con el 502 del proxy.
+
+**Convención: todo e2e monta primero su red de seguridad.** Antes de sus rutas
+concretas, cada spec registra `await page.route('**/api/**', route => route.abort())`
+y encima declara las llamadas que sí espera (las rutas posteriores ganan). Motivo:
+el proxy de `vite.config.ts` reenvía `/api` al backend real de `:3000`, así que una
+llamada no prevista **saldría de verdad** — con la red, se aborta y el test se pone
+rojo, que es lo que queremos ver. La cumplen los cinco specs de `e2e/`; el smoke
+`app-boot.spec.ts` la incorporó en la higiene del 2026-09-23 (era el único que le
+faltaba) sin que ninguna llamada nueva apareciera: sus tres rutas ya lo cubrían.
 
 Desde la feature #15 la **barra lateral** pide `GET /api/movements` (el recuento de
 pendientes, `pageSize=1`) también al montar y en todas las rutas, así que el smoke

@@ -122,6 +122,18 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   diálogo concreto. Puerta completa verde: 905 tests, 16 e2e, build e `init.sh`.
 - 2026-09-22 — Correcciones hechas y puerta repetida por el leader (init.sh:
   «Entorno listo»). F17 en `done`, E6 cerrada, entrada de historial escrita.
+- 2026-09-23 — Higiene (sin feature, sin dependencias): (1) `pnpm format` pasa de
+  cubrir solo `src/` a una lista explícita de rutas de código (`src/`, `e2e/`,
+  configs de raíz, `index.html`, `tsconfig*.json`, `.oxlintrc.json`); reformateó
+  `e2e/category-rules.spec.ts`, `index.html`, `playwright.config.ts`,
+  `tsconfig.node.json` y `vite.config.ts`. Se deja fuera a propósito el estado del
+  harness (`feature_list.json`, `progress/`, `specs/`, `docs/`). (2) `e2e/app-boot.spec.ts`
+  estrena la red de seguridad `page.route('**/api/**', route => route.abort())`
+  como el resto de specs: **no apareció ninguna llamada nueva**, sus tres rutas ya
+  cubrían todo. Comprobado que la red no es decorativa: quitando `**/api/movements*`
+  el smoke se pone rojo por la llamada abortada, no por el 502 del proxy. `docs/stack.md`
+  gana una sección *Formato (Prettier)* y la convención de red de seguridad en e2e.
+  Puerta completa verde: type-check, lint, 905 tests, build, 16 e2e chromium e `init.sh`.
 
 ## Próximo paso
 

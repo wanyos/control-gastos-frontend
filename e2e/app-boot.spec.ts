@@ -5,6 +5,8 @@ import { test, expect } from '@playwright/test'
 // the design system's background and typography, and nothing errors while
 // loading. Runs against the dev server (5173, `pnpm test:e2e`) and against the
 // production build served by preview (4173, CI mode).
+// EVERY /api CALL IS INTERCEPTED: the safety net below aborts any request this
+// smoke did not foresee, so nothing ever reaches the real backend on :3000.
 
 // Avoid module-scope helpers that run in Node: functions called inside
 // evaluate() must be declared there, in the browser context.
@@ -44,6 +46,10 @@ test('app boots: shell mounts with the design system applied and no console erro
   const pageErrors: Error[] = []
   page.on('pageerror', (error) => pageErrors.push(error))
 
+  // Safety net first (later routes win): any other API call is aborted, never proxied.
+  // The dev server proxies /api to a real backend on :3000, so an unforeseen call
+  // would leave the browser for real; aborting it turns that into a visible failure.
+  await page.route('**/api/**', (route) => route.abort())
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
   // The topbar asks for the pending Drive files on mount (feature 13).
   await page.route('**/api/ingestion/pending', (route) =>
