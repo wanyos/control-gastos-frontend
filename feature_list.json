@@ -687,6 +687,54 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 18,
+      "name": "rule-match-preview",
+      "title": "Saber a cuántos movimientos afecta una regla antes de guardarla",
+      "intent": {
+        "que_quiero": "Cuando escriba el texto de una regla, quiero ver a cuántos movimientos pendientes sin categoría afectaría antes de guardarla, y cuáles son algunos de ellos. Si el texto es demasiado amplio, quiero darme cuenta ahí mismo, no después de aplicar. Y quiero que el texto que me propone por defecto sea razonable también con conceptos como «AB Servicios Selecta E», donde hoy me ofrece `servicios`.",
+        "por_que": "Porque la comparación es «contiene» y no hay vuelta atrás: una palabra corta o genérica me categoriza cientos de movimientos mal y luego tengo que corregirlos a mano uno a uno. Ya me pasó con `mega`, que casaba también con «ACADEMIA OMEGA SL».",
+        "como_se_que_esta_bien": [
+          "Escribo un texto en el diálogo de la regla y me dice cuántos movimientos pendientes sin categoría casan con él.",
+          "Puedo ver unos cuantos de esos movimientos, para confirmar que son los que creo.",
+          "Si casan demasiados, o ninguno, me lo dice de forma clara antes de que guarde.",
+          "El número se actualiza si cambio el texto, sin que yo tenga que pulsar nada.",
+          "Al cambiar una regla que ya existe, veo lo mismo.",
+          "Esto no escribe nada: solo mira."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero que me impida guardar una regla amplia si yo quiero guardarla: que me avise, no que decida por mí.",
+          "No quiero que el aviso tarde ni que la pantalla se quede pillada mientras cuenta.",
+          "No quiero cambiar cómo se aplican las reglas ni lo que hace la pantalla de Rules."
+        ],
+        "delego_en_agente": [
+          "A partir de cuántos movimientos se considera que un texto es «demasiado amplio».",
+          "Cuántos movimientos de ejemplo enseñar y cuáles.",
+          "Cuánto esperar desde que dejo de escribir hasta consultar.",
+          "Cómo mejorar exactamente la propuesta de texto para conceptos como «AB Servicios Selecta E», «TPV VIRTUAL» o «JUAN JOSE ROMERO RAMOS - INGRESO», sin estropear los que ya funcionan bien."
+        ],
+        "respuestas_del_humano": [
+          "El recuento cuenta solo los pendientes sin categoría, los que aplicar tocaría de verdad.",
+          "Los ejemplos se ven dentro del propio diálogo."
+        ]
+      },
+      "acceptance": [
+        "Al escribir o cambiar el texto en el diálogo de la regla, la pantalla consulta GET /api/movements con q, status=pending_review y uncategorized=true, y muestra el total que devuelve la paginación",
+        "Junto al recuento se ven algunos de esos movimientos (concepto, fecha e importe) dentro del mismo diálogo",
+        "El recuento se refresca solo al cambiar el texto, con espera tras la última tecla, y una consulta en vuelo no pisa a la siguiente",
+        "Con un texto que casa con demasiados movimientos, o con ninguno, se avisa de forma visible, pero el botón de guardar sigue habilitado: la decisión es del humano",
+        "Con un texto por debajo del mínimo del backend no se consulta nada, como hoy",
+        "Lo mismo aparece al cambiar una regla existente",
+        "La previsualización es solo lectura: no se envía ninguna escritura mientras se escribe",
+        "proposeMatchText mejora para conceptos genéricos como «AB Servicios Selecta E», «TPV VIRTUAL» o «JUAN JOSE ROMERO RAMOS - INGRESO», sin cambiar los que ya salían bien (iberdrola, mercadona, mega deportes, tulotero)",
+        "No cambia cómo se aplican las reglas, ni la lista de Rules, ni nada de las features 15, 16 y 17",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }

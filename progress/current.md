@@ -135,8 +135,21 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   gana una sección *Formato (Prettier)* y la convención de red de seguridad en e2e.
   Puerta completa verde: type-check, lint, 905 tests, build, 16 e2e chromium e `init.sh`.
 
+- 2026-09-24 — Spec de la F18 escrito (`specs/18-rule-match-preview/`, 15 requisitos y
+  5 decisiones 🔴: aviso de «demasiado amplio» por encima de 50 movimientos sin
+  bloquear el guardado, 5 ejemplos —los más recientes— dentro del diálogo, 350 ms
+  desde la última tecla reutilizando la espera de Review, propuesta de texto que crece
+  mientras la última palabra sea genérica (`servicios selecta`, `juan jose romero`,
+  `amazon`) sin tocar `iberdrola`/`mercadona`/`mega deportes`/`tulotero`, y consulta
+  fallida que avisa sin impedir guardar). Feature en `spec_ready`, a la espera de la
+  puerta humana.
+
+- 2026-09-24 — El humano aprueba el spec de la F18 tal cual, las 5 🔴 incluidas
+  (aviso a partir de 50, 5 ejemplos recientes en el diálogo, 350 ms de espera,
+  propuesta que crece ante palabras genéricas y de canal, y fallo del recuento que
+  no bloquea el guardado). F18 pasa a `in_progress`.
+
 ## Próximo paso
 
-E6 completa (F15, F16 y F17 en `done`). Siguiente etapa: E7, el extracto.
-Nota: el backend de :3000 se cayó al final de la sesión; hay que levantarlo antes
-de la próxima prueba contra datos reales.
+Implementar la F18 siguiendo `specs/18-rule-match-preview/tasks.md` y pasarla por
+el reviewer. La T18 es una comprobación con el humano delante, de solo lectura.
