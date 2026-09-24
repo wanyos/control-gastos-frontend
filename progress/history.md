@@ -704,3 +704,38 @@ Plantilla para cada entrada nueva:
   `./init.sh` en verde, ejecutado por el leader al final.
 - **Cierre:** features 16 y 17 → **done**. E6 completa. Siguiente etapa: E7 (el
   extracto).
+
+## 2026-09-24 — Feature 18: rule-match-preview
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author`, `implementer` y
+  `reviewer`. Flujo SDD. Salió de la prueba real de la F17: `mega` casaba también
+  con «ACADEMIA OMEGA SL» y no había forma de verlo antes de aplicar.
+- **Spec:** `specs/18-rule-match-preview/`, 15 requisitos. El humano aprobó las 5
+  decisiones tal cual: aviso por encima de 50 movimientos sin bloquear el guardado,
+  5 ejemplos recientes dentro del diálogo, 350 ms desde la última tecla, propuesta
+  de texto que crece ante palabras genéricas y salta las de canal, y fallo del
+  recuento que avisa y deja guardar igual. Sus dos respuestas previas: el recuento
+  cuenta solo pendientes sin categoría, y los ejemplos se ven en el propio diálogo.
+- **Cambios:** previsualización en el diálogo de la regla (recuento y ejemplos) con
+  una sola lectura de `GET /api/movements` por texto —pendiente, sin categoría y del
+  tipo del movimiento—, `src/shared/movements.ts` con la lectura que ahora comparten
+  Review y las reglas, y mejora de `proposeMatchText`. Solo lectura: ni una
+  escritura en todo el camino. Sin dependencias nuevas.
+- **Revisión:** APROBADO sin cambios. El reviewer repitió la puerta entera y validó
+  que nada escribe, que la consulta es la del spec, que la tabla de propuestas está
+  fijada en tests y que la desviación declarada (medir por método en vez de por
+  ruta, porque ahora el diálogo lee movimientos) no debilita lo que protegía.
+- **T18, comprobación con el humano delante** (solo lectura): 14 conceptos reales en
+  el diálogo. Lo que dice la pantalla coincide con la API en los 14; el filtro por
+  tipo explica que `juan jose romero` dé 40 como ingreso y 8 como gasto. El aviso
+  salta donde debía (`servicios selecta` → 355). Los ceros de `tulotero`,
+  `mega deportes` e `iberdrola` son correctos: ya están categorizados. Cero
+  escrituras y cero errores de consola.
+- **Deuda que el humano deja para más adelante:** la propuesta arrastra papeleo y
+  puntuación en «ANUL. /VivaGym» (`anul. /vivagym` en vez de `vivagym`) y sigue floja
+  con nombres de canal («TRANS INM/ N26» → `trans inm`, que pesca también Openbank;
+  «TPV VIRTUAL» → `tpv virtual`). El texto es editable y el recuento avisa, así que
+  no rompe nada.
+- **Verificación:** type-check, lint, 973 tests (67 ficheros), build, 17 e2e y
+  `./init.sh` en verde.
+- **Cierre:** feature 18 → **done**. Siguiente etapa: E7 (el extracto).

@@ -2,8 +2,10 @@
 // proposed, when it is too short, and what the screen says when something fails. No
 // state, no HTTP: the store and the components use it, the tests exercise it directly.
 
+import type { CategoryKind } from '@/shared/categories'
 import { API_NETWORK, ApiError, ValidationError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
+import type { MovementQuery } from '@/shared/movements'
 
 import type { ApplyResult } from './types'
 
@@ -41,6 +43,111 @@ export const BANK_BOILERPLATE: ReadonlySet<string> = new Set([
   'favor',
   'clientes',
   'cliente',
+  // Channel and card terminal, added in feature 18 (R13): they say how you paid, not
+  // who charged you, and they were swallowing the proposal of every card movement
+  // («TPV VIRTUAL 1234 AMAZON» proposed `tpv virtual`).
+  'tpv',
+  'virtual',
+  'online',
+  'internet',
+  'web',
+  'terminal',
+  'comercio',
+  'efectivo',
+  'ingreso',
+  'ingresos',
+  'nomina',
+  'liquidacion',
+  'orden',
+  'envio',
+])
+
+/**
+ * Words that are part of the name but do not identify it: a proposal that ends in
+ * one of these is still too generic, so it keeps growing (R14). Two families,
+ * business words and Spanish first names, written by hand without looking at any
+ * real statement — like `BANK_BOILERPLATE` — and corrected when they miss.
+ * Unlike the boilerplate, these words DO travel in the proposal: «AB Servicios
+ * Selecta E» proposes `servicios selecta`, not `selecta`.
+ */
+export const GENERIC_WORDS: ReadonlySet<string> = new Set([
+  // business
+  'servicios',
+  'servicio',
+  'grupo',
+  'centro',
+  'comercial',
+  'comerciales',
+  'distribuciones',
+  'distribucion',
+  'sociedad',
+  'hermanos',
+  'hijos',
+  'nuevo',
+  'nueva',
+  'gran',
+  'general',
+  'iberica',
+  'espana',
+  'europa',
+  'global',
+  'sistemas',
+  'soluciones',
+  'asociados',
+  'gestion',
+  'promociones',
+  'inversiones',
+  // first names
+  'juan',
+  'jose',
+  'maria',
+  'antonio',
+  'manuel',
+  'francisco',
+  'luis',
+  'carlos',
+  'miguel',
+  'angel',
+  'david',
+  'javier',
+  'jesus',
+  'pedro',
+  'rafael',
+  'fernando',
+  'sergio',
+  'pablo',
+  'jorge',
+  'alberto',
+  'alejandro',
+  'daniel',
+  'raul',
+  'ruben',
+  'victor',
+  'ivan',
+  'andres',
+  'adrian',
+  'alvaro',
+  'diego',
+  'mario',
+  'oscar',
+  'roberto',
+  'ramon',
+  'santiago',
+  'tomas',
+  'vicente',
+  'ana',
+  'carmen',
+  'laura',
+  'marta',
+  'lucia',
+  'elena',
+  'isabel',
+  'rosa',
+  'cristina',
+  'pilar',
+  'sara',
+  'paula',
+  'julia',
 ])
 
 /**
@@ -79,12 +186,25 @@ function isMeaningful(word: string): boolean {
 }
 
 /**
+ * A proposal never grows past this many words: without a ceiling, a description made
+ * of generic words alone («GRUPO NUEVO SERVICIOS GENERAL…») would take half the line
+ * (R14).
+ */
+export const MAX_PROPOSAL_WORDS = 4
+
+/** True while the proposal still needs another word to say who charged you (R14). */
+function keepsGrowing(length: number, lastWord: string, words: number): boolean {
+  if (words >= MAX_PROPOSAL_WORDS) return false
+  return length < MIN_PROPOSAL_LENGTH || GENERIC_WORDS.has(lastWord)
+}
+
+/**
  * What the dialog proposes from a description: the first word that means something and,
- * while that word falls short of `MIN_PROPOSAL_LENGTH`, the ones that follow it, taken
- * verbatim from the description so the proposal is still contained in it. Words with
- * digits stop the growth: they are movement-specific (card numbers, dates). When no word
- * qualifies, the whole normalized description, which is never too broad (R2). Always
- * editable.
+ * while the proposal is still too short OR still ends in a generic word, the ones that
+ * follow it, taken verbatim from the description so the proposal is still contained in
+ * it. Words with digits stop the growth: they are movement-specific (card numbers,
+ * dates). When no word qualifies, the whole normalized description, which is never too
+ * broad (R2). Always editable.
  */
 export function proposeMatchText(description: string): string {
   const normalized = normalizeMatchText(description)
@@ -95,9 +215,13 @@ export function proposeMatchText(description: string): string {
 
   const start = first.index
   let end = start + first[0].length
+  let last = first[0]
+  let taken = 1
   for (const word of words.slice(firstIndex + 1)) {
-    if (end - start >= MIN_PROPOSAL_LENGTH || !LETTERS_ONLY.test(word[0])) break
+    if (!keepsGrowing(end - start, last, taken) || !LETTERS_ONLY.test(word[0])) break
     end = word.index + word[0].length
+    last = word[0]
+    taken += 1
   }
   return normalized.slice(start, end)
 }
@@ -183,4 +307,79 @@ export function applySummaryLines(result: ApplyResult): string[] {
     `${result.unmatched} still without a matching rule`,
     `${result.conflictCount} ${result.conflictCount === 1 ? 'conflict' : 'conflicts'}`,
   ]
+}
+
+// ─── The match preview (feature 18) ─────────────────────────────────────────
+// How many pending movements without a category a text would look at, and a few of
+// them. Everything here is pure: the thresholds, the filter that travels and the
+// English sentences the dialog paints.
+
+/** How many examples are shown: they fit the dialog without a scrollbar of their own. */
+export const PREVIEW_SAMPLE_SIZE = 5
+
+/**
+ * Above this many matches the text is called too broad. With ~1.373 pending
+ * movements without a category, 50 is 3,6%: below it a very frequent shop still fits
+ * without crying wolf (R5). It only warns: saving stays enabled (R7).
+ */
+export const BROAD_MATCH_LIMIT = 50
+
+/** The ceiling of `q` in the contract, measured over the text as typed. */
+export const MAX_PREVIEW_TEXT = 100
+
+/**
+ * True when the text can be asked about: at least 3 characters once normalized (the
+ * floor of the contract) and at most 100 as typed (its ceiling). Outside that range
+ * nothing is asked and nothing is shown, but the rule can still be saved (R2).
+ */
+export function canPreview(text: string): boolean {
+  return !isMatchTextTooShort(text) && text.length <= MAX_PREVIEW_TEXT
+}
+
+/**
+ * The filter the preview asks for: only what a rules pass would really look at —
+ * pending, without a category and of the kind of the chosen category, because a pass
+ * never crosses expense and income and never touches a `neutral`. It never carries
+ * `categoryId`: together with `uncategorized` that is a 400.
+ */
+export function previewQuery(text: string, kind: CategoryKind): MovementQuery {
+  return {
+    status: 'pending_review',
+    uncategorized: true,
+    type: kind,
+    q: text.trim(),
+    page: 1,
+    pageSize: PREVIEW_SAMPLE_SIZE,
+  }
+}
+
+/**
+ * What the count says. Present tense and about what is being looked at today: the
+ * search and a rules pass are not the same query, so this is an honest estimate and
+ * never a promise of what will be categorized (design.md §5).
+ */
+export function matchCountLine(total: number): string {
+  return total === 1
+    ? '1 pending movement without a category contains this text.'
+    : `${total} pending movements without a category contain this text.`
+}
+
+/** The warning of R5 / R6, or null when the number asks for none. */
+export function matchWarning(total: number): string | null {
+  if (total > BROAD_MATCH_LIMIT) return 'That is a lot — check the examples below before you save.'
+  if (total === 0) return 'Nothing pending without a category contains this text right now.'
+  return null
+}
+
+/**
+ * The English sentence of a preview that failed (R10). The `message` of the backend
+ * is never painted: it comes in Spanish. A failed count never blocks the save.
+ */
+export function previewErrorMessage(error: AppError): string {
+  if (error.code === API_NETWORK) return "Couldn't reach the server, so the count is unknown."
+  if (error instanceof ValidationError) {
+    return "The server answered, but the count couldn't be read."
+  }
+  if (error instanceof ApiError && error.status === 400) return 'The backend rejected that search.'
+  return "Couldn't check how many match."
 }

@@ -4,7 +4,13 @@
 
 import type { LocationQuery, LocationQueryRaw } from 'vue-router'
 
+import { SEARCH_DEBOUNCE_MS } from '@/shared/movements'
+
 import type { MovementQuery, MovementType, ReviewFilters } from './types'
+
+// The wait after the last keystroke moved to `@/shared/movements` in feature 18 (the
+// rule preview waits exactly the same); re-exported so the F15 imports keep working.
+export { SEARCH_DEBOUNCE_MS }
 
 /**
  * 100 per page: the F16 will be able to act on a whole page in one request (the
@@ -17,9 +23,6 @@ export const PAGE_SIZE = 100
 export const QUEUE_STATUS = 'pending_review' as const
 
 export const MOVEMENT_TYPES: readonly MovementType[] = ['expense', 'income', 'neutral']
-
-/** Long enough to swallow a burst of keystrokes, short enough to feel live. */
-export const SEARCH_DEBOUNCE_MS = 350
 
 export const SEARCH_MIN = 2
 export const SEARCH_MAX = 100

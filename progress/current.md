@@ -3,11 +3,18 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 17 — category-rules (implementación)
-- **Inicio:** 2026-09-22
+- **Feature en curso:** 18 — rule-match-preview (implementación)
+- **Inicio:** 2026-09-24
 - **Agente:** leader (Claude Code) → implementer
 
 ## Plan
+
+Previsualización de una regla antes de guardarla (F18): las tasks T0–T17 de
+`specs/18-rule-match-preview/tasks.md` en orden. La **T18 no es del implementer**
+(comprobación con el humano delante, de solo lectura). Feature de solo lectura:
+ninguna petición suya escribe.
+
+## Plan anterior (F17, cerrada)
 
 Reglas de categorización (F17): crear una regla desde una fila de Review, verlas,
 cambiarlas y borrarlas en la pantalla nueva `Rules`, y pasarlas sobre lo pendiente
@@ -149,7 +156,48 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   propuesta que crece ante palabras genéricas y de canal, y fallo del recuento que
   no bloquea el guardado). F18 pasa a `in_progress`.
 
+- 2026-09-24 — implementer arranca la F18. T0 cerrado sin sorpresas: las parejas de
+  color ya tienen su linea `contrast:` en `theme-dark.css` (no se toca el tema),
+  `buildMovementsQuery` admite `type` y `uncategorized=true` juntos, y el temporizador
+  de `ReviewFilterBar` se reproduce en `RuleDialog` con `vi.useFakeTimers()`.
+- 2026-09-24 — T1/T2: la mitad de **solo lectura** de los movimientos (tipos,
+  `buildMovementsQuery`, `parseMovementPage`, `getMovements`, `SEARCH_DEBOUNCE_MS`) se
+  mueve a `src/shared/movements.ts`; `review/{types,service,filters}.ts` la re-exportan
+  y la suite de `review` pasa sin tocarla (236 tests). Los dos `PATCH` se quedan en
+  `review/service.ts`.
+- 2026-09-24 — F18 implementada: **T0-T17 en `[x]`**, 15 requisitos con test,
+  +68 tests unitarios (973 en total) y un escenario e2e nuevo (17 en chromium) con
+  todas las llamadas interceptadas y la red de seguridad. Las 5 🔴 tal cual: aviso a
+  partir de 50 sin bloquear el guardado, 5 ejemplos recientes dentro del dialogo,
+  350 ms reutilizando la espera de Review, propuesta que crece ante palabras genericas
+  y de canal (`servicios selecta`, `juan jose romero`, `amazon`; `iberdrola`,
+  `mercadona`, `mega deportes` y `tulotero` fijados como regresion), y fallo del
+  recuento que avisa sin impedir guardar. Puerta completa verde (`type-check`, `lint`,
+  973 tests, `build`, e2e chromium e `./init.sh`). **Una desviacion documentada**: en
+  `RulesView.spec.ts` la asercion «cambiar una regla no toca ningun movimiento» pasa de
+  medir la ruta a medir el metodo (`wroteMovements()`), porque ahora el dialogo **lee**
+  `GET /api/movements` para contar; ningun otro test de F15/F16/F17 cambio.
+  **T18 pendiente**: es la comprobacion con el humano delante, de solo lectura.
+  Informe en `progress/implementation/rule-match-preview.md`. Falta el reviewer.
+
+- 2026-09-24 — reviewer aprueba la F18 sin cambios (973 tests, 17 e2e, puerta
+  repetida por él).
+- 2026-09-24 — **T18 hecha** con el humano delante, solo lectura: 14 conceptos
+  reales en el diálogo, cero escrituras y cero errores de consola. Lo que dice la
+  pantalla coincide con la API en los 14 (el filtro por tipo explica que «juan jose
+  romero» dé 40 como ingreso y 8 como gasto). El aviso salta donde debía:
+  `servicios selecta` → 355. Los ceros (`tulotero`, `mega deportes`, `iberdrola`)
+  son correctos: ya están categorizados.
+- 2026-09-24 — **Deuda anotada, el humano la deja para más adelante:** la propuesta
+  arrastra papeleo y puntuación en «ANUL. /VivaGym» → `anul. /vivagym` (debería ser
+  `vivagym`, con `anul` en la lista de papeleo), y sigue floja con nombres de canal
+  («TRANS INM/ N26» → `trans inm`, que pesca también Openbank; «TPV VIRTUAL» →
+  `tpv virtual`). Ninguna rompe nada: el texto es editable y el recuento avisa.
+
+- 2026-09-24 — F18 en `done`, entrada de historial escrita y puerta repetida por el
+  leader (init.sh: «Entorno listo»).
+
 ## Próximo paso
 
-Implementar la F18 siguiendo `specs/18-rule-match-preview/tasks.md` y pasarla por
-el reviewer. La T18 es una comprobación con el humano delante, de solo lectura.
+E6 rematada con la F18. Siguiente etapa: E7, el extracto. Pendiente de que el
+humano escriba qué quiere ver ahí.

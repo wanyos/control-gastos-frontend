@@ -624,4 +624,91 @@ describe('ReviewView', () => {
       expect(api.patches()).toEqual([])
     })
   })
+
+  // ─── The match preview (feature 18) ──────────────────────────────────────
+  // The dialog is the same one the rules screen opens, so this only checks the
+  // wiring of this screen: the query that travels, and that NOTHING else does.
+
+  describe('the count of what a rule would match (feature 18, R1, R11, R12, C1)', () => {
+    const rulesApi = (): Promise<Response> =>
+      Promise.resolve(jsonResponse(CREATED_RULE, { status: 201 }))
+
+    const openDialogOf = async (
+      wrapper: { findAll: (s: string) => { trigger: (e: string) => Promise<void> }[] },
+      row: number,
+    ) => {
+      await wrapper.findAll('[data-test="movement-create-rule"]')[row]?.trigger('click')
+      await flushPromises()
+    }
+
+    it('asks for the count as soon as the dialog opens, without a keystroke (R11)', async () => {
+      const queue = fakeQueue()
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        rules: rulesApi,
+      })
+
+      await openDialogOf(wrapper, 0)
+
+      expect(api.movementQueries().at(-1)).toBe(
+        'status=pending_review&type=expense&uncategorized=true&q=cafeteria&page=1&pageSize=5',
+      )
+      expect(document.querySelector('[data-test="rule-preview-count"]')?.textContent).toContain(
+        'pending movements without a category contain this text.',
+      )
+    })
+
+    it('counts against the kind of the movement, never crossing expense and income', async () => {
+      const queue = fakeQueue()
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        rules: rulesApi,
+      })
+
+      await openDialogOf(wrapper, 1)
+
+      expect(api.movementQueries().at(-1)).toContain('type=income')
+      expect(api.movementQueries().at(-1)).not.toContain('categoryId')
+    })
+
+    it('never sends anything but a GET of the movements while it counts (R12, C1)', async () => {
+      const queue = fakeQueue()
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        rules: rulesApi,
+      })
+      await openDialogOf(wrapper, 0)
+      const before = api.calls.length
+
+      const field = document.querySelector<HTMLInputElement>('[data-test="rule-text"] input')
+      if (!field) throw new Error('no text field')
+      field.value = 'mercadona'
+      field.dispatchEvent(new Event('input'))
+      // The real wait after the last keystroke, plus room for the answer.
+      await new Promise((done) => setTimeout(done, 450))
+      await flushPromises()
+
+      const after = api.calls.slice(before)
+      expect(after.length).toBeGreaterThan(0)
+      expect(after.every((call) => call.method === 'GET')).toBe(true)
+      expect(after.every((call) => call.path === '/api/movements')).toBe(true)
+      expect(api.calls.every((call) => call.method === 'GET')).toBe(true)
+      expect(api.patches()).toEqual([])
+    })
+
+    it('forgets the count when the dialog is closed (R12)', async () => {
+      const queue = fakeQueue()
+      const { wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        rules: rulesApi,
+      })
+      await openDialogOf(wrapper, 0)
+      expect(document.querySelector('[data-test="rule-preview"]')).not.toBeNull()
+
+      document.querySelector<HTMLElement>('[data-test="rule-cancel"]')?.click()
+      await flushPromises()
+
+      expect(document.querySelector('[data-test="rule-preview"]')).toBeNull()
+    })
+  })
 })

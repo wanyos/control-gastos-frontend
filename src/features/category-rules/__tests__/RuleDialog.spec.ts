@@ -1,12 +1,14 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 
 import { parseCategories } from '@/shared/categories'
+import { parseMovementPage } from '@/shared/movements'
 
 import RuleDialog from '../components/RuleDialog.vue'
 import { proposeMatchText } from '../rules'
-import { CATEGORY_TREE } from './fixtures'
+import type { MatchPreview } from '../types'
+import { CATEGORY_TREE, movement, movementPage } from './fixtures'
 
 // The dialog lives in a Teleport, so everything is asked of the document, as the
 // feature 16 dialog tests do.
@@ -179,6 +181,137 @@ describe('RuleDialog (R2, R3, R4, R6, R8)', () => {
 
     expect(wrapper.emitted('cancel')).toHaveLength(1)
     expect(wrapper.emitted('save')).toBeUndefined()
+    wrapper.unmount()
+  })
+})
+
+// ─── The match preview (feature 18) ────────────────────────────────────────
+// The dialog does not count anything itself: it says WHEN to count, waiting out the
+// burst of keystrokes, and paints what it is handed back.
+
+const SAMPLES = parseMovementPage(movementPage([movement(10, 'COMPRA MERCADONA')], 34)).movements
+
+const READY: MatchPreview = {
+  step: 'ready',
+  text: 'mercadona',
+  total: 51,
+  samples: SAMPLES,
+}
+
+describe('RuleDialog: the match preview (R1, R7, R9, R11)', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+    document.body.innerHTML = ''
+  })
+
+  it('asks for the count as soon as it opens, without a keystroke (R11)', () => {
+    vi.useFakeTimers()
+    const wrapper = open({ mode: 'edit', initialText: 'iberdrola', initialCategoryId: 6 })
+
+    expect(wrapper.emitted('preview')).toEqual([['iberdrola']])
+    wrapper.unmount()
+  })
+
+  it('asks once for a burst of keystrokes, with the text of the last one (R1)', async () => {
+    vi.useFakeTimers()
+    const wrapper = open({ initialCategoryId: 4 })
+    const first = wrapper.emitted('preview')?.length ?? 0
+
+    await type('merc')
+    await type('mercad')
+    await type('mercadona')
+    expect(wrapper.emitted('preview')).toHaveLength(first)
+
+    vi.advanceTimersByTime(350)
+    expect(wrapper.emitted('preview')?.slice(first)).toEqual([['mercadona']])
+    wrapper.unmount()
+  })
+
+  it('waits the same 350 ms the review search waits (R1)', async () => {
+    vi.useFakeTimers()
+    const wrapper = open({ initialCategoryId: 4 })
+    const first = wrapper.emitted('preview')?.length ?? 0
+
+    await type('mercadona')
+    vi.advanceTimersByTime(349)
+    expect(wrapper.emitted('preview')).toHaveLength(first)
+
+    vi.advanceTimersByTime(1)
+    expect(wrapper.emitted('preview')).toHaveLength(first + 1)
+    wrapper.unmount()
+  })
+
+  it('asks for nothing below the floor of the contract, and says so (R2)', async () => {
+    vi.useFakeTimers()
+    const wrapper = open({ initialCategoryId: 4 })
+    const first = wrapper.emitted('preview')?.length ?? 0
+
+    await type('ab')
+    vi.advanceTimersByTime(350)
+
+    expect(wrapper.emitted('preview')?.slice(first)).toEqual([['']])
+    wrapper.unmount()
+  })
+
+  it('asks for nothing above the ceiling of `q` either (R2)', async () => {
+    vi.useFakeTimers()
+    const wrapper = open({ initialCategoryId: 4 })
+    const first = wrapper.emitted('preview')?.length ?? 0
+
+    await type('a'.repeat(101))
+    vi.advanceTimersByTime(350)
+
+    expect(wrapper.emitted('preview')?.slice(first)).toEqual([['']])
+    wrapper.unmount()
+  })
+
+  it('shows the count and the examples inside the dialog itself (R3, R4)', () => {
+    const wrapper = open({ initialCategoryId: 4, preview: READY })
+
+    expect(at('[data-test="rule-dialog"]')?.textContent).toContain(
+      '51 pending movements without a category contain this text.',
+    )
+    expect(at('[data-test="rule-preview-sample"]')?.textContent).toContain('COMPRA MERCADONA')
+    wrapper.unmount()
+  })
+
+  it('keeps the save button enabled while the text matches too many (R7)', () => {
+    const wrapper = open({ initialCategoryId: 4, preview: READY })
+
+    expect(at('[data-test="rule-preview-warning"]')).not.toBeNull()
+    expect(at('[data-test="rule-save"]')?.hasAttribute('disabled')).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('keeps the save button enabled when nothing matches, and when the count fails (R7)', () => {
+    const none = open({
+      initialCategoryId: 4,
+      preview: { step: 'ready', text: 'zzzz', total: 0, samples: [] },
+    })
+    expect(at('[data-test="rule-save"]')?.hasAttribute('disabled')).toBe(false)
+    none.unmount()
+    document.body.innerHTML = ''
+
+    const failed = open({
+      initialCategoryId: 4,
+      preview: { step: 'failed', text: 'mercadona', message: "Couldn't check how many match." },
+    })
+    expect(at('[data-test="rule-save"]')?.hasAttribute('disabled')).toBe(false)
+    failed.unmount()
+  })
+
+  it('leaves the field, the selector and the save button usable while counting (R9)', async () => {
+    const wrapper = open({
+      initialCategoryId: 4,
+      preview: { step: 'loading', text: 'mercadona' },
+    })
+
+    expect(textField().disabled).toBe(false)
+    expect(categoryField().disabled).toBe(false)
+    expect(at('[data-test="rule-save"]')?.hasAttribute('disabled')).toBe(false)
+
+    await type('mercadona valencia')
+    expect(textField().value).toBe('mercadona valencia')
     wrapper.unmount()
   })
 })

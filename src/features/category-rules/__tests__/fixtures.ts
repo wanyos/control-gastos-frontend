@@ -174,6 +174,8 @@ export function mockFetch(answers: {
   /** PATCH and DELETE of /api/category-rules/:id. */
   rule?: () => Promise<Response>
   apply?: () => Promise<Response>
+  /** GET /api/movements: the count of the match preview (feature 18). */
+  movements?: (url: URL) => Promise<Response>
 }) {
   const calls: Call[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
@@ -186,6 +188,7 @@ export function mockFetch(answers: {
     }
     calls.push(call)
     if (url.pathname === '/api/categories' && answers.categories) return answers.categories()
+    if (url.pathname === '/api/movements' && answers.movements) return answers.movements(url)
     if (url.pathname === '/api/category-rules/apply' && answers.apply) return answers.apply()
     if (url.pathname === '/api/category-rules' && answers.rules) return answers.rules()
     if (url.pathname.startsWith('/api/category-rules/') && answers.rule) return answers.rule()
@@ -195,6 +198,14 @@ export function mockFetch(answers: {
     calls,
     count: (path: string) => calls.filter((call) => call.path === path).length,
     touchedMovements: () => calls.some((call) => call.path.startsWith('/api/movements')),
+    /**
+     * A movement was WRITTEN. Since feature 18 the rule dialog reads
+     * `GET /api/movements` to count what a text would match, so «did not touch a
+     * movement» is now about the method, not about the path.
+     */
+    wroteMovements: () =>
+      calls.some((call) => call.path.startsWith('/api/movements') && call.method !== 'GET'),
+    movements: () => calls.filter((call) => call.path.startsWith('/api/movements')),
   }
 }
 
@@ -215,3 +226,58 @@ export function deferred<T = unknown>() {
   })
   return { answer: (() => promise) as Answer, resolve }
 }
+
+// ─── The match preview (feature 18) ─────────────────────────────────────────
+// Raw `GET /api/movements` payloads, shaped like the contract. They stay raw JSON:
+// the tests push them through `@/shared/movements`, which is what proves the
+// boundary checks. Declared here, not imported from the review tests: the rules
+// feature does not depend on the review feature (design.md §1).
+
+const ACCOUNT = {
+  id: 1,
+  iban: 'ES9820385778983000760236',
+  bank: 'bankinter',
+  alias: 'bankinter ···0236',
+  type: 'checking',
+}
+
+/** A pending expense with no category: exactly what the preview asks about. */
+export const movement = (
+  id: number,
+  description: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> => ({
+  id,
+  type: 'expense',
+  bookingDate: '2026-07-31',
+  valueDate: '2026-07-31',
+  amount: '45.37',
+  description,
+  balanceAfter: null,
+  currency: 'EUR',
+  note: null,
+  accountId: 1,
+  account: ACCOUNT,
+  categoryId: null,
+  category: null,
+  paymentMethod: null,
+  origin: 'imported',
+  status: 'pending_review',
+  transferId: null,
+  daySequence: 1,
+  createdAt: '2026-08-06T18:30:00.000Z',
+  updatedAt: '2026-08-06T18:30:00.000Z',
+  ...overrides,
+})
+
+export const MOVEMENT_TOTALS = { income: '0.00', expense: '45.37', net: '-45.37' }
+
+/** A page of `GET /api/movements` with `total` free of the size of `movements`. */
+export const movementPage = (
+  movements: Record<string, unknown>[],
+  total = movements.length,
+): Record<string, unknown> => ({
+  movements,
+  pagination: { page: 1, pageSize: 5, total, totalPages: Math.ceil(total / 5) },
+  totals: MOVEMENT_TOTALS,
+})

@@ -3,20 +3,24 @@ import { defineStore } from 'pinia'
 
 import type { HttpClient } from '@/services/http'
 import { getCategories } from '@/shared/categories'
-import type { Category } from '@/shared/categories'
+import type { Category, CategoryKind } from '@/shared/categories'
 import { ApiError, toAppError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
+import { getMovements } from '@/shared/movements'
 
 import {
   applyErrorMessage,
+  canPreview,
   deleteErrorMessage,
   isMatchTextTooShort,
   needsRulesReload,
   normalizeMatchText,
+  previewErrorMessage,
+  previewQuery,
   ruleErrorMessage,
 } from './rules'
 import { applyRules, createRule, deleteRule, getRules, updateRule } from './service'
-import type { ApplyFlow, CategoryRule, NewRule, RuleChanges } from './types'
+import type { ApplyFlow, CategoryRule, MatchPreview, NewRule, RuleChanges } from './types'
 
 /**
  * The categorization rules: the list, the dialogs' state and the on-demand pass.
@@ -41,6 +45,9 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
   const deleteMessage = ref<string | null>(null)
   /** The rule the last successful create made: the notice over the queue (R5). */
   const lastCreated = ref<CategoryRule | null>(null)
+
+  /** What the match preview of the open dialog is showing (feature 18). */
+  const preview = ref<MatchPreview>({ step: 'idle' })
 
   const applyFlow = ref<ApplyFlow>({ step: 'closed' })
   /** Goes up when an apply ends, whatever the outcome: Review watches it (R14). */
@@ -176,6 +183,50 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     lastCreated.value = null
   }
 
+  // ─── The match preview (feature 18: R1, R2, R8, R10) ──────────────────────
+  // Read only: the single call it makes is a GET of the movements list.
+
+  /**
+   * Goes up with every preview asked for and with every clear, so an answer that is
+   * no longer the last one can be recognised and dropped (R8). The keystrokes arrive
+   * faster than the network, so «the last one wins» has to be explicit.
+   */
+  let previewToken = 0
+
+  /** Forgets the count: the next dialog must not inherit the one of the previous. */
+  function clearPreview(): void {
+    previewToken += 1
+    preview.value = { step: 'idle' }
+  }
+
+  /**
+   * How many pending movements without a category contain this text, and five of
+   * them. Never throws and never blocks anything: a failed count still lets the rule
+   * be saved (R10). Below the floor or above the ceiling of the contract nothing
+   * travels (R2).
+   */
+  async function previewMatches(
+    text: string,
+    kind: CategoryKind,
+    client?: HttpClient,
+  ): Promise<void> {
+    if (!canPreview(text)) {
+      clearPreview()
+      return
+    }
+    previewToken += 1
+    const token = previewToken
+    preview.value = { step: 'loading', text }
+    try {
+      const page = await getMovements(previewQuery(text, kind), client)
+      if (token !== previewToken) return
+      preview.value = { step: 'ready', text, total: page.pagination.total, samples: page.movements }
+    } catch (rejection) {
+      if (token !== previewToken) return
+      preview.value = { step: 'failed', text, message: previewErrorMessage(toAppError(rejection)) }
+    }
+  }
+
   // ─── Applying the rules (R10, R11, R13) ───────────────────────────────────
 
   function openApply(): void {
@@ -219,6 +270,7 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     lastCreated,
     applyFlow,
     applyRun,
+    preview,
     load,
     loadCategories,
     create,
@@ -228,5 +280,7 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     openApply,
     confirmApply,
     closeApply,
+    previewMatches,
+    clearPreview,
   }
 })

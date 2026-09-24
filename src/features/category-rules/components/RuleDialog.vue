@@ -14,6 +14,8 @@
         data-test="rule-text"
       />
 
+      <RuleMatchPreview v-if="preview" :preview="preview" />
+
       <BaseSelect v-model="choice" label="Category" data-test="rule-category">
         <option value="">Choose a category…</option>
         <optgroup v-for="root in allowed" :key="root.id" :label="root.name">
@@ -41,16 +43,18 @@
 // rules screen: same fields, same checks. Dumb on purpose — it proposes, validates
 // what the contract would reject anyway (R4) and hands the two fields up; who sends
 // them is the store.
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseDialog from '@/shared/components/BaseDialog.vue'
 import BaseInput from '@/shared/components/BaseInput.vue'
 import BaseSelect from '@/shared/components/BaseSelect.vue'
 import type { Category, CategoryKind } from '@/shared/categories'
+import { SEARCH_DEBOUNCE_MS } from '@/shared/movements'
 
-import { isMatchTextTooShort } from '../rules'
-import type { NewRule } from '../types'
+import RuleMatchPreview from './RuleMatchPreview.vue'
+import { canPreview, isMatchTextTooShort } from '../rules'
+import type { MatchPreview, NewRule } from '../types'
 
 const MATCH_HINT = 'Matches any description that contains this text, ignoring case and accents.'
 const TOO_SHORT = 'Use at least 3 letters or digits.'
@@ -69,6 +73,8 @@ const props = withDefaults(
     busy?: boolean
     /** The English sentence of a failed save; the dialog stays open with it (R6). */
     message?: string | null
+    /** What the count of matching movements is showing right now (R3, R4, R9). */
+    preview?: MatchPreview | null
   }>(),
   {
     description: undefined,
@@ -76,10 +82,15 @@ const props = withDefaults(
     categories: null,
     busy: false,
     message: null,
+    preview: null,
   },
 )
 
-const emit = defineEmits<{ save: [NewRule]; cancel: [] }>()
+/**
+ * `preview` carries the text the count is asked for. The empty string means «forget
+ * it»: below the floor of the contract nothing is asked (R2).
+ */
+const emit = defineEmits<{ save: [NewRule]; cancel: []; preview: [string] }>()
 
 const text = ref(props.initialText)
 const choice = ref(props.initialCategoryId === null ? '' : String(props.initialCategoryId))
@@ -100,6 +111,33 @@ const title = computed(() => (props.mode === 'create' ? 'Create a rule' : 'Edit 
 const allowed = computed<Category[]>(() =>
   (props.categories ?? []).filter((category) => category.kind === props.kind),
 )
+
+// ─── The count of matching movements (feature 18) ──────────────────────────
+// The same wait as the search box of the review queue, and the same shape of timer:
+// every keystroke cancels the previous one, so a burst asks once (R1).
+
+let timer: ReturnType<typeof setTimeout> | undefined
+
+function askForPreview(value: string): void {
+  emit('preview', canPreview(value) ? value : '')
+}
+
+watch(
+  () => [props.open, text.value] as const,
+  ([open], previous) => {
+    clearTimeout(timer)
+    if (!open) return
+    // Opening asks right away: editing a rule must show its count without typing (R11).
+    if (previous?.[0] !== true) {
+      askForPreview(text.value)
+      return
+    }
+    timer = setTimeout(() => askForPreview(text.value), SEARCH_DEBOUNCE_MS)
+  },
+  { immediate: true },
+)
+
+onBeforeUnmount(() => clearTimeout(timer))
 
 const isTooShort = computed(() => isMatchTextTooShort(text.value))
 

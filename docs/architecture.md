@@ -84,11 +84,13 @@ src/
       actions.ts          # elegibilidad, plan de deshacer y textos de acción, puras (#16)
     category-rules/       # feature #17: reglas de categorización («lo que contenga X va a Y»)
       components/         # RuleDialog (crear y editar), RuleList, RuleRow, DeleteRuleDialog,
-                          # RuleCreatedNotice, ApplyRulesDialog, ApplyResult, RuleConflictList
+                          # RuleCreatedNotice, ApplyRulesDialog, ApplyResult, RuleConflictList,
+                          # RuleMatchPreview (a cuántos afecta el texto, feature #18)
       views/              # RulesView (ruta /rules)
       store.ts            # useCategoryRulesStore: lista, diálogos y la pasada bajo demanda
       service.ts          # GET/POST /api/category-rules, PATCH y DELETE /:id, POST /apply
-      rules.ts            # normalización del backend, texto propuesto y textos de error (puras)
+      rules.ts            # normalización del backend, texto propuesto, umbrales y textos de la
+                          # previsualización y de los errores (puras; #17 y #18)
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
@@ -100,6 +102,9 @@ src/
     validation.ts         # createValidators(context): guardas de respuestas de la API (feature #13)
     banks.ts              # bankLabel(slug): nombre legible de banco, lista abierta (feature #13)
     money.ts              # importes exactos y formato es-ES / en-GB (feature #9)
+    categories.ts         # árbol de categorías: tipos, parseo y GET /api/categories (feature #17)
+    movements.ts          # lectura de movimientos: tipos, parseo, GET /api/movements y la
+                          # espera tras la última tecla (feature #18)
   services/
     http.ts               # cliente HTTP base: createHttp(config) + http (feature #2)
 ```
@@ -125,7 +130,13 @@ src/
 > tras cada pasada. El sentido es único, `review` → `category-rules`: la feature de
 > reglas no importa nada de `review` ni de `import` (lo contrario cerraría un ciclo).
 > Por eso las categorías, que necesitan las dos, viven ahora en `shared/categories.ts`;
-> `review/types.ts` y `review/service.ts` las re-exportan. Crear una regla **no**
+> `review/types.ts` y `review/service.ts` las re-exportan. **La feature #18 repite la
+> jugada con la lectura de movimientos**: la previsualización del diálogo de regla
+> necesita `GET /api/movements`, que vivía en `review/service.ts`, así que la mitad de
+> **solo lectura** (tipos, `buildMovementsQuery`, `parseMovementPage`, `getMovements` y
+> `SEARCH_DEBOUNCE_MS`) se mueve a `shared/movements.ts` y `review/{types,service,filters}.ts`
+> la re-exportan con el mismo nombre; los dos `PATCH` que escriben se quedan en
+> `review/service.ts`, que es la única pantalla que escribe movimientos. Crear una regla **no**
 > escribe nada sobre ningún movimiento; la única escritura en masa es
 > `POST /api/category-rules/apply`, y siempre pasa por una confirmación.
 

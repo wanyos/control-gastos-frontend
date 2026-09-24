@@ -4,7 +4,16 @@ import { createPinia } from 'pinia'
 
 import RulesView from '../views/RulesView.vue'
 import { APPLY_PATH, RULES_PATH } from '../service'
-import { APPLY_OK, CATEGORY_TREE, NOT_FOUND_BODY, THREE_RULES, jsonOf, mockFetch } from './fixtures'
+import {
+  APPLY_OK,
+  CATEGORY_TREE,
+  NOT_FOUND_BODY,
+  THREE_RULES,
+  jsonOf,
+  mockFetch,
+  movement,
+  movementPage,
+} from './fixtures'
 
 const CATEGORIES_PATH = '/api/categories'
 
@@ -94,7 +103,9 @@ describe('RulesView (R7, R8, R9, R10)', () => {
     expect(patched).toHaveLength(1)
     expect(patched[0]?.path).toBe(`${RULES_PATH}/8`)
     expect(patched[0]?.body).toEqual({ categoryId: 4 })
-    expect(api.touchedMovements()).toBe(false)
+    // Since feature 18 the dialog does read GET /api/movements to count matches; what
+    // changing a rule must never do is WRITE on a movement.
+    expect(api.wroteMovements()).toBe(false)
     expect(at('[data-test="rule-dialog"]')).toBeNull()
   })
 
@@ -172,5 +183,67 @@ describe('RulesView (R7, R8, R9, R10)', () => {
     expect(api.count(APPLY_PATH)).toBe(1)
     expect(document.body.textContent).toContain('12 movements categorized')
     expect(api.touchedMovements()).toBe(false)
+  })
+
+  // ─── The match preview (feature 18) ──────────────────────────────────────
+
+  describe('the count of what a rule matches (R11, R12, C1)', () => {
+    const page = () => jsonOf(movementPage([movement(10, 'RECIB /IBERDROLA CLIENTES, S.A')], 34))
+
+    it('asks for the count as soon as an existing rule is opened (R11)', async () => {
+      const { api, wrapper } = await mountView({
+        rules: () => jsonOf(THREE_RULES),
+        movements: page,
+      })
+
+      await wrapper.findAll('[data-test="rule-edit"]')[1]?.trigger('click')
+      await flushPromises()
+
+      const asked = api.movements()
+      expect(asked).toHaveLength(1)
+      expect(asked[0]?.method).toBe('GET')
+      expect(at('[data-test="rule-preview-count"]')?.textContent).toBe(
+        '34 pending movements without a category contain this text.',
+      )
+      expect(at('[data-test="rule-preview-sample"]')?.textContent).toContain('IBERDROLA')
+    })
+
+    it('counts with the kind of the category of the rule (R11)', async () => {
+      const seen: string[] = []
+      const { wrapper } = await mountView({
+        rules: () => jsonOf(THREE_RULES),
+        movements: (url) => {
+          seen.push(url.search)
+          return page()
+        },
+      })
+
+      // The third rule (`nomina`) belongs to an income category.
+      await wrapper.findAll('[data-test="rule-edit"]')[2]?.trigger('click')
+      await flushPromises()
+
+      expect(seen[0]).toContain('type=income')
+      expect(seen[0]).toContain('uncategorized=true')
+      expect(seen[0]).toContain('status=pending_review')
+      expect(seen[0]).not.toContain('categoryId')
+    })
+
+    it('writes nothing while the dialog is open, and forgets the count on close (R12, C1)', async () => {
+      const { api, wrapper } = await mountView({
+        rules: () => jsonOf(THREE_RULES),
+        movements: page,
+      })
+
+      await wrapper.findAll('[data-test="rule-edit"]')[1]?.trigger('click')
+      await flushPromises()
+      expect(at('[data-test="rule-preview"]')).not.toBeNull()
+
+      at('[data-test="rule-cancel"]')?.click()
+      await flushPromises()
+
+      expect(at('[data-test="rule-preview"]')).toBeNull()
+      expect(api.wroteMovements()).toBe(false)
+      expect(api.calls.every((call) => call.method === 'GET')).toBe(true)
+    })
   })
 })

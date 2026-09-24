@@ -106,13 +106,23 @@ async function prepare(page: Page, options: Options = {}) {
     if (request.method() !== 'GET') watch.writes.push(request)
   })
 
+  // Answers like the backend does for what this file exercises: `q` is «contains»,
+  // case-insensitive, and `pagination.total` counts the whole match, not the page.
   const answerMovements = (route: Route, query: URLSearchParams) => {
-    const visible = [...rows.values()]
-    const size = query.get('pageSize') === '1' ? 1 : 100
+    const q = (query.get('q') ?? '').toLowerCase()
+    const visible = [...rows.values()].filter((row) =>
+      String(row.description).toLowerCase().includes(q),
+    )
+    const size = Number(query.get('pageSize') ?? '100')
     return route.fulfill({
       json: {
-        movements: size === 1 ? visible.slice(0, 1) : visible,
-        pagination: { page: 1, pageSize: size, total: visible.length, totalPages: 1 },
+        movements: visible.slice(0, size),
+        pagination: {
+          page: 1,
+          pageSize: size,
+          total: visible.length,
+          totalPages: Math.max(1, Math.ceil(visible.length / size)),
+        },
         totals: TOTALS,
       },
     })
@@ -313,6 +323,62 @@ test('changing and deleting a rule never touches a movement', async ({ page }) =
     { method: 'PATCH', path: '/api/category-rules/7', body: { categoryId: 4 } },
     { method: 'DELETE', path: '/api/category-rules/8', body: null },
   ])
+  expect(watch.consoleErrors).toEqual([])
+  expect(watch.pageErrors).toEqual([])
+})
+
+test('the dialog says how many movements a text would match, and writes nothing', async ({
+  page,
+}) => {
+  const watch = await prepare(page)
+  const reads: string[] = []
+  page.on('request', (request) => {
+    const url = new URL(request.url())
+    if (url.pathname === '/api/movements') reads.push(url.search)
+  })
+
+  await page.goto('/review')
+  await expect(page.getByTestId('movement-row')).toHaveCount(2)
+
+  // Opening the dialog is enough: the count arrives without a keystroke (R11).
+  await page.getByTestId('movement-create-rule').first().click()
+
+  await expect(page.getByTestId('rule-text').getByRole('textbox')).toHaveValue('iberdrola')
+  await expect(page.getByTestId('rule-preview-count')).toHaveText(
+    '1 pending movement without a category contains this text.',
+  )
+  await expect(page.getByTestId('rule-preview-sample')).toHaveCount(1)
+  await expect(page.getByTestId('rule-preview-sample')).toContainText(
+    'RECIB /IBERDROLA CLIENTES, S.A',
+  )
+  await expect(page.getByTestId('rule-preview-sample')).toContainText('-96,29')
+  await expect(page.getByTestId('rule-preview')).toContainText(
+    'Estimate: what a pass would look at today, not what it will change.',
+  )
+  expect(reads.at(-1)).toContain('uncategorized=true')
+  expect(reads.at(-1)).toContain('status=pending_review')
+  expect(reads.at(-1)).toContain('type=expense')
+  expect(reads.at(-1)).toContain('pageSize=5')
+
+  // Changing the text recounts on its own, and saving stays possible with no matches.
+  await page.getByTestId('rule-text').getByRole('textbox').fill('zzzznothing')
+  await expect(page.getByTestId('rule-preview-warning')).toHaveText(
+    'Nothing pending without a category contains this text right now.',
+  )
+  await expect(page.getByTestId('rule-preview-sample')).toHaveCount(0)
+  await page.getByTestId('rule-category').getByRole('combobox').selectOption('6')
+  await expect(page.getByTestId('rule-save')).toBeEnabled()
+
+  // Another text, another count, still with no keystroke of ours on any button.
+  await page.getByTestId('rule-text').getByRole('textbox').fill('compra')
+  await expect(page.getByTestId('rule-preview-count')).toHaveText(
+    '1 pending movement without a category contains this text.',
+  )
+  await expect(page.getByTestId('rule-save')).toBeEnabled()
+
+  // The whole feature is read only: not one request left with another method (C1).
+  expect(writes(watch)).toEqual([])
+  expect(reads.filter((search) => search.includes('q=')).length).toBeGreaterThanOrEqual(3)
   expect(watch.consoleErrors).toEqual([])
   expect(watch.pageErrors).toEqual([])
 })

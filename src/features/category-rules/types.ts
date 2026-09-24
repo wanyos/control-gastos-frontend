@@ -7,6 +7,7 @@
 // declared — and parsed — here.
 
 import type { CategoryKind } from '@/shared/categories'
+import type { Movement } from '@/shared/movements'
 
 /** The category as it travels embedded in a rule (no `children`, no `createdAt`). */
 export interface RuleCategory {
@@ -70,3 +71,15 @@ export type ApplyFlow =
   | { step: 'applying' }
   | { step: 'done'; result: ApplyResult }
   | { step: 'failed'; message: string }
+
+/**
+ * What the match preview of the dialog is showing right now (feature 18). `text` is
+ * kept next to the answer so a count can never be read as belonging to another text.
+ * `samples` are movements, the type of `@/shared/movements`: it is literally the same
+ * endpoint the review queue reads, so it is not declared again here.
+ */
+export type MatchPreview =
+  | { step: 'idle' }
+  | { step: 'loading'; text: string }
+  | { step: 'ready'; text: string; total: number; samples: Movement[] }
+  | { step: 'failed'; text: string; message: string }

@@ -50,8 +50,10 @@
       :categories="store.categories"
       :busy="store.isSaving"
       :message="store.saveMessage"
+      :preview="store.preview"
       @save="onSave"
       @cancel="closeEdit"
+      @preview="onPreview"
     />
 
     <DeleteRuleDialog
@@ -112,13 +114,31 @@ function onEdit(rule: CategoryRule): void {
 
 function closeEdit(): void {
   store.saveMessage = null
+  store.clearPreview()
   editing.value = null
+}
+
+/**
+ * The same count as when the rule is created from Review (R11): the dialog is the
+ * same one. Read only; an empty text means there is nothing to ask about (R2).
+ */
+function onPreview(text: string): void {
+  const rule = editing.value
+  if (!rule) return
+  if (text === '') {
+    store.clearPreview()
+    return
+  }
+  void store.previewMatches(text, rule.category.kind)
 }
 
 async function onSave(next: NewRule): Promise<void> {
   const rule = editing.value
   if (!rule) return
-  if (await store.update(rule.id, next)) editing.value = null
+  if (await store.update(rule.id, next)) {
+    store.clearPreview()
+    editing.value = null
+  }
 }
 
 async function onDelete(): Promise<void> {

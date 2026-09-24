@@ -106,8 +106,10 @@
       :categories="store.categories"
       :busy="rules.isSaving"
       :message="rules.saveMessage"
+      :preview="rules.preview"
       @save="onSaveRule"
       @cancel="closeRuleDialog"
+      @preview="onPreviewRule"
     />
 
     <ApplyRulesDialog
@@ -260,11 +262,30 @@ function onCreateRule(movement: Movement): void {
 
 function closeRuleDialog(): void {
   rules.saveMessage = null
+  rules.clearPreview()
   ruling.value = null
 }
 
+/**
+ * How many pending movements without a category the text would look at (R11). Read
+ * only: an empty text means the dialog has nothing to ask about, so the count is
+ * forgotten instead (R2).
+ */
+function onPreviewRule(text: string): void {
+  const movement = ruling.value
+  if (!movement) return
+  if (text === '') {
+    rules.clearPreview()
+    return
+  }
+  void rules.previewMatches(text, movement.type === 'income' ? 'income' : 'expense')
+}
+
 async function onSaveRule(rule: NewRule): Promise<void> {
-  if (await rules.create(rule)) ruling.value = null
+  if (await rules.create(rule)) {
+    rules.clearPreview()
+    ruling.value = null
+  }
 }
 
 /** The newest notice wins: a queue action puts the rule one away (design.md §7). */

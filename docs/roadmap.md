@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-09-12.
+> **Última revisión:** 2026-09-24.
 
 ## Este documento frente a los otros
 
@@ -49,7 +49,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E3 | **Shell de la aplicación** — sidebar, topbar, rutas base | ✅ | F8 |
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
-| E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17 |
+| E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
 | E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | ⬜ | *sin features* |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
@@ -163,8 +163,17 @@ existe (feature 37 del backend).
 > 1 conflict» y la API confirmó esos mismos cinco movimientos. Spec en
 > `specs/17-category-rules/`.
 >
-> Con la F17 la E6 queda cerrada. Emparejar traspasos ambiguos y resolver los
-> conflictos de reglas desde la web siguen fuera: son features posteriores.
+> **F18 cerrada el 2026-09-24:** al escribir el texto de una regla, el propio diálogo
+> dice a cuántos movimientos pendientes sin categoría afectaría y enseña hasta cinco,
+> avisando si casan demasiados o ninguno sin impedir guardar; además mejora el texto
+> que propone por defecto. Solo lectura: la única petición es `GET /api/movements`.
+> Comprobada con el humano delante sobre 14 conceptos reales, coincidiendo con la API
+> en todos. Spec en `specs/18-rule-match-preview/`. Queda una deuda anotada: la
+> propuesta arrastra papeleo («ANUL. /VivaGym») y sigue floja con nombres de canal
+> («TRANS INM/ N26», «TPV VIRTUAL»).
+>
+> Con la F17 la E6 quedó cerrada y la F18 la remata. Emparejar traspasos ambiguos y
+> resolver los conflictos de reglas desde la web siguen fuera: son features posteriores.
 
 ### E7 — El extracto ⬜
 
