@@ -197,7 +197,29 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
 - 2026-09-24 — F18 en `done`, entrada de historial escrita y puerta repetida por el
   leader (init.sh: «Entorno listo»).
 
+- 2026-09-26 — Spec de la F19 escrito (`specs/19-statement-by-month/`, 15 requisitos y
+  6 decisiones 🔴: mes con flechas + selector y mes vacío con frase, sumas del backend
+  con etiquetas neutras y nota fija no cerrable sobre lo infladas que están por los
+  depósitos, lista continua con cabecera por día, un mes en una petición de 200 con
+  `Load more` de red de seguridad, marca `Transfer` en los apuntes que no cuentan en las
+  sumas, y el mes vivo solo en la URL). Es la **primera rodaja de la E7**: sin filtros,
+  sin búsqueda y sin interruptor del ruido. Feature en `spec_ready`, a la espera de la
+  puerta humana.
+
+- 2026-09-26 — Investigado el ruido de las sumas (dos exploraciones de solo lectura,
+  `progress/exploration/ruido-traspasos-*.md`). Hallazgos: los totales del backend ya
+  excluyen los traspasos emparejados, pero los 29 apuntes de depósito de myinvestor
+  (285.000 €, 58 % de la base) no tienen arreglo desde el frontend, y 2 de las 40
+  parejas detectadas son falsas (multas casadas con Bizums de otra persona). Encargo
+  al backend escrito en `../docs/handoff-sumas-honestas.md`.
+- 2026-09-26 — Arranca la E7. F19 `statement-by-month` dada de alta con la intención
+  del humano (borrador `docs/intent-e7-draft.md`, aprobado) y su spec escrito.
+- 2026-09-26 — El humano aprueba el spec de la F19 tal cual, las 6 🔴 incluidas
+  (flechas + selector de mes, sumas con etiquetas neutras y nota permanente sobre el
+  ruido, lista con cabecera por día, un mes en una petición de 200, marca `Transfer`
+  y el mes solo en la URL). F19 pasa a `in_progress`.
+
 ## Próximo paso
 
-E6 rematada con la F18. Siguiente etapa: E7, el extracto. Pendiente de que el
-humano escriba qué quiere ver ahí.
+Implementar la F19 y pasarla por el reviewer. Después, filtros y búsqueda en el
+extracto. El interruptor del ruido espera a la parte 1 del handoff (backend).

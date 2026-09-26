@@ -735,6 +735,62 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 19,
+      "name": "statement-by-month",
+      "title": "El extracto: mi histórico mes a mes, con sumas que signifiquen algo",
+      "intent": {
+        "que_quiero": "Quiero una pantalla con todo mi histórico, no solo un trozo. Quiero moverme por meses: ver septiembre entero, con lo que entró, lo que salió y la diferencia, y saltar al mes anterior sin pelearme con fechas. Cada línea tiene que decirme fecha, concepto, cuenta, categoría e importe. Entro y veo el mes en curso, sin tocar nada.",
+        "por_que": "Porque es la pantalla que sustituye al Excel, y porque hoy no tengo ningún sitio donde mirar «qué pagué en marzo». La cola de revisión es una lista de trabajo: sirve para ir vaciándola, no para leer mi vida financiera por meses. Y en cuanto empiece a confirmar movimientos, lo confirmado desaparecerá de la cola y me quedaré sin verlo en ninguna parte.",
+        "como_se_que_esta_bien": [
+          "Entro y veo el mes en curso con sus movimientos y sus sumas, sin tocar nada.",
+          "Cambio al mes anterior de un clic y las sumas cambian con él.",
+          "Veo todo, tanto lo pendiente como lo que haya confirmado.",
+          "Las sumas son las que calcula el backend, no una cuenta inventada en la pantalla.",
+          "Con 1.607 movimientos y 33 meses, la pantalla no se arrastra.",
+          "Lo que veo cuadra con lo que dice mi banco para ese mes.",
+          "Si un mes no tiene movimientos, me lo dice en lugar de enseñarme una tabla vacía."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero editar importe, fecha ni descripción: el hecho bancario no se toca.",
+          "No quiero borrar movimientos.",
+          "No quiero gráficas aquí: esto es la tabla. Los dashboards son la etapa siguiente.",
+          "No quiero exportar a CSV todavía.",
+          "No quiero columna de saldo tras el movimiento: solo lo traen tres de mis cinco cuentas y es ruido que sobra.",
+          "No quiero que esta pantalla duplique la cola de revisión: revisar sigue siendo su sitio.",
+          "En esta feature no quiero todavía filtros, ni búsqueda, ni el interruptor del ruido: van después."
+        ],
+        "delego_en_agente": [
+          "Si el mes se elige con flechas, con un desplegable o con un rango libre de fechas.",
+          "Dónde van las sumas y si se quedan fijas al bajar por la lista.",
+          "Cómo se agrupan las líneas dentro del mes: por día o lista continua con separadores.",
+          "Cuántos movimientos se cargan de golpe y cómo se sigue bajando dentro de un mes.",
+          "Cómo se conserva el mes que estoy mirando al recargar o volver atrás."
+        ],
+        "respuestas_del_humano": [
+          "Al entrar, el mes en curso.",
+          "La pantalla es `Movements`, que ya tiene su entrada en el menú y hoy está vacía.",
+          "Sin columna de saldo: es ruido que sobra.",
+          "Corregir la categoría desde el extracto se deja para una feature posterior."
+        ]
+      },
+      "acceptance": [
+        "La ruta /movements deja de ser un placeholder y enseña el mes en curso: GET /api/movements con from y to del mes, sin filtro de status (se ve lo pendiente y lo confirmado)",
+        "Se puede saltar al mes anterior y al siguiente, y el mes elegido vive en la URL para que recargar y el botón de atrás funcionen",
+        "Las sumas del periodo son las de totals de la respuesta, nunca una suma calculada en el cliente",
+        "Cada línea muestra fecha, concepto, cuenta, categoría e importe, con el signo derivado de type; sin columna de saldo",
+        "Un mes sin movimientos se dice con un mensaje, distinguiéndolo de un fallo de carga",
+        "La paginación del contrato se respeta dentro del mes (pageSize máximo 200) y el usuario puede ver el mes completo aunque tenga más movimientos que una página",
+        "Solo lectura: ni un POST, PATCH ni DELETE en toda la pantalla",
+        "Las respuestas se validan en frontera (ADR-002) reutilizando los tipos y el parseo que ya existen en shared/movements.ts",
+        "No cambia nada de las features 15 a 18: la cola de revisión, las reglas y su previsualización siguen igual",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }
