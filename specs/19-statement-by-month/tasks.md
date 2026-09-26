@@ -6,7 +6,7 @@
 
 ## Preparación
 
-- [ ] T0 — Comprobaciones previas, antes de escribir código: (a) que el par
+- [x] T0 — Comprobaciones previas, antes de escribir código: (a) que el par
       `--warning on --surface-card` **ya** tiene línea `contrast:` en
       `src/assets/theme-dark.css` (lo introdujo la F18) y por tanto no hay que
       tocar el tema; (b) que `<input type="month">` renderiza legible con los
@@ -18,51 +18,51 @@
 
 ## Lógica pura (`months.ts`)
 
-- [ ] T1 — Crear `src/features/statement/months.ts` con `MonthKey`,
+- [x] T1 — Crear `src/features/statement/months.ts` con `MonthKey`,
       `STATEMENT_PAGE_SIZE`, `currentMonth`, `monthRange`, `shiftMonth`,
       `formatMonthLabel`, `isAtOrAfterCurrentMonth`, `monthFromRouteQuery`,
       `monthToRouteQuery`, `monthQuery`, `groupByDay`, `movementCountLine`,
       `emptyMonthLine` y `statementErrorMessage` (design §3, §5, §6).
       Cubre: R1, R2, R4, R8, R11, R12, R13.
-- [ ] T2 — `src/features/statement/types.ts`: re-export de los tipos de
+- [x] T2 — `src/features/statement/types.ts`: re-export de los tipos de
       `@/shared/movements` que usa la pantalla + `DayGroup`. Cubre: C2, C3.
-- [ ] T3 — `__tests__/months.spec.ts` con la batería de design §8 (febrero
+- [x] T3 — `__tests__/months.spec.ts` con la batería de design §8 (febrero
       bisiesto, cruce de año, URL basura, que `monthQuery` no lleva `status`, que
       `groupByDay` no reordena). Cubre: R1, R2, R4, R8.
 
 ## Estado (`store.ts`)
 
-- [ ] T4 — `useStatementStore` con `month`, `result`, `extra`, `isLoading`,
+- [x] T4 — `useStatementStore` con `month`, `result`, `extra`, `isLoading`,
       `isLoadingMore`, `error`, `days`, `hasMore`, `show`, `shift` y `loadMore`,
       con el contador `loadRun` que descarta las respuestas que ya no son la
       última. La acción nunca lanza. Cubre: R1, R2, R5, R13, R14, R15.
-- [ ] T5 — `__tests__/store.spec.ts`: rango pedido, cambio de mes, respuesta
+- [x] T5 — `__tests__/store.spec.ts`: rango pedido, cambio de mes, respuesta
       tardía descartada, fallo que deja `error`, `loadMore` que concatena sin
       mover `totals`, y `show` que vacía lo traído por `loadMore`.
       Cubre: R1, R5, R13, R15.
 
 ## Interfaz
 
-- [ ] T6 — `StatementRow.vue`: concepto, cuenta, categoría e importe con signo;
+- [x] T6 — `StatementRow.vue`: concepto, cuenta, categoría e importe con signo;
       **sin** `balanceAfter` y sin ningún control; marca `Transfer` con
       `transferId`. Cubre: R9, R10.
-- [ ] T7 — `MonthTotals.vue`: las tres cifras del `totals` inyectado con las
+- [x] T7 — `MonthTotals.vue`: las tres cifras del `totals` inyectado con las
       etiquetas neutras, el recuento y la **nota fija no cerrable** de design §6.
       Cubre: R5, R6, R7.
-- [ ] T8 — `StatementList.vue`: cabeceras de día sticky, filas, frase del mes
+- [x] T8 — `StatementList.vue`: cabeceras de día sticky, filas, frase del mes
       vacío sin tabla, y `Load more` con `Showing N of M`. Cubre: R8, R11, R13.
-- [ ] T9 — `MonthNav.vue`: flechas con `aria-label`, etiqueta del mes y selector
+- [x] T9 — `MonthNav.vue`: flechas con `aria-label`, etiqueta del mes y selector
       de mes; la flecha de siguiente deshabilitada en el mes en curso. Antes,
       ampliar `BaseInput.type` a `'text' | 'date' | 'month'`. Cubre: R2.
-- [ ] T10 — `StatementView.vue`: lee el mes de la URL al montar, `watch` sobre
+- [x] T10 — `StatementView.vue`: lee el mes de la URL al montar, `watch` sobre
       `route.query.month`, `router.push` al cambiar de mes, spinner, bloque de
       error con reintentar, y montaje de los tres componentes. Cubre: R1, R3, R4,
       R12, R14.
-- [ ] T11 — `src/router/index.ts`: `/movements` monta `StatementView`; reescribir
+- [x] T11 — `src/router/index.ts`: `/movements` monta `StatementView`; reescribir
       el comentario del placeholder. Y adaptar `router.spec.ts:58` (única
       excepción prevista a C4): «/movements monta el extracto y sigue sin ser
       ReviewView». Cubre: R1, C4.
-- [ ] T12 — Tests de componentes y de vista de design §8
+- [x] T12 — Tests de componentes y de vista de design §8
       (`MonthNav`, `MonthTotals`, `StatementList`, `StatementRow`,
       `StatementView`), incluido el que afirma que **ninguna petición usa un
       método distinto de `GET`** y el que afirma que no aparecen las palabras
@@ -71,25 +71,25 @@
 
 ## Cierre
 
-- [ ] T13 — `e2e/statement.spec.ts` nuevo con la red de seguridad
+- [x] T13 — `e2e/statement.spec.ts` nuevo con la red de seguridad
       (`page.route('**/api/**', route => route.abort())`) y las rutas concretas
       interceptadas: entrar por el menú, ver mes y cifras, flecha atrás, URL con
       `month=`, recarga, y aserción de solo `GET`. Los cinco specs anteriores,
       verdes sin tocarlos. Cubre: R2, R3, C1, C4.
-- [ ] T14 — Repaso de textos (todo en inglés, sin el `message` del backend),
+- [x] T14 — Repaso de textos (todo en inglés, sin el `message` del backend),
       colores (solo alias semánticos) y `theme-dark.spec.ts` en verde.
       Cubre: C5.
-- [ ] T15 — Grep de cierre: `src/features/statement/` no importa nada de
+- [x] T15 — Grep de cierre: `src/features/statement/` no importa nada de
       `features/review`, `features/import`, `features/category-rules` ni
       `features/net-worth`, y ninguna de ellas importa `statement`; en toda la
       carpeta no aparece `POST`, `PATCH` ni `DELETE`. Cubre: C1, C3.
-- [ ] T16 — `docs/architecture.md`: `features/statement/` en el árbol con la nota
+- [x] T16 — `docs/architecture.md`: `features/statement/` en el árbol con la nota
       de que es de solo lectura y no depende de ninguna otra feature. Cubre: C3.
-- [ ] T17 — Puerta: `pnpm type-check`, `pnpm lint`, `pnpm test:unit`,
+- [x] T17 — Puerta: `pnpm type-check`, `pnpm lint`, `pnpm test:unit`,
       `pnpm build`, e2e chromium y `./init.sh` en verde;
       `progress/implementation/statement-by-month.md` con la trazabilidad
       `R<n> → test`. Cubre: C6.
-- [ ] T18 — **Comprobación con el humano delante**, con el backend real en `:3000`
+- [x] T18 — **Comprobación con el humano delante**, con el backend real en `:3000`
       y `pnpm dev`. Es de **solo lectura**: ninguna petición de esta pantalla
       escribe, así que no hace falta foto previa ni vuelta atrás; lo único que se
       pide es que él esté mirando y diga si las cifras le cuadran.

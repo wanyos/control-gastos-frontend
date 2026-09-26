@@ -91,12 +91,19 @@ src/
       service.ts          # GET/POST /api/category-rules, PATCH y DELETE /:id, POST /apply
       rules.ts            # normalización del backend, texto propuesto, umbrales y textos de la
                           # previsualización y de los errores (puras; #17 y #18)
+    statement/            # feature #19: el extracto, mi histórico mes a mes (solo lectura)
+      components/         # MonthNav, MonthTotals, StatementList, StatementRow
+      views/              # StatementView (ruta /movements)
+      store.ts            # useStatementStore: mes, página del mes, carga, error y Load more
+      months.ts           # todo lo puro del mes: rango, salto, URL, agrupación por día y textos
+      types.ts            # re-export de los tipos de shared/movements + DayGroup
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
                           # BaseButton, BaseSpinner, BaseDialog (feature #13);
                           # BaseInput, BaseSelect, BaseCheckbox (feature #15;
-                          # BaseSelect.labelHidden y BaseCheckbox indeterminate/disabled/ariaLabel, #16)
+                          # BaseSelect.labelHidden y BaseCheckbox indeterminate/disabled/ariaLabel, #16;
+                          # BaseInput.type admite 'month', #19)
     config.ts             # AppConfig tipada + loadConfig() + singleton appConfig (feature #2)
     errors.ts             # AppError y subtipos (ApiError.apiCode desde la #13), toAppError, formatError…
     validation.ts         # createValidators(context): guardas de respuestas de la API (feature #13)
@@ -112,6 +119,16 @@ src/
 > El scaffold de ejemplo (`src/stores/counter.ts`) se retiró en el bootstrap.
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
+
+> **El extracto no depende de ninguna otra feature (feature #19).**
+> `features/statement/` es de **solo lectura**: su única petición es
+> `GET /api/movements` a través de `shared/movements.ts`, y no hay en toda la carpeta
+> un `POST`, `PATCH` ni `DELETE`. **No importa nada** de `review`, `category-rules`,
+> `import` ni `net-worth`, y ninguna de ellas la importa: lo común (movimientos,
+> dinero, bancos y los componentes `Base*`) sale de `shared/`. La fila del extracto
+> **copia la maquetación** de `MovementRow` de `review` sin sus controles que escriben,
+> en vez de reutilizarlo, para no abrir una dependencia entre features por cuatro
+> `v-if`. El único que la conoce es el router, que monta su vista en `/movements`.
 
 > **Dependencias nuevas de la feature #15.** `AppSidebar.vue` (shared) monta
 > `ReviewCountBadge` de `features/review`, igual que `AppShell` monta `ImportButton`.

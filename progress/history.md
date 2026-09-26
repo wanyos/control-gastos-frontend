@@ -739,3 +739,48 @@ Plantilla para cada entrada nueva:
 - **Verificación:** type-check, lint, 973 tests (67 ficheros), build, 17 e2e y
   `./init.sh` en verde.
 - **Cierre:** feature 18 → **done**. Siguiente etapa: E7 (el extracto).
+
+## 2026-09-26 — Feature 19: statement-by-month (y el encargo de las sumas honestas)
+
+- **Agente:** `leader` (Claude Code) orquestando dos exploraciones en paralelo,
+  `spec_author`, `implementer` y `reviewer`. Flujo SDD. Primera feature de la E7.
+- **Antes del spec, dos exploraciones de solo lectura** (`progress/exploration/`),
+  porque el humano pidió revisar el ruido que iba a ensuciar también los dashboards:
+  - `ruido-traspasos-backend.md`: los `totals` del backend **ya excluyen** los
+    movimientos con `transferId`, los `neutral` y los que tengan `productId`
+    (`computeTotals`, `movements.service.ts:456-471`), y `GET /api/overview` usa esa
+    misma función. Pero **`productId` no tiene escritor** y los únicos campos
+    escribibles de un movimiento son `categoryId` y `status`: no hay forma de marcar
+    «esto no cuenta» desde el frontend.
+  - `ruido-traspasos-datos.md`: los 29 apuntes de depósito de myinvestor valen
+    285.000 € de gasto y 275.652 € de ingreso, el 58 % de la base; 17 traspasos
+    propios quedaron sin emparejar y 16 no tienen espejo importado; y **2 de las 40
+    parejas detectadas son falsas** (dos multas casadas con Bizums de otra persona
+    que le devolvía su parte), hoy fuera de las sumas sin motivo.
+- **Encargo al backend:** `../docs/handoff-sumas-honestas.md`, con tres piezas
+  (marcar un movimiento como que no cuenta, poder corregir emparejamientos y no perder
+  los dudosos, y un filtro por traspaso) y una 🔴 para el humano: el vencimiento de un
+  depósito trae principal e intereses juntos, así que excluirlo entero pierde ~900 €
+  de ingreso real.
+- **Spec:** `specs/19-statement-by-month/`, 15 requisitos. El humano aprobó las 6
+  decisiones tal cual: flechas más selector de mes, sumas con etiquetas `Money in` /
+  `Money out` / `Difference` y **nota permanente, sin botón de cerrar**, sobre por qué
+  están infladas, lista continua con cabecera por día, un mes en una sola petición de
+  200 con `Load more` de reserva, marca `Transfer` en los emparejados (se ven pero no
+  suman) y el mes solo en la URL.
+- **Cambios:** `src/features/statement/` (vista, store, componentes y lógica pura de
+  meses), `/movements` deja de ser placeholder. Solo lectura: ni una escritura.
+- **Revisión:** APROBADO sin cambios. El reviewer repitió la puerta, verificó que la
+  nota no se puede cerrar ni esconder y que su texto coincide palabra por palabra con
+  el diseño, que las cifras se pintan tal cual llegan (hay test que falla si alguien
+  las sustituye por una suma local), y aceptó una a una las 7 desviaciones declaradas.
+- **T18, comprobación con el humano delante** (solo lectura): seis meses contra la API
+  —2026-09, 2026-07, 2026-03, 2025-12, 2024-01 y 2023-05, este vacío— con las tres
+  cifras y el número de movimientos **coincidiendo al céntimo** en los seis. Mes vacío
+  con su mensaje, `Next` apagado en el mes en curso, `2026-13` cayendo al mes actual y
+  11 marcas `Transfer` que son los 11 `transferId` de la API. Cero escrituras.
+- **Verificación:** type-check, lint, 1.060 tests (74 ficheros), build, 21 e2e y
+  `./init.sh` en verde.
+- **Cierre:** feature 19 → **done**. E7 a medias: quedan filtros y búsqueda, el
+  interruptor del ruido (depende de la parte 1 del handoff) y corregir categorías
+  desde el extracto.

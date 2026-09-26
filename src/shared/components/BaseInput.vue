@@ -21,7 +21,7 @@
 </template>
 
 <script setup lang="ts">
-// Port of design-system/components/forms/Input.jsx: text and date, label always
+// Port of design-system/components/forms/Input.jsx: text, date and month, label always
 // present and tied to the field by id (these are filter controls, none goes unlabeled).
 import { useId } from 'vue'
 
@@ -29,7 +29,7 @@ withDefaults(
   defineProps<{
     modelValue: string
     label: string
-    type?: 'text' | 'date'
+    type?: 'text' | 'date' | 'month'
     placeholder?: string
     /** Shown under the field; painted as an error when `invalid`. */
     hint?: string

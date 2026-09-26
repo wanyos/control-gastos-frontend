@@ -314,6 +314,8 @@ feature #8; ver *Iconos (Lucide)*.
 - **Feature #15:** `ListChecks` (entrada Review de la barra lateral), `Search` (campo
   de búsqueda) y `ChevronLeft` / `ChevronRight` (paginación de la cola). Nombres
   confirmados contra `@lucide/vue` antes de usarlos.
+- **Feature #19:** ninguno nuevo. El extracto reutiliza `ChevronLeft` / `ChevronRight`
+  (flechas de mes) y `TriangleAlert` (la nota fija sobre las sumas).
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,
@@ -476,9 +478,14 @@ concretas, cada spec registra `await page.route('**/api/**', route => route.abor
 y encima declara las llamadas que sí espera (las rutas posteriores ganan). Motivo:
 el proxy de `vite.config.ts` reenvía `/api` al backend real de `:3000`, así que una
 llamada no prevista **saldría de verdad** — con la red, se aborta y el test se pone
-rojo, que es lo que queremos ver. La cumplen los cinco specs de `e2e/`; el smoke
+rojo, que es lo que queremos ver. La cumplen los **seis** specs de `e2e/`; el smoke
 `app-boot.spec.ts` la incorporó en la higiene del 2026-09-23 (era el único que le
 faltaba) sin que ninguna llamada nueva apareciera: sus tres rutas ya lo cubrían.
+El sexto es `e2e/statement.spec.ts` (feature #19, el extracto mes a mes): también de
+**solo lectura**, con las tres rutas que la pantalla necesita (`/api/movements` del mes
+y del recuento de la barra lateral, `/api/ingestion/pending` y `/api/net-worth` de la
+home por la que se entra al menú) y una aserción de que **ninguna** petición de la
+sesión usa un método distinto de `GET`.
 
 Desde la feature #15 la **barra lateral** pide `GET /api/movements` (el recuento de
 pendientes, `pageSize=1`) también al montar y en todas las rutas, así que el smoke

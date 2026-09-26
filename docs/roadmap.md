@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-09-24.
+> **Última revisión:** 2026-09-26.
 
 ## Este documento frente a los otros
 
@@ -24,16 +24,19 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Tienes los cimientos y el aspecto, pero todavía no hay aplicación.** Las seis
-features cerradas son infraestructura: arranque, cliente HTTP, Tailwind, tokens
-del diseño y un smoke e2e. **Ninguna pantalla, ninguna llamada real a la API,
-cero features de producto.**
+**Ya hay aplicación, y ya escribe.** 19 features cerradas. Las pantallas que
+existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
+acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
+y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14) y
+el **extracto mes a mes** en `/movements` (F19). Etapas E0 a E6 cerradas; la E7 a
+medias.
 
-El backend va muy por delante (45 features cerradas) y **ya tiene todo lo que
-la primera pantalla necesita**: `GET /api/net-worth`, `GET /api/accounts`,
-`GET /api/overview`, `GET /api/investments/overview`, filtros y paginación de
-movimientos, confirmación de movimientos y reglas de categorización. La
-conexión backend→frontend se hace ahora.
+**Lo que bloquea lo siguiente no es el frontend.** Las sumas de cualquier vista de
+flujo están infladas por los apuntes de depósito (285.000 €, el 58 % de la base del
+humano) y no hay ningún campo que el frontend pueda escribir para excluirlos. Está
+encargado al backend en `../docs/handoff-sumas-honestas.md` (parte 1). **La E8, los
+dashboards, hereda el mismo problema:** conviene no empezarla antes de que esa parte
+esté cerrada.
 
 ---
 
@@ -50,7 +53,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
-| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | ⬜ | *sin features* |
+| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19 |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
@@ -175,7 +178,7 @@ existe (feature 37 del backend).
 > Con la F17 la E6 quedó cerrada y la F18 la remata. Emparejar traspasos ambiguos y
 > resolver los conflictos de reglas desde la web siguen fuera: son features posteriores.
 
-### E7 — El extracto ⬜
+### E7 — El extracto 🟡
 
 La tabla tipo extracto con búsqueda y filtros por fecha, cuenta, categoría y
 texto: la vista del histórico completo, confirmados incluidos.
@@ -189,6 +192,26 @@ texto: la vista del histórico completo, confirmados incluidos.
 > **Filtro por forma de pago: no existe ni va a existir.** `Movement.paymentMethod`
 > se quedó sin fuente y el histórico del Excel está descartado (decisión del humano,
 > 2026-09-22: no se va a hacer nada con él). Esta etapa no debe prometerlo.
+>
+> **F19 cerrada el 2026-09-26** — primera rodaja: `/movements` deja de ser placeholder y
+> es el extracto mes a mes. Entras y ves el mes en curso entero (pendiente y confirmado,
+> sin filtrar), con `Money in`, `Money out` y `Difference` tal como los calcula el
+> backend, la lista agrupada por días con marca `Transfer`, flechas y selector de mes, y
+> el mes vivo solo en la URL (`/movements?month=2026-03`). Solo lectura: una petición
+> `GET /api/movements` por mes. Comprobada con el humano delante contra el backend real:
+> seis meses (2026-09, 2026-07, 2026-03, 2025-12, 2024-01 y 2023-05, vacío) coincidiendo
+> al céntimo con la API, y las 11 marcas `Transfer` de diciembre de 2025 iguales a sus 11
+> `transferId`. Spec en `specs/19-statement-by-month/`.
+>
+> ⚠️ **Las sumas que hoy enseña la pantalla están infladas por los depósitos**: los 29
+> apuntes de depósito de myinvestor (285.000 €, el 58 % de la base) cuentan como entrada y
+> salida, y el frontend no puede quitarlos. La pantalla lo dice con una nota fija que no se
+> puede cerrar; el arreglo es la **parte 1 de `../docs/handoff-sumas-honestas.md`**, ya
+> encargada al backend.
+>
+> **Qué falta en esta etapa:** filtros y búsqueda sobre el extracto (fecha, cuenta,
+> categoría, tipo, estado y texto, que el backend ya sirve), el **interruptor del ruido**
+> —depende de esa parte 1 del handoff— y **corregir la categoría desde el extracto**.
 
 ### E8 — Los dashboards ⬜
 

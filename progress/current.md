@@ -3,16 +3,21 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 18 — rule-match-preview (implementación)
-- **Inicio:** 2026-09-24
+- **Feature en curso:** 19 — statement-by-month (implementación)
+- **Inicio:** 2026-09-26
 - **Agente:** leader (Claude Code) → implementer
 
 ## Plan
 
+El extracto mes a mes (F19): las tasks T0–T17 de
+`specs/19-statement-by-month/tasks.md` en orden. La **T18 no es del implementer**
+(comprobación con el humano delante, de solo lectura). Pantalla de **solo lectura**:
+ninguna petición suya escribe, y ninguna llamada real sale a `:3000` en los tests.
+
+## Plan anterior (F18, implementada)
+
 Previsualización de una regla antes de guardarla (F18): las tasks T0–T17 de
-`specs/18-rule-match-preview/tasks.md` en orden. La **T18 no es del implementer**
-(comprobación con el humano delante, de solo lectura). Feature de solo lectura:
-ninguna petición suya escribe.
+`specs/18-rule-match-preview/tasks.md`.
 
 ## Plan anterior (F17, cerrada)
 
@@ -219,7 +224,44 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   ruido, lista con cabecera por día, un mes en una petición de 200, marca `Transfer`
   y el mes solo en la URL). F19 pasa a `in_progress`.
 
+- 2026-09-26 — implementer arranca la F19. Plan: las tasks T0..T17 de
+  `specs/19-statement-by-month/tasks.md`. **T0 cerrado**: (a) el par
+  `--warning on --surface-card` y también `--warning on --warning-subtle` ya
+  tienen su línea `contrast:` en `theme-dark.css` (F18), así que el tema no se
+  toca; (c) `buildMovementsQuery` omite los valores `undefined`, así que una
+  query con solo `from`/`to`/`page`/`pageSize` **no** lleva `status`. El punto (b)
+  (que `<input type="month">` se lea bien con los tokens) se comprueba en el
+  navegador dentro del e2e de la T13, cuando la pantalla ya existe.
+
+- 2026-09-26 — **F19 implementada**: T0–T17 de `tasks.md` en `[x]` (la T18, la
+  comprobación con el humano delante contra el backend real, sigue pendiente y no
+  bloquea). `/movements` deja de ser placeholder: mes en curso al entrar, tres cifras
+  del backend con la nota fija no cerrable, lista con cabecera por día, marca
+  `Transfer`, `Load more`, mes vacío, error con reintentar y el mes solo en la URL.
+  Los 15 requisitos con test: **+7 ficheros y +87 tests unitarios (74 / 1060)** y 4
+  escenarios e2e nuevos (21 en chromium), con todas las llamadas interceptadas y la
+  red de seguridad; **ninguna petición distinta de `GET` en toda la pantalla**.
+  Puerta completa en verde (`type-check`, `lint`, `test:unit`, `build`, e2e chromium,
+  `./init.sh`). Sin dependencias nuevas y sin tocar `theme-dark.css`. Informe en
+  `progress/implementation/statement-by-month.md`. Falta el reviewer.
+
+- 2026-09-26 — reviewer aprueba la F19 sin cambios (1.060 tests, 21 e2e, puerta
+  repetida por él; las 7 desviaciones declaradas aceptadas una a una).
+- 2026-09-26 — **T18 hecha** con el humano delante, solo lectura. Seis meses
+  comprobados contra la API (2026-09, 2026-07, 2026-03, 2025-12, 2024-01 y 2023-05,
+  este último vacío): las tres cifras y el número de movimientos coinciden **al
+  céntimo** en los seis. La nota permanente sale en todos los meses, el mes vacío dice
+  «No movements in May 2023.», `Next` está apagado en el mes en curso, un mes inválido
+  (2026-13) cae en el mes en curso, y la marca `Transfer` sale en 11 filas de
+  diciembre de 2025, las mismas 11 que la API da con `transferId`. Cero escrituras y
+  cero errores de consola.
+
+- 2026-09-26 — F19 en `done`, E7 a 🟡 en el roadmap (con la sección «Dónde estás
+  ahora mismo» reescrita: llevaba seis features desfasada), historial escrito y
+  puerta repetida por el leader (init.sh: «Entorno listo»).
+
 ## Próximo paso
 
-Implementar la F19 y pasarla por el reviewer. Después, filtros y búsqueda en el
-extracto. El interruptor del ruido espera a la parte 1 del handoff (backend).
+Siguiente rodaja de la E7: filtros y búsqueda en el extracto. El interruptor del
+ruido espera la parte 1 de `../docs/handoff-sumas-honestas.md` (sesión del backend).
+La E8 no debería empezar antes de esa parte.

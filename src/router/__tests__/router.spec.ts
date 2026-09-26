@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import StatementView from '@/features/statement/views/StatementView.vue'
+import PlaceholderView from '@/shared/components/PlaceholderView.vue'
+
 import { HOME_ROUTE_NAME, REVIEW_ROUTE_NAME, navEntries, routes } from '../index'
 
 /** The Spanish labels the design system's Shell.jsx ships; none may survive the port. */
@@ -55,13 +58,16 @@ describe('router', () => {
     expect(routes.some((route) => route.name === 'import')).toBe(false)
   })
 
-  it('keeps /movements as a placeholder: the statement is the E7, not this queue (C1)', () => {
+  // Feature 19 retired the placeholder: /movements is the statement, and it is still
+  // not the review queue (the two screens never became one).
+  it('mounts the statement on /movements, and it is not the review queue', () => {
     const review = newRouter().resolve('/review').matched[0]?.components?.default
     const movements = newRouter().resolve('/movements').matched[0]?.components?.default
 
     expect(review).toBeTruthy()
-    expect(movements).toBeTruthy()
+    expect(movements).toBe(StatementView)
     expect(movements).not.toBe(review)
+    expect(movements).not.toBe(PlaceholderView)
   })
 
   it('does not resolve an unknown path to any component', () => {

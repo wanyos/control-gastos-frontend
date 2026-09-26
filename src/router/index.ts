@@ -13,6 +13,7 @@ import type { LucideIcon } from '@lucide/vue'
 import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
 import RulesView from '@/features/category-rules/views/RulesView.vue'
 import ReviewView from '@/features/review/views/ReviewView.vue'
+import StatementView from '@/features/statement/views/StatementView.vue'
 import PlaceholderView from '@/shared/components/PlaceholderView.vue'
 
 declare module 'vue-router' {
@@ -36,8 +37,8 @@ export const REVIEW_ROUTE_NAME = 'review'
  *
  * Array order is sidebar order. The routes without a view yet render the shared
  * placeholder: the shell is navigable end to end before the views exist. `/movements`
- * stays a placeholder on purpose — the full statement is the E7, a different screen
- * from this queue of pending movements.
+ * is the statement since feature 19 — the whole history month by month, a different
+ * screen from `/review`, which is the queue of what is still pending.
  */
 export const routes: RouteRecordRaw[] = [
   { path: '/', redirect: { name: HOME_ROUTE_NAME } },
@@ -68,7 +69,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/movements',
     name: 'movements',
-    component: PlaceholderView,
+    component: StatementView,
     meta: { label: 'Movements', icon: ArrowLeftRight },
   },
   {

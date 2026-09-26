@@ -1,0 +1,27 @@
+// Frontend types of the statement (feature 19). The screen reads `GET /api/movements`
+// and nothing else, so the movement and everything that describes a read of the list
+// come from `@/shared/movements` — the same types and the same boundary checks the
+// review queue uses (ADR-002, C2). Nothing is imported from another feature (C3).
+
+export type {
+  DateOnly,
+  DecimalString,
+  Movement,
+  MovementAccount,
+  MovementCategory,
+  MovementPage,
+  MovementQuery,
+  Pagination,
+  Totals,
+} from '@/shared/movements'
+
+import type { DateOnly, Movement } from '@/shared/movements'
+
+/** One day of the statement: the movements the API sent under the same `bookingDate`. */
+export interface DayGroup {
+  /** `2026-09-11`, exactly as it came in `bookingDate`. */
+  date: DateOnly
+  /** Already formatted with `formatDate` of shared/money. */
+  label: string
+  movements: Movement[]
+}
