@@ -79,7 +79,8 @@ src/
       store.ts            # useReviewStore: filtros, página, datos, categorías y recuento (#15);
                           # selección, acciones y deshacer (#16)
       service.ts          # GET /api/movements, GET /api/categories (#15);
-                          # PATCH /api/movements y PATCH /api/movements/:id (#16)
+                          # PATCH /api/movements (#16). El PATCH de UN movimiento bajó a
+                          # shared/movements.ts en la #21 y se re-exporta desde aquí
       filters.ts          # filtros ↔ querystring de la API y de la URL, guardas de `q` (puras)
       actions.ts          # elegibilidad, plan de deshacer y textos de acción, puras (#16)
     category-rules/       # feature #17: reglas de categorización («lo que contenga X va a Y»)
@@ -91,11 +92,18 @@ src/
       service.ts          # GET/POST /api/category-rules, PATCH y DELETE /:id, POST /apply
       rules.ts            # normalización del backend, texto propuesto, umbrales y textos de la
                           # previsualización y de los errores (puras; #17 y #18)
-    statement/            # feature #19: el extracto, mi histórico mes a mes (solo lectura)
-      components/         # MonthNav, MonthTotals, StatementList, StatementRow
+    statement/            # feature #19: el extracto, mi histórico mes a mes; desde la #21
+                          # también corrige la categoría de una línea (su única escritura)
+      components/         # MonthNav, MonthTotals, StatementList, StatementRow,
+                          # StatementFilterBar, StatementCategorySelect (#20);
+                          # RowCategoryEditor, StatementActionNotice (#21)
       views/              # StatementView (ruta /movements)
-      store.ts            # useStatementStore: mes, página del mes, carga, error y Load more
+      store.ts            # useStatementStore: mes, página del mes, carga, error, Load more,
+                          # filtros (#20), editor abierto, escritura y deshacer (#21)
       months.ts           # todo lo puro del mes: rango, salto, URL, agrupación por día y textos
+      filters.ts          # los cuatro filtros ↔ querystring de la API y de la URL (#20)
+      actions.ts          # filtro de categoría, textos del aviso y de los errores, puras (#21)
+      service.ts          # setMovementCategory: PATCH /api/movements/:id con solo `categoryId` (#21)
       types.ts            # re-export de los tipos de shared/movements + DayGroup
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
@@ -110,8 +118,10 @@ src/
     banks.ts              # bankLabel(slug): nombre legible de banco, lista abierta (feature #13)
     money.ts              # importes exactos y formato es-ES / en-GB (feature #9)
     categories.ts         # árbol de categorías: tipos, parseo y GET /api/categories (feature #17)
-    movements.ts          # lectura de movimientos: tipos, parseo, GET /api/movements y la
-                          # espera tras la última tecla (feature #18)
+    movements.ts          # movimientos: tipos, parseo, GET /api/movements y la espera tras la
+                          # última tecla (#18); y la escritura de uno solo —changesBody,
+                          # patch, parseUpdatedMovement, updateMovement, MovementChanges y
+                          # needsReload— desde la #21 (el PATCH en bloque sigue en review)
   services/
     http.ts               # cliente HTTP base: createHttp(config) + http (feature #2)
 ```
@@ -120,15 +130,27 @@ src/
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
 
-> **El extracto no depende de ninguna otra feature (feature #19).**
-> `features/statement/` es de **solo lectura**: su única petición es
-> `GET /api/movements` a través de `shared/movements.ts`, y no hay en toda la carpeta
-> un `POST`, `PATCH` ni `DELETE`. **No importa nada** de `review`, `category-rules`,
-> `import` ni `net-worth`, y ninguna de ellas la importa: lo común (movimientos,
-> dinero, bancos y los componentes `Base*`) sale de `shared/`. La fila del extracto
-> **copia la maquetación** de `MovementRow` de `review` sin sus controles que escriben,
-> en vez de reutilizarlo, para no abrir una dependencia entre features por cuatro
-> `v-if`. El único que la conoce es el router, que monta su vista en `/movements`.
+> **El extracto escribe una sola cosa desde la feature #21.** Nació de solo lectura
+> (feature #19) y hoy `features/statement/` manda **un** `PATCH /api/movements/:id`, y
+> nada más: ni `POST`, ni `DELETE`, ni `PATCH` en bloque. Ese cuerpo se construye en un
+> único sitio, `statement/service.ts::setMovementCategory`, que solo sabe escribir
+> `categoryId`: el store del extracto **no importa `updateMovement`**, así que el
+> `status` no puede viajar ni por descuido (importa más aquí que en la cola, porque el
+> extracto enseña también los confirmados). La mitad de escritura de un movimiento
+> (`changesBody`, `patch`, `parseUpdatedMovement`, `updateMovement`, `MovementChanges` y
+> `needsReload`) vive en `shared/movements.ts` desde esta feature, junto a la de
+> lectura; el `PATCH` en bloque se queda en `review`, la única pantalla que actúa sobre
+> varios a la vez.
+>
+> **Y desde la feature #21 tiene una dependencia, en el mismo sentido que ya existía:**
+> `statement/views/StatementView.vue` monta `RuleDialog` de `category-rules`, igual que
+> lo hace `ReviewView`. Es `statement` → `category-rules`; `category-rules` sigue sin
+> conocer a nadie, así que no aparece ningún ciclo. De `review` **no importa nada** (ni
+> `review` de él): lo que las dos pantallas comparten sale de `shared/`, y lo que es
+> vocabulario de una pantalla (la fila, el selector de la fila, el aviso de deshacer)
+> está **copiado** a propósito —`StatementRow`, `RowCategoryEditor`,
+> `StatementActionNotice`— para no atar dos pantallas por cuatro `v-if`. El único que
+> monta su vista sigue siendo el router, en `/movements`.
 
 > **Dependencias nuevas de la feature #15.** `AppSidebar.vue` (shared) monta
 > `ReviewCountBadge` de `features/review`, igual que `AppShell` monta `ImportButton`.

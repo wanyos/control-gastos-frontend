@@ -1,10 +1,11 @@
-// Review queue data access (features 15 and 16): the two PATCHes that write the only
-// editable fields of a movement — `categoryId` and `status`; every body is built field
-// by field, so nothing else can ever travel.
+// Review queue data access (features 15 and 16): the PATCH that writes the same change
+// on many movements at once; every body is built field by field, so nothing else can
+// ever travel.
 // Reading the list moved to `@/shared/movements` in feature 18 (the rule preview reads
-// the same endpoint and `category-rules` may not import from `review`); it is
-// re-exported below so every caller written for features 15 and 16 keeps importing it
-// from here. Per ADR-002 the raw responses are mapped to the frontend types with the
+// the same endpoint and `category-rules` may not import from `review`), and the
+// single-movement PATCH moved there in feature 21 (the statement writes it too); both
+// are re-exported below so every caller written for features 15 and 16 keeps importing
+// them from here. Per ADR-002 the raw responses are mapped to the frontend types with the
 // shared boundary checks, so a contract drift surfaces as a ValidationError naming the
 // failing field.
 
@@ -14,15 +15,19 @@ import { CATEGORIES_PATH, getCategories, parseCategories } from '@/shared/catego
 import {
   MOVEMENTS_PATH,
   buildMovementsQuery,
+  changesBody,
   getMovements,
   parseMovement,
   parseMovementPage,
+  parseUpdatedMovement,
+  patch,
+  updateMovement,
 } from '@/shared/movements'
 import { createValidators } from '@/shared/validation'
 
 import { MAX_IDS } from './actions'
 
-import type { BulkResult, BulkUpdate, Movement, MovementChanges } from './types'
+import type { BulkResult, BulkUpdate } from './types'
 
 export { MAX_IDS }
 
@@ -31,14 +36,10 @@ export { MAX_IDS }
 // caller written for features 15 and 16 keeps importing them from here.
 export { CATEGORIES_PATH, getCategories, parseCategories }
 export { MOVEMENTS_PATH, buildMovementsQuery, getMovements, parseMovement, parseMovementPage }
+// The single-movement PATCH moved to `@/shared/movements` in feature 21.
+export { parseUpdatedMovement, updateMovement }
 
-const updateChecks = createValidators(`PATCH ${MOVEMENTS_PATH}/:id`)
 const bulkChecks = createValidators(`PATCH ${MOVEMENTS_PATH}`)
-
-/** Maps the movement `PATCH /api/movements/:id` answers with, or throws ValidationError. */
-export function parseUpdatedMovement(raw: unknown): Movement {
-  return parseMovement(updateChecks, raw, 'response')
-}
 
 /** Maps `PATCH /api/movements`, or throws ValidationError. */
 export function parseBulkResult(raw: unknown): BulkResult {
@@ -50,38 +51,6 @@ export function parseBulkResult(raw: unknown): BulkResult {
       .asArray(body.movements, 'movements')
       .map((item, i) => parseMovement(v, item, `movements[${i}]`)),
   }
-}
-
-/**
- * The body of both PATCHes, built field by field: a spread of an object coming from
- * the view could carry a property the contract answers 400 to (R9). `categoryId`
- * travels when the key is present, so `null` — remove the category — does travel.
- */
-function changesBody(changes: MovementChanges): MovementChanges {
-  const body: MovementChanges = {}
-  if ('categoryId' in changes) body.categoryId = changes.categoryId ?? null
-  if (changes.status !== undefined) body.status = changes.status
-  return body
-}
-
-/** The PATCH wire format: JSON in, JSON out. */
-const patch = (body: unknown): RequestInit => ({
-  method: 'PATCH',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(body),
-})
-
-/** Writes the two editable fields of one movement. */
-export async function updateMovement(
-  id: number,
-  changes: MovementChanges,
-  client: HttpClient = http,
-): Promise<Movement> {
-  const body = changesBody(changes)
-  if (Object.keys(body).length === 0) {
-    updateChecks.reject('body', 'a change of categoryId or status')
-  }
-  return parseUpdatedMovement(await client<unknown>(`${MOVEMENTS_PATH}/${id}`, patch(body)))
 }
 
 /**

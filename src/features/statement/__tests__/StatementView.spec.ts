@@ -10,11 +10,16 @@ import { currentMonth, formatMonthLabel, monthRange, shiftMonth } from '../month
 import {
   BIG_MONTH_PAGE_ONE,
   BIG_MONTH_PAGE_TWO,
+  CREATED_RULE,
   EMPTY_MONTH_PAGE,
+  EXPENSE,
+  GROCERIES,
   MONTH_PAGE,
+  NEUTRAL,
   OTHER_MONTH_PAGE,
   TOTALS,
   VALIDATION_ERROR_BODY,
+  changed,
   deferred,
   json,
   mockApi,
@@ -38,9 +43,13 @@ async function mountView(url: string, answers: Answers) {
   return { api, router, wrapper }
 }
 
+/** What a Teleport put in the body (the rule dialog of the F17). */
+const at = (selector: string) => document.querySelector<HTMLElement>(selector)
+
 describe('StatementView', () => {
   afterEach(() => {
     vi.restoreAllMocks()
+    document.body.innerHTML = ''
   })
 
   it('opens on the current month with one request, and shows it (R1)', async () => {
@@ -371,6 +380,216 @@ describe('StatementView', () => {
       ).toBeUndefined()
       expect(wrapper.findAll('[data-test="statement-row"]')).toHaveLength(5)
       expect(wrapper.find('[data-test="statement-error"]').exists()).toBe(false)
+    })
+  })
+  // --- Correcting a category from the screen (feature 21) ---
+
+  describe('correcting a category from the screen (feature 21)', () => {
+    const GROCERIES_EXPENSE = changed(EXPENSE, { categoryId: 2, category: GROCERIES })
+
+    const openEditor = async (wrapper: Awaited<ReturnType<typeof mountView>>['wrapper']) => {
+      await wrapper.findAll('[data-test="statement-row-category-button"]')[0]?.trigger('click')
+      await flushPromises()
+    }
+
+    it('shows no selector until the badge is pressed, and then only one (R2, R3)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+      })
+
+      expect(wrapper.findAll('[data-test="row-category-editor"]')).toHaveLength(0)
+      // Four of the five rows are categorizable; the neutral one keeps a plain badge (R5).
+      expect(wrapper.findAll('[data-test="statement-row-category-button"]')).toHaveLength(4)
+
+      await openEditor(wrapper)
+
+      expect(wrapper.findAll('[data-test="row-category-editor"]')).toHaveLength(1)
+      expect(wrapper.findAll('select')).toHaveLength(3) // the two filters plus this one
+      expect(NEUTRAL.type).toBe('neutral')
+    })
+
+    it('writes the chosen category and paints the answer, with no month reload (R1, R7, R9)', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(GROCERIES_EXPENSE),
+      })
+      const readsBefore = api.queries().length
+
+      await openEditor(wrapper)
+      await wrapper.get('[data-test="row-category-editor"] select').setValue('2')
+      await flushPromises()
+
+      expect(api.patches()).toHaveLength(1)
+      expect(api.patches()[0]?.rawBody).toBe('{"categoryId":2}')
+      expect(api.queries()).toHaveLength(readsBefore)
+      expect(wrapper.findAll('[data-test="statement-row-category"]')[0]?.text()).toBe('Groceries')
+      // The editor closed itself and the line is a badge again.
+      expect(wrapper.findAll('[data-test="row-category-editor"]')).toHaveLength(0)
+      expect(wrapper.get('[data-test="statement-action-summary"]').text()).toContain(
+        'Categorized as Groceries',
+      )
+      expect(wrapper.find('[data-test="statement-totals-note"]').exists()).toBe(true)
+      expect(wrapper.get('[data-test="statement-totals-in"]').text()).toBe(
+        formatMoney(TOTALS.income),
+      )
+    })
+
+    it('mounts the notice between the figures and the list (R11)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(GROCERIES_EXPENSE),
+      })
+
+      await openEditor(wrapper)
+      await wrapper.get('[data-test="row-category-editor"] select').setValue('2')
+      await flushPromises()
+
+      const html = wrapper.html()
+      expect(html.indexOf('statement-totals')).toBeLessThan(
+        html.indexOf('statement-action-summary'),
+      )
+      expect(html.indexOf('statement-action-summary')).toBeLessThan(html.indexOf('statement-row'))
+    })
+
+    it('undoes the last change from the notice (R12)', async () => {
+      let patches = 0
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: () => {
+          patches += 1
+          return json(patches === 1 ? GROCERIES_EXPENSE : EXPENSE)()
+        },
+      })
+
+      await openEditor(wrapper)
+      await wrapper.get('[data-test="row-category-editor"] select').setValue('2')
+      await flushPromises()
+      await wrapper.get('[data-test="statement-action-undo"]').trigger('click')
+      await flushPromises()
+
+      expect(api.patches().map((call) => call.rawBody)).toEqual([
+        '{"categoryId":2}',
+        '{"categoryId":1}',
+      ])
+      expect(wrapper.findAll('[data-test="statement-row-category"]')[0]?.text()).toBe('Food')
+      expect(wrapper.get('[data-test="statement-action-summary"]').text()).toContain(
+        'Change undone',
+      )
+      expect(wrapper.find('[data-test="statement-action-undo"]').exists()).toBe(false)
+    })
+
+    it('a rejected change says it in English and leaves the line alone (R14)', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(VALIDATION_ERROR_BODY, 400),
+      })
+
+      await openEditor(wrapper)
+      await wrapper.get('[data-test="row-category-editor"] select').setValue('2')
+      await flushPromises()
+
+      expect(wrapper.get('[data-test="statement-action-error"]').text()).toBe(
+        "Nothing changed. That movement doesn't accept that category.",
+      )
+      expect(wrapper.text()).not.toContain('parámetro')
+      // The line kept its own category: the editor is still open on the old value.
+      expect(
+        (wrapper.get('[data-test="row-category-editor"] select').element as HTMLSelectElement)
+          .value,
+      ).toBe('1')
+      expect(api.queries()).toHaveLength(1)
+      expect(wrapper.find('[data-test="statement-action-summary"]').exists()).toBe(false)
+    })
+
+    it('opens the rule dialog of the F17 from the editor, with its preview (R16)', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+      })
+
+      await openEditor(wrapper)
+      await wrapper.get('[data-test="row-create-rule"]').trigger('click')
+      await flushPromises()
+
+      // The dialog is a Teleport to the body: it is read from the document (F17).
+      const dialog = at('[data-test="rule-dialog"]')
+      expect(dialog).not.toBeNull()
+      expect(dialog?.textContent).toContain('CAFETERÍA CENTRAL')
+      expect((at('[data-test="rule-text"] input') as HTMLInputElement).value).toBe('cafeteria')
+      // The count of matching movements is asked for right away, and only reads (F18).
+      expect(api.queries().at(-1)).toContain('q=cafeteria')
+      expect(api.patches()).toHaveLength(0)
+      // Only expense categories: the movement is an expense (R16).
+      const options = [
+        ...(at('[data-test="rule-category"]')?.querySelectorAll('option') ?? []),
+      ].map((option) => option.textContent)
+      expect(options).not.toContain('Salary')
+      expect(options).toContain('Groceries')
+    })
+
+    it('creating the rule writes nothing on the movement it was born from (R17)', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        createRule: json(CREATED_RULE, 201),
+      })
+
+      await openEditor(wrapper)
+      await wrapper.get('[data-test="row-create-rule"]').trigger('click')
+      await flushPromises()
+      const select = at('[data-test="rule-category"] select') as HTMLSelectElement
+      select.value = '2'
+      select.dispatchEvent(new Event('change'))
+      await flushPromises()
+      at('[data-test="rule-save"]')?.click()
+      await flushPromises()
+
+      const writes = api.calls.filter((call) => call.method !== 'GET')
+      expect(writes.map((call) => `${call.method} ${call.path}`)).toEqual([
+        'POST /api/category-rules',
+      ])
+      expect(api.patches()).toHaveLength(0)
+      // And nothing applies the rule by itself: that is the F17's own gesture.
+      expect(api.calls.some((call) => call.path.endsWith('/apply'))).toBe(false)
+      expect(at('[data-test="rule-dialog"]')).toBeNull()
+      // The line is untouched: its editor still shows the category it already had.
+      expect(
+        (wrapper.get('[data-test="row-category-editor"] select').element as HTMLSelectElement)
+          .value,
+      ).toBe('1')
+    })
+
+    it('the only write of the whole screen is that PATCH (C1)', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(GROCERIES_EXPENSE),
+      })
+
+      await openEditor(wrapper)
+      await wrapper.get('[data-test="row-category-editor"] select').setValue('2')
+      await flushPromises()
+      await wrapper.get('[data-test="statement-prev"]').trigger('click')
+      await flushPromises()
+
+      expect([...new Set(api.calls.map((call) => call.method))].sort()).toEqual(['GET', 'PATCH'])
+      expect(api.patches().map((call) => call.path)).toEqual(['/api/movements/10'])
+      expect(api.patches().every((call) => call.rawBody === '{"categoryId":2}')).toBe(true)
+    })
+
+    it('changing the month forgets the editor and the undo (R13)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(GROCERIES_EXPENSE),
+      })
+
+      await openEditor(wrapper)
+      await wrapper.get('[data-test="row-category-editor"] select').setValue('2')
+      await flushPromises()
+      expect(wrapper.find('[data-test="statement-action-summary"]').exists()).toBe(true)
+
+      await wrapper.get('[data-test="statement-prev"]').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('[data-test="statement-action-summary"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="row-category-editor"]')).toHaveLength(0)
     })
   })
 })

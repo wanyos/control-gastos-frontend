@@ -24,19 +24,22 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Ya hay aplicación, y ya escribe.** 20 features cerradas. Las pantallas que
+**Ya hay aplicación, y ya escribe.** 21 features cerradas. Las pantallas que
 existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
 acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
 y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14) y
-el **extracto mes a mes** en `/movements` con sus filtros y su búsqueda (F19, F20).
+el **extracto mes a mes** en `/movements` con sus filtros, su búsqueda y la corrección de
+categoría desde la propia línea (F19, F20, F21).
 Etapas E0 a E6 cerradas; la E7 a medias.
 
-**Lo que bloquea lo siguiente no es el frontend.** Las sumas de cualquier vista de
-flujo están infladas por los apuntes de depósito (285.000 €, el 58 % de la base del
-humano) y no hay ningún campo que el frontend pueda escribir para excluirlos. Está
-encargado al backend en `../docs/handoff-sumas-honestas.md` (parte 1). **La E8, los
-dashboards, hereda el mismo problema:** conviene no empezarla antes de que esa parte
-esté cerrada.
+**El ruido de las sumas ya se puede atacar.** Las sumas de cualquier vista de flujo
+siguen infladas por los apuntes de depósito (285.000 €, el 58 % de la base del humano),
+pero desde la **feature 49 del backend** (comprobada el 2026-09-27) las respuestas traen
+`excludedFromTotals`, el contrato documenta los filtros `transfer=only|none` y
+`excluded=only|none`, y esa marca **se puede escribir**. Es decir, la parte 1 de
+`../docs/handoff-sumas-honestas.md` está servida: el interruptor del ruido ya no está
+bloqueado, solo está sin hacer. **La E8, los dashboards, hereda las mismas cifras:**
+conviene montar el interruptor antes de empezarla.
 
 ---
 
@@ -53,7 +56,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
-| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19, F20 |
+| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19, F20, F21 |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
@@ -205,9 +208,11 @@ texto: la vista del histórico completo, confirmados incluidos.
 >
 > ⚠️ **Las sumas que hoy enseña la pantalla están infladas por los depósitos**: los 29
 > apuntes de depósito de myinvestor (285.000 €, el 58 % de la base) cuentan como entrada y
-> salida, y el frontend no puede quitarlos. La pantalla lo dice con una nota fija que no se
-> puede cerrar; el arreglo es la **parte 1 de `../docs/handoff-sumas-honestas.md`**, ya
-> encargada al backend.
+> salida. La pantalla lo dice con una nota fija que no se puede cerrar. **Ya no es un
+> bloqueo:** la parte 1 de `../docs/handoff-sumas-honestas.md` la sirvió la feature 49 del
+> backend, comprobada el 2026-09-27 mientras se probaba la F21 — las respuestas traen
+> `excludedFromTotals`, hay filtros `transfer=only|none` y `excluded=only|none`, y la marca
+> se puede escribir. Falta la feature del frontend que lo use.
 >
 > **F20 cerrada el 2026-09-27** — segunda rodaja: dentro del mes hay una barra con cuatro
 > controles (buscador por un trozo del concepto, cuenta, categoría y una casilla
@@ -225,11 +230,29 @@ texto: la vista del histórico completo, confirmados incluidos.
 >
 > 💡 **Lo que enseñó esa prueba:** julio de 2026 filtrado por la cuenta **n26** son 221,45 €
 > de entrada y 1.038,07 € de salida, cuando el mes entero lee 57.948 € y 59.096 €; por
-> **myinvestor** salen 55.169 € y 55.357 €, que es el depósito rodando. Hasta que llegue la
+> **myinvestor** salen 55.169 € y 55.357 €, que es el depósito rodando. Hasta que el frontend use la
 > marca del backend, **filtrar por cuenta es la única forma de ver el gasto real**.
 >
-> **Qué falta en esta etapa:** el **interruptor del ruido** —depende de la parte 1 de
-> `../docs/handoff-sumas-honestas.md`— y **corregir la categoría desde el extracto**.
+> **F21 cerrada el 2026-09-27** — tercera rodaja, y la primera vez que el extracto
+> **escribe**: la etiqueta de categoría de cada línea es un botón que se convierte, en su
+> mismo sitio, en un desplegable con las categorías del tipo de ese movimiento (más
+> `No category`); eliges y se guarda solo, esté pendiente o confirmado, con un único
+> `PATCH /api/movements/:id` cuyo cuerpo es **solo `categoryId`** — el estado no puede viajar.
+> Del mismo editor cuelga `Create rule`, el diálogo de la F17 con la previsualización de la
+> F18. Bajo las cifras hay una línea fija que dice qué hizo la última corrección, con
+> `Undo` sin cuenta atrás. Si hay filtro de categoría puesto, la línea corregida desaparece
+> al momento y las cifras se vuelven a pedir al backend; sin filtro no se pide nada porque no
+> cambian. La mitad de escritura (`updateMovement`, `needsReload`) bajó a
+> `src/shared/movements.ts` y la cola la re-exporta, sin cambiar de comportamiento.
+> Comprobada contra el backend real con el humano delante: movimiento 32428, cambio a
+> Vivienda y deshacer, dos `PATCH` con solo `categoryId`, el antes y el después idénticos
+> salvo `updatedAt` y cero errores. Spec en `specs/21-statement-fix-category/`.
+>
+> **Qué falta en esta etapa:** solo el **interruptor del ruido** (esconder o marcar los
+> traspasos y los depósitos para que las cifras sean honestas). Desde el 2026-09-27 **es
+> posible**: la feature 49 del backend ya entrega `excludedFromTotals`, los filtros
+> `transfer=only|none` y `excluded=only|none` y la escritura de esa marca. Corregir la
+> categoría desde el extracto ya está hecho (F21).
 
 ### E8 — Los dashboards ⬜
 

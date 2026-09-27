@@ -254,6 +254,9 @@ export interface ApiCall {
   method: string
   path: string
   query: URLSearchParams
+  /** The body exactly as it travelled, so a test can read it letter by letter (R1). */
+  rawBody?: string
+  contentType?: string
 }
 
 /**
@@ -265,12 +268,31 @@ export function mockApi(answers: {
   /** Feature 20: the two lists that fill the filter selects. Default to the fixtures. */
   accounts?: Answer
   categories?: Answer
+  /** Feature 21: `PATCH /api/movements/:id`, the only write of this screen. */
+  patch?: Answer | ((id: number, body: unknown) => Promise<Response>)
+  /** Feature 21: `POST /api/category-rules`, the rule born from a line (R16). */
+  createRule?: Answer
 }) {
   const calls: ApiCall[] = []
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
     const url = new URL(String(input))
     const method = init?.method ?? 'GET'
-    calls.push({ method, path: url.pathname, query: url.searchParams })
+    const rawBody = typeof init?.body === 'string' ? init.body : undefined
+    const headers = new Headers(init?.headers)
+    calls.push({
+      method,
+      path: url.pathname,
+      query: url.searchParams,
+      rawBody,
+      contentType: headers.get('Content-Type') ?? undefined,
+    })
+    if (method === 'PATCH' && PATCH_ONE.test(url.pathname) && answers.patch) {
+      const id = Number(url.pathname.split('/').at(-1))
+      return answers.patch(id, rawBody === undefined ? undefined : JSON.parse(rawBody))
+    }
+    if (url.pathname === '/api/category-rules' && method === 'POST' && answers.createRule) {
+      return answers.createRule()
+    }
     if (url.pathname === '/api/movements' && method === 'GET' && answers.movements) {
       return answers.movements(url.searchParams)
     }
@@ -289,7 +311,48 @@ export function mockApi(answers: {
     queries: () =>
       calls.filter((call) => call.path === MOVEMENTS).map((call) => call.query.toString()),
     methods: () => [...new Set(calls.map((call) => call.method))],
+    /** The writes, in order: path and the body as it travelled (feature 21). */
+    patches: () => calls.filter((call) => call.method === 'PATCH'),
   }
 }
 
 export const MOVEMENTS = '/api/movements'
+
+const PATCH_ONE = /^\/api\/movements\/\d+$/
+
+/** The same movement with some fields changed, as the PATCH answers it (feature 21). */
+export const changed = (
+  raw: Record<string, unknown>,
+  patch: Record<string, unknown>,
+): Record<string, unknown> => ({ ...raw, ...patch, updatedAt: '2026-09-27T10:00:00.000Z' })
+
+/** A pending movement, so a test can tell it from the confirmed ones of the month. */
+export const PENDING_EXPENSE = movement({
+  id: 15,
+  type: 'expense',
+  bookingDate: '2026-09-11',
+  valueDate: '2026-09-11',
+  amount: '20.00',
+  description: 'PAGO PENDIENTE',
+  status: 'pending_review',
+  daySequence: 3,
+})
+
+export const GROCERIES = { id: 2, name: 'Groceries', kind: 'expense', parentId: 1 }
+
+/** The rule `POST /api/category-rules` answers with (feature 21, R16). */
+export const CREATED_RULE = {
+  id: 71,
+  matchText: 'cafeteria central',
+  categoryId: 2,
+  category: GROCERIES,
+  createdAt: '2026-09-27T10:00:00.000Z',
+  updatedAt: '2026-09-27T10:00:00.000Z',
+}
+
+/** The backend's own 404 body, in Spanish as the real one. */
+export const NOT_FOUND_BODY = {
+  statusCode: 404,
+  code: 'NOT_FOUND',
+  message: 'No existe el movimiento 10',
+}

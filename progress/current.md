@@ -3,17 +3,24 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 20 — statement-filters (implementación)
+- **Feature en curso:** 21 — statement-fix-category (implementación)
 - **Inicio:** 2026-09-27
 - **Agente:** leader (Claude Code) → implementer
 
 ## Plan
 
+Corregir la categoría desde el extracto (F21): las tasks T0–T21 de
+`specs/21-statement-fix-category/tasks.md` en orden. La **T22 no es del implementer**
+(escribe en datos reales; necesita visto bueno explícito del humano). Es la **primera
+vez que el extracto escribe**: el cuerpo del `PATCH` lleva solo `categoryId` y se
+construye en un único sitio (`statement/service.ts::setMovementCategory`), así que el
+`status` no puede viajar. Ninguna llamada real sale a `:3000` en los tests ni en el
+e2e (red de seguridad que aborta cualquier `/api` no prevista).
+
+## Plan anterior (F20, cerrada)
+
 Filtrar y buscar dentro del mes (F20): las tasks T0–T16 de
-`specs/20-statement-filters/tasks.md` en orden. La **T17 no es del implementer**
-(comprobación con el humano delante contra el backend real). Pantalla de **solo
-lectura**: ninguna petición suya escribe, y ninguna llamada real sale a `:3000` en
-los tests ni en el e2e (red de seguridad que aborta cualquier `/api` no prevista).
+`specs/20-statement-filters/tasks.md`.
 
 ## Plan anterior (F19, cerrada)
 
@@ -357,8 +364,71 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   cuenta atrás, y las cifras solo se repiden si hay filtro de categoría puesto.
   F21 pasa a `in_progress`.
 
+- 2026-09-27 — implementer arranca la F21. **T0 cerrado sin sorpresas**: (a) el contrato
+  dice que `PATCH /api/movements/:id` devuelve **el movimiento completo, con la misma
+  forma que un elemento de la lista**, así que `parseMovement` de `shared/movements.ts`
+  vale tal cual; (b) las parejas de color de la insignia pulsable (`--brand on
+  --brand-subtle`, `--ink-body on --surface-sunken`, `--brand on --surface-app` del
+  foco) y del aviso (`--positive` / `--negative on --surface-app`) **ya tienen** su línea
+  `contrast:` en `theme-dark.css`, así que el tema no se toca; (c) `category-rules` no
+  importa nada de ninguna otra feature (`grep` de `@/features` en su carpeta: vacío), así
+  que montar `RuleDialog` desde el extracto no arrastra nada de `review`.
+- 2026-09-27 — T1–T3: la mitad de escritura de **un** movimiento (`MovementChanges`,
+  `changesBody`, `patch`, `parseUpdatedMovement`, `updateMovement`) y `needsReload` bajan a
+  `src/shared/movements.ts`; `review/{service,actions,types}.ts` las re-exportan y las
+  suites de `review` y `category-rules` pasan **sin tocar ni un test** (517 con `shared`).
+  El `PATCH` en bloque se queda en `review`.
+- 2026-09-27 — T4–T12: `statement/service.ts` con `setMovementCategory` (el cuerpo
+  `{ categoryId }` se escribe ahí dentro y hay test que lo lee letra por letra, con campos
+  de contrabando incluidos), `statement/actions.ts` con el filtro de categoría y los textos
+  en singular, y el store con editor único, carril único, `adoptUpdated`, refresco **solo**
+  con filtro de categoría y deshacer de una sola petición.
+- 2026-09-27 — T13–T18: `RowCategoryEditor` y `StatementActionNotice` (copias de la F16,
+  no imports), la insignia de `StatementRow` convertida en botón que se vuelve editor en su
+  sitio, `StatementList` de puro cableado, la vista con el aviso entre las cifras y la lista
+  y el `RuleDialog` de la F17 con la previsualización de la F18. La nota permanente de la
+  F19 **intacta** y su test verde sin tocarlo.
+- 2026-09-27 — **F21 implementada**: T0–T21 en `[x]` (la T22, que **escribe en datos
+  reales**, sigue pendiente del visto bueno explícito del humano y no se ejecutó). 17
+  requisitos con test: **+4 ficheros y +77 tests unitarios (82 / 1.212)** y **5 escenarios
+  e2e nuevos (28 en chromium)**, con todas las llamadas interceptadas, la red de seguridad
+  y, en la ruta del `PATCH`, un abort de cualquier método que no sea `PATCH`. Las 5 🔴 tal
+  cual. Puerta completa verde (`type-check`, `lint`, 1.212 tests, `build`, e2e chromium e
+  `./init.sh`). Sin dependencias nuevas y sin tocar `theme-dark.css`. `docs/architecture.md`
+  al día: el extracto deja de ser de solo lectura y gana la dependencia
+  `statement → category-rules` (mismo sentido que `review → category-rules`, sin ciclos).
+  **Seis desviaciones declaradas** en el informe; las que importan: `MovementChanges` se
+  mudó también a `shared/` (la usa la firma de `updateMovement`); **dos aserciones de
+  tests de la F19/F20** («esta fila no tiene ningún control») pasan a decir «ningún control
+  salvo la insignia de categoría», porque la feature las deroga; la T3 pedía **mover** los
+  casos del `PATCH` a `shared/__tests__/movements.spec.ts` y **no se movieron** (choca con
+  «sin tocar ni un test» y ese fichero no existe); y un `ref` nuevo, `actionNotice`, para
+  que puedan convivir la frase `Change undone` y «no se rehace nada». Informe en
+  `progress/implementation/statement-fix-category.md`. Falta el reviewer.
+
+- 2026-09-27 — reviewer aprueba la F21 sin cambios. Verificó las dos barreras del
+  cuerpo del PATCH, que el e2e lo ejercita sobre un movimiento confirmado, y que el
+  origen de jsdom coincide con el backend real (por eso importa que todo esté
+  mockeado). Las 6 desviaciones aceptadas, incluida la T3 no hecha.
+- 2026-09-27 — **T22 hecha** con visto bueno explícito del humano («cambiar y
+  deshacer»), sobre un solo movimiento: 32428 (RECIB /IBERDROLA, 53,18 €, 24 de marzo,
+  Suministros). Editor escondido abierto desde la etiqueta, 14 categorías ofrecidas y
+  solo de gasto; cambio a Vivienda y deshacer devuelve Suministros. Dos PATCH, los dos
+  con **solo** `categoryId`. Antes y después idénticos salvo `updatedAt`. Cero errores.
+- 2026-09-27 — **Hallazgo durante la prueba: el backend ya ha entregado su feature 49.**
+  Las respuestas traen `excludedFromTotals` y el contrato documenta ya los filtros
+  `transfer=only|none` y `excluded=only|none`, más la escritura de esa marca en los dos
+  PATCH. O sea: la parte 2 de `../docs/handoff-sumas-honestas.md` (el interruptor del
+  ruido) **está desbloqueada**. Sin commitear en su repo todavía.
+
+- 2026-09-27 — F21 en `done`, E7 al día en el roadmap, corregidas dos mentiras de la
+  documentación que señaló el reviewer (`docs/stack.md` decía seis specs e2e y el
+  comentario de `statement/types.ts` decía que la pantalla solo lee), nota inline en la
+  T3 y puerta repetida por el leader (init.sh: «Entorno listo»).
+
 ## Próximo paso
 
-Implementar la F21 y pasarla por el reviewer; la T22 (prueba real, escribe) necesita
-visto bueno explícito del humano. Después, esperar la parte 1 de
-`../docs/handoff-sumas-honestas.md` para el interruptor del ruido y la E8.
+El interruptor del ruido en el extracto: parte 2 de `../docs/handoff-sumas-honestas.md`,
+desbloqueada por la feature 49 del backend (`excludedFromTotals` y los filtros
+`transfer` y `excluded`). Conviene esperar a que el backend commitee y cierre su
+feature antes de construir contra su contrato.

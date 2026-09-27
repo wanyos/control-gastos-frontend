@@ -6,8 +6,9 @@
 // `review/service.ts` and `review/filters.ts` re-export it, so nothing that was
 // already importing it had to change.
 //
-// Only the READ half lives here: the two PATCHes that write a movement stayed in
-// `features/review`, the only screen that writes them.
+// The READ half came first (feature 18); since feature 21 the single-movement PATCH
+// lives here too (see the write half at the bottom): the statement writes the same
+// field the review queue does. The BULK PATCH stayed in `features/review`.
 // Per ADR-002 the raw response is mapped to the frontend types with the shared
 // boundary checks, so a contract drift surfaces as a ValidationError naming the
 // failing field. Closed enumerations of the contract (`type`, `status`, `kind`) are
@@ -17,6 +18,8 @@
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
 import { CATEGORY_KINDS } from '@/shared/categories'
+import { API_NETWORK, ApiError } from '@/shared/errors'
+import type { AppError } from '@/shared/errors'
 import type { CategoryKind } from '@/shared/categories'
 import { createValidators } from '@/shared/validation'
 import type { Validators } from '@/shared/validation'
@@ -250,4 +253,67 @@ export async function getMovements(
   const search = buildMovementsQuery(query)
   const path = search === '' ? MOVEMENTS_PATH : `${MOVEMENTS_PATH}?${search}`
   return parseMovementPage(await client<unknown>(path))
+}
+
+// ─── The write half, shared since feature 21 ──────────────────────────────
+// `PATCH /api/movements/:id` started in `features/review` (feature 16) and moved here
+// untouched when a second screen — the statement — needed the same call. The bulk
+// PATCH (`updateMovements`) stayed in `review`: the statement acts on one movement at
+// a time, and having it here would invite using it from there.
+
+/** The only two fields a movement accepts (contract: PATCH /api/movements/:id). */
+export interface MovementChanges {
+  categoryId?: number | null
+  status?: MovementStatus
+}
+
+const updateChecks = createValidators(`PATCH ${MOVEMENTS_PATH}/:id`)
+
+/** Maps the movement `PATCH /api/movements/:id` answers with, or throws ValidationError. */
+export function parseUpdatedMovement(raw: unknown): Movement {
+  return parseMovement(updateChecks, raw, 'response')
+}
+
+/**
+ * The body of both PATCHes, built field by field: a spread of an object coming from
+ * the view could carry a property the contract answers 400 to (R9). `categoryId`
+ * travels when the key is present, so `null` — remove the category — does travel.
+ */
+export function changesBody(changes: MovementChanges): MovementChanges {
+  const body: MovementChanges = {}
+  if ('categoryId' in changes) body.categoryId = changes.categoryId ?? null
+  if (changes.status !== undefined) body.status = changes.status
+  return body
+}
+
+/** The PATCH wire format: JSON in, JSON out. */
+export const patch = (body: unknown): RequestInit => ({
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(body),
+})
+
+/** Writes the two editable fields of one movement. */
+export async function updateMovement(
+  id: number,
+  changes: MovementChanges,
+  client: HttpClient = http,
+): Promise<Movement> {
+  const body = changesBody(changes)
+  if (Object.keys(body).length === 0) {
+    updateChecks.reject('body', 'a change of categoryId or status')
+  }
+  return parseUpdatedMovement(await client<unknown>(`${MOVEMENTS_PATH}/${id}`, patch(body)))
+}
+
+/**
+ * True when the failure leaves the screen possibly lying: the list must be reloaded.
+ * It describes the contract of the PATCH — all or nothing, and only a 400 and a
+ * network failure prove nothing was written — not any one screen (feature 21).
+ */
+export function needsReload(error: AppError): boolean {
+  if (error instanceof ApiError && (error.status === 400 || error.code === API_NETWORK)) {
+    return false
+  }
+  return true
 }

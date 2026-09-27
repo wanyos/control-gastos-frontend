@@ -1,6 +1,8 @@
 // Frontend types of the statement (feature 19). The screen reads `GET /api/movements`
-// and nothing else, so the movement and everything that describes a read of the list
-// come from `@/shared/movements` — the same types and the same boundary checks the
+// and, since feature 21, writes exactly one thing: the category of a single movement
+// (`PATCH /api/movements/:id` with a body that only ever carries `categoryId`). So the
+// movement and everything that describes a read of the list — and that single write —
+// come from `@/shared/movements`: the same types and the same boundary checks the
 // review queue uses (ADR-002, C2). Nothing is imported from another feature (C3).
 
 export type {

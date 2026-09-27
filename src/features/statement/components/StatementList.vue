@@ -28,7 +28,18 @@
           {{ day.label }}
         </h2>
         <ul class="flex flex-col divide-y divide-line-subtle">
-          <StatementRow v-for="movement in day.movements" :key="movement.id" :movement="movement" />
+          <StatementRow
+            v-for="movement in day.movements"
+            :key="movement.id"
+            :movement="movement"
+            :categories="categories"
+            :editing="movement.id === editingId"
+            :busy="busy"
+            @edit="emit('edit', movement.id)"
+            @categorize="(categoryId) => emit('categorize', movement.id, categoryId)"
+            @create-rule="emit('create-rule', movement)"
+            @close-editor="emit('close-editor')"
+          />
         </ul>
       </section>
 
@@ -59,7 +70,8 @@
 // header: an empty grid tells the user nothing (R11). `Load more` appends the rest of
 // the month at the end and never touches the figures, which are the month's (R13).
 // Feature 20: nothing matching a filter is a DIFFERENT sentence from an empty month,
-// and it offers the way out (R13).
+// and it offers the way out (R13). Feature 21: the list owns no logic about writing —
+// it passes the editor's state down and the row's three events up.
 import { computed } from 'vue'
 
 import BaseButton from '@/shared/components/BaseButton.vue'
@@ -68,7 +80,7 @@ import BaseCard from '@/shared/components/BaseCard.vue'
 import { noMatchesLine } from '../filters'
 import { emptyMonthLine, showingLine } from '../months'
 import type { MonthKey } from '../months'
-import type { DayGroup, Pagination } from '../types'
+import type { Category, DayGroup, Movement, Pagination } from '../types'
 
 import StatementRow from './StatementRow.vue'
 
@@ -83,11 +95,31 @@ const props = withDefaults(
     emptyState?: 'month' | 'noMatches'
     hasMore?: boolean
     loadingMore?: boolean
+    /** Feature 21: what the row editor needs, passed straight down. */
+    categories?: Category[] | null
+    /** The row whose editor is open, or null: only one at a time (C2). */
+    editingId?: number | null
+    /** A write is in flight (C2). */
+    busy?: boolean
   }>(),
-  { emptyState: 'month', hasMore: false, loadingMore: false },
+  {
+    emptyState: 'month',
+    hasMore: false,
+    loadingMore: false,
+    categories: null,
+    editingId: null,
+    busy: false,
+  },
 )
 
-const emit = defineEmits<{ loadMore: []; clear: [] }>()
+const emit = defineEmits<{
+  loadMore: []
+  clear: []
+  edit: [number]
+  categorize: [number, number | null]
+  'create-rule': [Movement]
+  'close-editor': []
+}>()
 
 /** The API's own count, not the length of the list: the month is what is empty. */
 const isEmpty = computed(() => props.pagination.total === 0)

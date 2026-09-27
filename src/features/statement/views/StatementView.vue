@@ -25,6 +25,16 @@
       :scope="scope"
     />
 
+    <!-- Between the figures and the list, fixed: what the last write did, with its Undo
+         (R11, decisions.md 🔴 4). -->
+    <StatementActionNotice
+      :summary="store.actionNotice"
+      :error="store.actionMessage"
+      :undoable="store.lastAction !== null"
+      :busy="store.isActing"
+      @undo="store.undoLast()"
+    />
+
     <p v-if="store.isLoading" class="text-sm text-ink-muted" data-test="statement-loading">
       {{ loadingMonthLine(store.month) }}
     </p>
@@ -64,8 +74,34 @@
       :empty-state="emptyState"
       :has-more="store.hasMore"
       :loading-more="store.isLoadingMore"
+      :categories="store.categories"
+      :editing-id="store.editingId"
+      :busy="store.isActing"
       @load-more="store.loadMore()"
       @clear="onFilters({ ...EMPTY_FILTERS })"
+      @edit="store.openEditor"
+      @categorize="(id, categoryId) => store.categorize(id, categoryId)"
+      @create-rule="onCreateRule"
+      @close-editor="store.closeEditor()"
+    />
+
+    <!-- The rule dialog of the F17 as it is, with the preview of the F18 (R16). Saving
+         it writes NOTHING on the movement it was born from (R17). -->
+    <RuleDialog
+      v-if="ruling"
+      :open="true"
+      mode="create"
+      :description="ruling.description"
+      :initial-text="proposeMatchText(ruling.description)"
+      :initial-category-id="ruling.categoryId"
+      :kind="ruling.type === 'income' ? 'income' : 'expense'"
+      :categories="store.categories"
+      :busy="rules.isSaving"
+      :message="rules.saveMessage"
+      :preview="rules.preview"
+      @save="onSaveRule"
+      @cancel="closeRuleDialog"
+      @preview="onPreviewRule"
     />
   </div>
 </template>
@@ -74,15 +110,23 @@
 // The statement screen. The URL is the single writer of the month AND of the filters:
 // the nav and the bar rewrite the query and the watcher below turns that into the
 // request, so back, forward, reload and a shared link all behave the same (R3, R4, R8).
-// Read only: not one request of this screen writes anything (C1).
-import { computed, onMounted, watch } from 'vue'
+// Since feature 21 the screen also writes, and only one thing: the category of one
+// movement, through the store (R1, C1). Creating a rule from a line writes nothing on
+// that line (R17).
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
+import RuleDialog from '@/features/category-rules/components/RuleDialog.vue'
+import { proposeMatchText } from '@/features/category-rules/rules'
+import { useCategoryRulesStore } from '@/features/category-rules/store'
+import type { NewRule } from '@/features/category-rules/types'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
 
+import { findCategoryName } from '../actions'
 import MonthNav from '../components/MonthNav.vue'
 import MonthTotals from '../components/MonthTotals.vue'
+import StatementActionNotice from '../components/StatementActionNotice.vue'
 import StatementFilterBar from '../components/StatementFilterBar.vue'
 import StatementList from '../components/StatementList.vue'
 import {
@@ -96,10 +140,12 @@ import type { StatementFilters } from '../filters'
 import { loadingMonthLine, statementErrorMessage } from '../months'
 import type { MonthKey } from '../months'
 import { useStatementStore } from '../store'
+import type { Movement } from '../types'
 
 const route = useRoute()
 const router = useRouter()
 const store = useStatementStore()
+const rules = useCategoryRulesStore()
 
 function syncFromRoute(): void {
   const { month, filters } = fromRouteQuery(route.query)
@@ -135,18 +181,44 @@ const scope = computed(() => {
   if (!pagination || !hasActiveFilters(store.filters)) return undefined
   return filterScopeLine(store.filters, pagination.total, store.month, {
     account: store.accounts?.find((account) => account.id === store.filters.accountId)?.alias,
-    category: findCategoryName(store.filters.categoryId),
+    category: findCategoryName(store.categories, store.filters.categoryId),
   })
 })
 
-function findCategoryName(id: number | null): string | undefined {
-  if (id === null) return undefined
-  for (const root of store.categories ?? []) {
-    if (root.id === id) return root.name
-    const child = root.children.find((one) => one.id === id)
-    if (child) return child.name
+// ─── Rules from a line (feature 21: R16, R17) ──────────────────────────────
+// The dialog of the F17 as it is. A rule is born from a line, but creating it writes
+// nothing on that movement and applies nothing by itself: that is the F17's own gesture.
+
+/** The movement the rule dialog is open for, or null. */
+const ruling = ref<Movement | null>(null)
+
+function onCreateRule(movement: Movement): void {
+  rules.saveMessage = null
+  ruling.value = movement
+}
+
+function closeRuleDialog(): void {
+  rules.saveMessage = null
+  rules.clearPreview()
+  ruling.value = null
+}
+
+/** How many pending movements without a category the text would look at (F18). */
+function onPreviewRule(text: string): void {
+  const movement = ruling.value
+  if (!movement) return
+  if (text === '') {
+    rules.clearPreview()
+    return
   }
-  return undefined
+  void rules.previewMatches(text, movement.type === 'income' ? 'income' : 'expense')
+}
+
+async function onSaveRule(rule: NewRule): Promise<void> {
+  if (await rules.create(rule)) {
+    rules.clearPreview()
+    ruling.value = null
+  }
 }
 
 const emptyState = computed<'month' | 'noMatches'>(() =>

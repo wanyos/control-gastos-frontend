@@ -478,14 +478,21 @@ concretas, cada spec registra `await page.route('**/api/**', route => route.abor
 y encima declara las llamadas que sí espera (las rutas posteriores ganan). Motivo:
 el proxy de `vite.config.ts` reenvía `/api` al backend real de `:3000`, así que una
 llamada no prevista **saldría de verdad** — con la red, se aborta y el test se pone
-rojo, que es lo que queremos ver. La cumplen los **seis** specs de `e2e/`; el smoke
+rojo, que es lo que queremos ver. La cumplen los **siete** specs de `e2e/`; el smoke
 `app-boot.spec.ts` la incorporó en la higiene del 2026-09-23 (era el único que le
 faltaba) sin que ninguna llamada nueva apareciera: sus tres rutas ya lo cubrían.
-El sexto es `e2e/statement.spec.ts` (feature #19, el extracto mes a mes): también de
+El sexto es `e2e/statement.spec.ts` (feature #19, el extracto mes a mes): de
 **solo lectura**, con las tres rutas que la pantalla necesita (`/api/movements` del mes
 y del recuento de la barra lateral, `/api/ingestion/pending` y `/api/net-worth` de la
 home por la que se entra al menú) y una aserción de que **ninguna** petición de la
 sesión usa un método distinto de `GET`.
+El séptimo es `e2e/statement-fix-category.spec.ts` (feature #21, corregir la categoría
+desde el extracto) y es el primero de esa pantalla que **escribe**: intercepta además el
+`PATCH **/api/movements/*` (y el `POST **/api/category-rules` del diálogo de reglas), lee
+el cuerpo que viaja para comprobar que solo lleva `categoryId`, y su aserción de métodos
+es la de esta feature — en toda la sesión solo hay `GET` y `PATCH`, nunca un `DELETE` ni
+un `PUT`. Como toda petición a `/api` está interceptada y la red de seguridad aborta
+cualquier otra, **nunca** sale una escritura de verdad hacia el backend de `:3000`.
 
 Desde la feature #15 la **barra lateral** pide `GET /api/movements` (el recuento de
 pendientes, `pageSize=1`) también al montar y en todas las rutas, así que el smoke

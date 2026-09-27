@@ -28,9 +28,42 @@
       Transfer
     </BaseBadge>
 
+    <RowCategoryEditor
+      v-if="editing"
+      :movement="movement"
+      :categories="categories ?? null"
+      :busy="busy"
+      @change="(categoryId) => emit('categorize', categoryId)"
+      @create-rule="emit('create-rule')"
+      @close="emit('close-editor')"
+    />
+
+    <!-- The badge IS the control (R2): pressing it turns it into the editor above, in
+         its own place, so the row keeps its width and the month keeps reading as a
+         month (decisions.md 🔴 1). A neutral movement has no editor to open (R5). -->
+    <button
+      v-else-if="canCategorize"
+      type="button"
+      class="shrink-0 rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      :title="CHANGE_HINT"
+      :aria-label="`Change category of ${movement.description}`"
+      data-test="statement-row-category-button"
+      @click="emit('edit')"
+    >
+      <BaseBadge
+        size="sm"
+        :tone="movement.category ? 'brand' : 'neutral'"
+        data-test="statement-row-category"
+      >
+        {{ movement.category?.name ?? 'Uncategorized' }}
+      </BaseBadge>
+    </button>
+
     <BaseBadge
+      v-else
       size="sm"
-      :tone="movement.category ? 'brand' : 'neutral'"
+      tone="neutral"
+      :title="NEUTRAL_HINT"
       data-test="statement-row-category"
     >
       {{ movement.category?.name ?? 'Uncategorized' }}
@@ -47,19 +80,43 @@
 </template>
 
 <script setup lang="ts">
-// One line of the statement. Same layout as the review row, with none of its four
-// controls: this screen only looks (C1). The date is not repeated here — the day
-// header above the row carries it (R8, R9) — and `balanceAfter` is never painted:
-// only three of the five accounts bring it, so it is noise (R9).
+// One line of the statement. Same layout as the review row, and since feature 21 it
+// carries ONE control: its category badge, which becomes the editor in its own place
+// when pressed (R2, R3). Nothing else about the movement can be touched from here (C1).
+// The date is not repeated — the day header above the row carries it (R8, R9) — and
+// `balanceAfter` is never painted: only three of the five accounts bring it (R9).
 import { computed } from 'vue'
 
 import { bankLabel } from '@/shared/banks'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { formatMoney } from '@/shared/money'
 
-import type { Movement } from '../types'
+import RowCategoryEditor from './RowCategoryEditor.vue'
+import type { Category, Movement } from '../types'
 
-const props = defineProps<{ movement: Movement }>()
+const props = defineProps<{
+  movement: Movement
+  /** The whole tree; null while unknown or after a failure (feature 21). */
+  categories?: Category[] | null
+  /** True when THIS row is the one being edited: only one at a time (C2). */
+  editing?: boolean
+  /** A write is in flight (C2). */
+  busy?: boolean
+}>()
+
+const emit = defineEmits<{
+  edit: []
+  categorize: [number | null]
+  'create-rule': []
+  'close-editor': []
+}>()
+
+/** Why a neutral badge is not a button (R5). */
+const NEUTRAL_HINT = "Neutral movements can't be categorized"
+const CHANGE_HINT = 'Change category'
+
+/** A neutral movement accepts no category: the contract answers 400 (R5). */
+const canCategorize = computed(() => props.movement.type !== 'neutral')
 
 /** Why a paired transfer is visible here but missing from the month's figures (R10). */
 const TRANSFER_HINT = "Paired transfer: not counted in this month's figures"

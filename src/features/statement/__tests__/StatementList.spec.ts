@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
+import { parseCategories } from '@/shared/categories'
 import { parseMovementPage } from '@/shared/movements'
 
 import StatementList from '../components/StatementList.vue'
 import { groupByDay } from '../months'
-import { BIG_MONTH_PAGE_ONE, EMPTY_MONTH_PAGE, MONTH_PAGE } from './fixtures'
+import { BIG_MONTH_PAGE_ONE, CATEGORIES, EMPTY_MONTH_PAGE, MONTH_PAGE } from './fixtures'
+
+const tree = parseCategories(CATEGORIES)
 
 const page = parseMovementPage(MONTH_PAGE)
 const big = parseMovementPage(BIG_MONTH_PAGE_ONE)
@@ -75,11 +78,56 @@ describe('StatementList (R8, R11, R13)', () => {
     expect(list.emitted('loadMore')).toHaveLength(1)
   })
 
-  it('has no control that writes a movement (C1)', () => {
+  // Feature 21: the only control of a row is its category badge; no row carries a
+  // selector until its editor is asked for (R2, C1).
+  it('has no control that writes a movement but the category badges (C1)', () => {
     const list = mountList()
 
     expect(list.findAll('input')).toHaveLength(0)
     expect(list.findAll('select')).toHaveLength(0)
-    expect(list.findAll('button')).toHaveLength(0)
+    expect(list.findAll('[data-test="statement-row-category-button"]')).toHaveLength(4)
+    expect(list.findAll('[data-test="row-category-editor"]')).toHaveLength(0)
+  })
+
+  describe('passing the editor up and down (feature 21: R3, R7)', () => {
+    it('opens the editor only in the row that is being edited', () => {
+      const list = mountList({ editingId: 10, categories: tree })
+
+      expect(list.findAll('[data-test="row-category-editor"]')).toHaveLength(1)
+      expect(list.findAll('[data-test="statement-row-category-button"]')).toHaveLength(3)
+    })
+
+    it('says which row wants to be edited', async () => {
+      const list = mountList()
+
+      await list.findAll('[data-test="statement-row-category-button"]')[0]?.trigger('click')
+
+      expect(list.emitted('edit')).toEqual([[10]])
+    })
+
+    it('carries the chosen category up with the id of its row', async () => {
+      const list = mountList({ editingId: 10, categories: tree })
+
+      await list.get('select').setValue('2')
+
+      expect(list.emitted('categorize')).toEqual([[10, 2]])
+    })
+
+    it('carries the rule request up with the whole movement, and the close', async () => {
+      const list = mountList({ editingId: 10, categories: tree })
+
+      await list.get('[data-test="row-create-rule"]').trigger('click')
+      await list.get('[data-test="row-category-close"]').trigger('click')
+
+      const asked = list.emitted('create-rule')?.[0]?.[0] as { id: number } | undefined
+      expect(asked?.id).toBe(10)
+      expect(list.emitted('close-editor')).toHaveLength(1)
+    })
+
+    it('makes every row wait while a write is in flight (C2)', () => {
+      const list = mountList({ editingId: 10, categories: tree, busy: true })
+
+      expect(list.get('select').attributes('disabled')).toBeDefined()
+    })
   })
 })

@@ -4,8 +4,14 @@
 
 import { API_NETWORK, ApiError, ValidationError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
+import { needsReload } from '@/shared/movements'
 
 import type { Category, CategoryKind, Movement, MovementChanges, UndoGroup } from './types'
+
+// `needsReload` moved to `@/shared/movements` in feature 21 — it describes the contract
+// of the PATCH, not this screen — and is re-exported so nothing that imported it from
+// here had to change.
+export { needsReload }
 
 /** Finds a category anywhere in the tree: the children are one level deep, but this walks it whole. */
 export function findCategory(categories: Category[] | null, id: number | null): Category | null {
@@ -107,14 +113,6 @@ export function actionErrorMessage(error: AppError): string {
     return "The server answered, but the reply couldn't be read. Reloading the list to show what really happened."
   }
   return 'Something went wrong. Reloading the list to show what really happened.'
-}
-
-/** True when the failure leaves the screen possibly lying: the list must be reloaded. */
-export function needsReload(error: AppError): boolean {
-  if (error instanceof ApiError && (error.status === 400 || error.code === API_NETWORK)) {
-    return false
-  }
-  return true
 }
 
 /** What the undo says when it stopped between groups (R14). */

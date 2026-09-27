@@ -821,3 +821,41 @@ Plantilla para cada entrada nueva:
   máquina (no es dependencia nueva).
 - **Cierre:** feature 20 → **done**. E7 sigue 🟡: quedan el interruptor del ruido
   (depende del backend) y corregir categorías desde el extracto.
+
+## 2026-09-27 — Feature 21: statement-fix-category
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author`, `implementer` y
+  `reviewer`. Flujo SDD. Tercera rodaja de la E7 y **la primera vez que el extracto
+  escribe**. Se eligió esta feature porque era la única de la etapa que no dependía de
+  la sesión del backend, que estaba con su parte del handoff.
+- **Intención del humano** a partir de un borrador razonado (`docs/intent-f21-draft.md`,
+  ya borrado), con sus cuatro respuestas: solo la categoría (el estado no se toca), de
+  uno en uno, sí crear reglas desde el extracto, y la línea desaparece al momento si el
+  cambio la deja fuera del filtro.
+- **Spec:** `specs/21-statement-fix-category/`, 17 requisitos (dos por encima del tope
+  blando, con el motivo escrito). El humano aprobó las 5 decisiones tal cual: selector
+  **escondido** (la etiqueta de categoría de la línea se vuelve editor en su sitio, una
+  línea a la vez, para no convertir el extracto en otra cola), `Create rule` colgando de
+  ese editor y **sin** categorizar el movimiento de origen (coherente con la F17), la
+  línea desaparece también filtrando por una categoría concreta, deshacer sin cuenta
+  atrás, y las cifras solo se repiden si hay filtro de categoría puesto.
+- **La protección clave:** el cuerpo del PATCH se construye en un único sitio y lleva
+  **solo `categoryId`**. La pantalla enseña también movimientos confirmados, así que un
+  `status` colado los habría devuelto a pendiente en silencio.
+- **Revisión:** APROBADO sin cambios. El reviewer verificó las dos barreras del cuerpo,
+  que el e2e lo ejercita sobre un movimiento **confirmado**, y que el origen de jsdom
+  coincide con el del backend real (de ahí que importe tanto que todo esté mockeado).
+  Aceptó las 6 desviaciones, incluida la T3 que el implementer decidió no hacer.
+- **T22, prueba contra el backend real** con visto bueno explícito del humano
+  («cambiar y deshacer»): movimiento 32428 (RECIB /IBERDROLA, 53,18 €, 24 de marzo,
+  Suministros). El editor ofreció 14 categorías, todas de gasto; cambio a Vivienda y
+  deshacer devolvió Suministros. Dos PATCH, los dos con solo `categoryId`. Antes y
+  después idénticos salvo `updatedAt`. Cero errores de consola.
+- **Hallazgo de la prueba:** el backend **ya entregó su feature 49**. Las respuestas
+  traen `excludedFromTotals` y el contrato documenta los filtros `transfer=only|none` y
+  `excluded=only|none`, además de poder escribir esa marca en los dos PATCH. La parte 2
+  del handoff (el interruptor del ruido) **queda desbloqueada**.
+- **Verificación:** type-check, lint, 1.212 tests (82 ficheros), build, 28 e2e y
+  `./init.sh` en verde.
+- **Cierre:** feature 21 → **done**. De la E7 queda solo el interruptor del ruido, que
+  ya es posible.

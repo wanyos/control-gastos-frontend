@@ -27,13 +27,11 @@ export type {
   Totals,
 } from '@/shared/movements'
 
-import type { DateOnly, Movement, MovementStatus, MovementType } from '@/shared/movements'
+// `MovementChanges` went with the single-movement PATCH to `@/shared/movements` in
+// feature 21; re-exported so every import written for features 15 and 16 still works.
+export type { MovementChanges } from '@/shared/movements'
 
-/** The only two fields a movement accepts (contract: PATCH /api/movements/:id). */
-export interface MovementChanges {
-  categoryId?: number | null
-  status?: MovementStatus
-}
+import type { DateOnly, Movement, MovementChanges, MovementType } from '@/shared/movements'
 
 /** Body of PATCH /api/movements: ids plus at least one of the two fields. */
 export interface BulkUpdate extends MovementChanges {
