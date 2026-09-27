@@ -9,7 +9,7 @@ import { MONTH_PAGE, TOTALS } from './fixtures'
 
 const page = parseMovementPage(MONTH_PAGE)
 
-const mountTotals = (overrides: Partial<typeof page> = {}) =>
+const mountTotals = (overrides: Record<string, unknown> = {}) =>
   mount(MonthTotals, {
     props: { pagination: page.pagination, totals: page.totals, ...overrides },
   })
@@ -85,6 +85,34 @@ describe('MonthTotals (R5, R6, R7)', () => {
     it('is shown with the month, not behind a hover or a tooltip', () => {
       expect(mountTotals().find('[data-test="statement-totals-note"]').exists()).toBe(true)
       expect(note().text().length).toBeGreaterThan(200)
+    })
+  })
+  describe('the scope line of the filters (feature 20, R5, R6)', () => {
+    const SCOPE = '12 movements match these filters in March 2026 · Uncategorized'
+
+    it('is absent without filters', () => {
+      expect(mountTotals().find('[data-test="statement-scope"]').exists()).toBe(false)
+    })
+
+    it('says what the figures above were computed over', () => {
+      const totals = mountTotals({ scope: SCOPE })
+
+      expect(totals.get('[data-test="statement-scope"]').text()).toBe(SCOPE)
+      // The figures are still the backend's, untouched by the line.
+      expect(totals.get('[data-test="statement-totals-in"]').text()).toBe(
+        formatMoney(TOTALS.income),
+      )
+    })
+
+    it('leaves the permanent note word for word, and still undismissable (R6)', () => {
+      const withScope = mountTotals({ scope: SCOPE })
+      const withoutScope = mountTotals()
+
+      expect(withScope.get('[data-test="statement-totals-note"]').text()).toBe(
+        withoutScope.get('[data-test="statement-totals-note"]').text(),
+      )
+      expect(withScope.findAll('button')).toHaveLength(0)
+      expect(withScope.get('[data-test="statement-totals-note"]').isVisible()).toBe(true)
     })
   })
 })

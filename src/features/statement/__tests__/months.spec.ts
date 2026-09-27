@@ -13,7 +13,6 @@ import {
   isAtOrAfterCurrentMonth,
   loadingMonthLine,
   monthFromRouteQuery,
-  monthQuery,
   monthRange,
   monthToRouteQuery,
   movementCountLine,
@@ -100,29 +99,11 @@ describe('the month in the URL (R3, R4)', () => {
   })
 })
 
-describe('the query the screen asks for (R1, R13)', () => {
-  it('asks for the whole month, page 1, at the contract maximum', () => {
-    expect(monthQuery('2026-09')).toEqual({
-      from: '2026-09-01',
-      to: '2026-09-30',
-      page: 1,
-      pageSize: 200,
-    })
+// `monthQuery` moved to `filters.ts` in feature 20, where the filters live: its tests
+// went with it (`__tests__/filters.spec.ts`). The page size is still declared here.
+describe('the page size of the screen (R13)', () => {
+  it('asks the contract maximum, so a whole month arrives in one request', () => {
     expect(STATEMENT_PAGE_SIZE).toBe(200)
-  })
-
-  it('never carries a status: the statement shows pending and confirmed alike', () => {
-    expect(monthQuery('2026-09')).not.toHaveProperty('status')
-    expect(Object.keys(monthQuery('2026-09')).sort()).toEqual(['from', 'page', 'pageSize', 'to'])
-  })
-
-  it('asks for a later page of the same month', () => {
-    expect(monthQuery('2026-09', 2)).toEqual({
-      from: '2026-09-01',
-      to: '2026-09-30',
-      page: 2,
-      pageSize: 200,
-    })
   })
 })
 
@@ -173,21 +154,44 @@ describe('the sentences (R11, R12, R13)', () => {
     expect(loadingMonthLine('2026-09')).toBe('Loading September 2026…')
   })
 
+  // Feature 20: the sentence comes with the button that goes with it, because a
+  // rejected filter is fixed by dropping it, not by asking again.
   it('tells a load failure in English, never with the backend message', () => {
     const spanish = 'El parámetro «from» no es una fecha válida'
 
-    expect(statementErrorMessage(new ApiError(spanish, API_HTTP, { status: 400 }))).toBe(
-      'The backend rejected that month.',
-    )
-    expect(statementErrorMessage(new ValidationError('totals.net is not a decimal'))).toBe(
-      "The server answered, but the statement couldn't be read.",
-    )
-    expect(statementErrorMessage(new ApiError('Failed to fetch', 'API_NETWORK'))).toBe(
-      "Couldn't reach the server.",
-    )
-    expect(statementErrorMessage(new ApiError(spanish, API_HTTP, { status: 500 }))).toBe(
-      'Something went wrong loading this month.',
-    )
+    expect(statementErrorMessage(new ApiError(spanish, API_HTTP, { status: 400 }))).toEqual({
+      message: 'The backend rejected that month.',
+      action: 'retry',
+    })
+    expect(statementErrorMessage(new ValidationError('totals.net is not a decimal'))).toEqual({
+      message: "The server answered, but the statement couldn't be read.",
+      action: 'retry',
+    })
+    expect(statementErrorMessage(new ApiError('Failed to fetch', 'API_NETWORK'))).toEqual({
+      message: "Couldn't reach the server.",
+      action: 'retry',
+    })
+    expect(statementErrorMessage(new ApiError(spanish, API_HTTP, { status: 500 }))).toEqual({
+      message: 'Something went wrong loading this month.',
+      action: 'retry',
+    })
+  })
+
+  it('offers Clear filters for a filter the backend cannot serve (R10, R13)', () => {
+    const spanish = 'No existe la cuenta 3'
+
+    expect(statementErrorMessage(new ApiError(spanish, API_HTTP, { status: 404 }))).toEqual({
+      message: 'That account or category no longer exists.',
+      action: 'clear',
+    })
+    // The same 404 with no filters still offers to clear: the id came from the URL.
+    expect(
+      statementErrorMessage(new ApiError(spanish, API_HTTP, { status: 404 }), false).action,
+    ).toBe('clear')
+    expect(statementErrorMessage(new ApiError(spanish, API_HTTP, { status: 400 }), true)).toEqual({
+      message: 'The backend rejected these filters.',
+      action: 'clear',
+    })
   })
 
   it('never leaks the backend sentence into any message', () => {
@@ -196,10 +200,12 @@ describe('the sentences (R11, R12, R13)', () => {
       new ApiError(spanish, API_HTTP, { status: 400 }),
       new ApiError(spanish, API_HTTP, { status: 500 }),
       new ValidationError(spanish),
-    ].map(statementErrorMessage)
+      new ApiError(spanish, API_HTTP, { status: 404 }),
+    ].flatMap((error) => [statementErrorMessage(error), statementErrorMessage(error, true)])
 
-    for (const message of messages) {
+    for (const { message } of messages) {
       expect(message).not.toContain('parámetro')
+      expect(message).not.toContain('existe')
     }
   })
 })

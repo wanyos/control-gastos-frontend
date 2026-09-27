@@ -15,6 +15,11 @@ export type {
   Totals,
 } from '@/shared/movements'
 
+// The two lists that fill the filter selects (feature 20): both come from `shared/`,
+// so this feature still imports nothing from another feature (C3).
+export type { AccountSummary } from '@/shared/accounts'
+export type { Category, CategoryKind } from '@/shared/categories'
+
 import type { DateOnly, Movement } from '@/shared/movements'
 
 /** One day of the statement: the movements the API sent under the same `bookingDate`. */

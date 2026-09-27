@@ -12,7 +12,7 @@ import { API_NETWORK, ApiError, ValidationError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
 import { formatDate } from '@/shared/money'
 
-import type { DayGroup, Movement, MovementQuery } from './types'
+import type { DayGroup, Movement } from './types'
 
 /** `2026-09`. */
 export type MonthKey = string
@@ -107,15 +107,6 @@ export function monthToRouteQuery(month: MonthKey): LocationQueryRaw {
 }
 
 /**
- * The exact query this screen asks for: the whole month and nothing else. No
- * `status`, so both pending and confirmed movements come back (R1).
- */
-export function monthQuery(month: MonthKey, page = 1): MovementQuery {
-  const { from, to } = monthRange(month)
-  return { from, to, page, pageSize: STATEMENT_PAGE_SIZE }
-}
-
-/**
  * Splits the list the API already ordered into consecutive days. It never sorts:
  * the order is the backend's (`bookingDate DESC, daySequence DESC`), and a day
  * header is just where the date changes (R8).
@@ -156,19 +147,36 @@ export function loadingMonthLine(month: MonthKey): string {
   return `Loading ${formatMonthLabel(month)}…`
 }
 
+export interface StatementErrorText {
+  message: string
+  /** `clear` offers Clear filters, `retry` offers Try again (design.md §5). */
+  action: 'clear' | 'retry'
+}
+
 /**
- * The English sentence for a failed month. The backend's own `message` is never
- * painted: it comes in Spanish and names database ids (R12).
+ * The English sentence for a failed month, and which button goes with it. The
+ * backend's own `message` is never painted: it comes in Spanish and names database
+ * ids (R12). A stale URL can still name an account or a category that was deleted —
+ * that is a legitimate 404 — and then the way out is dropping the filters, not
+ * retrying the same request (feature 20, R10).
  */
-export function statementErrorMessage(error: AppError): string {
+export function statementErrorMessage(error: AppError, hasFilters = false): StatementErrorText {
+  if (error instanceof ApiError && error.status === 404) {
+    return { message: 'That account or category no longer exists.', action: 'clear' }
+  }
   if (error instanceof ApiError && error.status === 400) {
-    return 'The backend rejected that month.'
+    return hasFilters
+      ? { message: 'The backend rejected these filters.', action: 'clear' }
+      : { message: 'The backend rejected that month.', action: 'retry' }
   }
   if (error instanceof ValidationError) {
-    return "The server answered, but the statement couldn't be read."
+    return {
+      message: "The server answered, but the statement couldn't be read.",
+      action: 'retry',
+    }
   }
   if (error.code === API_NETWORK) {
-    return "Couldn't reach the server."
+    return { message: "Couldn't reach the server.", action: 'retry' }
   }
-  return 'Something went wrong loading this month.'
+  return { message: 'Something went wrong loading this month.', action: 'retry' }
 }

@@ -90,6 +90,48 @@ const EMPTY_PAGE = {
   totals: ZERO,
 }
 
+/** The same month narrowed by a filter (feature 20): fewer rows and its own figures. */
+const FILTERED_PAGE = (month: string) => ({
+  movements: [
+    movement(12, `${month}-04`, { type: 'income', amount: '1200.00', description: 'NOMINA' }),
+  ],
+  pagination: { page: 1, pageSize: 200, total: 12, totalPages: 1 },
+  totals: { income: '1200.00', expense: '45.37', net: '1154.63' },
+})
+
+/** What fills the two selects of the bar: every account and the whole category tree. */
+const ACCOUNTS = [
+  { ...BANKINTER, initialBalance: '0.00', balance: '9954.63' },
+  {
+    id: 2,
+    iban: 'ES6301289999990123456789',
+    bank: 'myinvestor',
+    alias: 'myinvestor ···6789',
+    type: 'checking',
+    balance: '3206.28',
+  },
+]
+
+const CATEGORIES = [
+  {
+    id: 1,
+    name: 'Food',
+    kind: 'expense',
+    parentId: null,
+    createdAt: '2026-08-06T18:30:00.000Z',
+    children: [
+      {
+        id: 3,
+        name: 'Groceries',
+        kind: 'expense',
+        parentId: 1,
+        createdAt: '2026-08-06T18:31:00.000Z',
+        children: [],
+      },
+    ],
+  },
+]
+
 async function prepare(page: Page) {
   const watch = {
     requests: [] as Request[],
@@ -110,11 +152,18 @@ async function prepare(page: Page) {
     route.fulfill({ json: { totalPending: 0, banks: [] } }),
   )
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
+  await page.route('**/api/accounts', (route) => route.fulfill({ json: ACCOUNTS }))
+  await page.route('**/api/categories', (route) => route.fulfill({ json: CATEGORIES }))
   await page.route('**/api/movements*', (route) => {
     const query = new URL(route.request().url()).searchParams
     if (query.get('pageSize') === '1') return route.fulfill({ json: COUNT_PAGE })
     const from = query.get('from') ?? ''
     const month = from.slice(0, 7)
+    // Feature 20: a filtered month is a different answer, computed by the backend.
+    if (query.get('q') !== null) return route.fulfill({ json: EMPTY_PAGE })
+    if (query.get('uncategorized') === 'true' || query.get('accountId') !== null) {
+      return route.fulfill({ json: FILTERED_PAGE(month) })
+    }
     if (month === currentMonth()) return route.fulfill({ json: monthPage(month, '59096.42') })
     if (month === previousMonth(currentMonth())) {
       return route.fulfill({ json: monthPage(month, '1234.56') })
@@ -234,6 +283,68 @@ test('a month with nothing in it says so, and the arrow forward stops at today',
   await page.goto(`/movements?month=${currentMonth()}`)
 
   await expect(page.getByTestId('statement-next')).toBeDisabled()
+  expect(watch.requests.every((request) => request.method() === 'GET')).toBe(true)
+  expect(watch.consoleErrors).toEqual([])
+})
+
+test('filtering inside the month changes the figures and the count (feature 20)', async ({
+  page,
+}) => {
+  const watch = await prepare(page)
+
+  await page.goto('/movements')
+  await expect(page.getByTestId('statement-totals-count')).toHaveText('93 movements')
+  await expect(page.getByTestId('statement-scope')).toHaveCount(0)
+
+  await page.getByTestId('filter-uncategorized').locator('input').check()
+
+  await expect(page).toHaveURL(/uncategorized=true/)
+  await expect(page.getByTestId('statement-totals-count')).toHaveText('12 movements')
+  await expect(page.getByTestId('statement-totals-in')).toContainText('1.200,00')
+  await expect(page.getByTestId('statement-totals-out')).toContainText('45,37')
+  await expect(page.getByTestId('statement-scope')).toContainText(
+    '12 movements match these filters',
+  )
+  await expect(page.getByTestId('statement-scope')).toContainText('Uncategorized')
+  await expect(page.getByTestId('statement-row')).toHaveCount(1)
+  // The permanent note of the F19 is still there, word for word and undismissable.
+  await expect(page.getByTestId('statement-totals-note')).toContainText('raw bank movements')
+  expect(statementQueries(watch).at(-1)).toContain('uncategorized=true')
+
+  // Clearing leaves the month where it was.
+  await page.getByTestId('clear-filters').click()
+
+  await expect(page).toHaveURL(new RegExp(`month=${currentMonth()}$`))
+  await expect(page.getByTestId('statement-totals-count')).toHaveText('93 movements')
+
+  // A filter that matches nothing says so, apart from an empty month.
+  await page.goto(`/movements?month=${currentMonth()}&q=zzzz`)
+
+  await expect(page.getByTestId('statement-no-matches')).toContainText(
+    'No movements match these filters in',
+  )
+  await expect(page.getByTestId('statement-empty')).toHaveCount(0)
+
+  expect(watch.requests.every((request) => request.method() === 'GET')).toBe(true)
+  expect(watch.pageErrors).toEqual([])
+  expect(watch.consoleErrors).toEqual([])
+})
+
+test('a URL with a category and uncategorized together never asks for both (feature 20)', async ({
+  page,
+}) => {
+  const watch = await prepare(page)
+
+  await page.goto(`/movements?month=${currentMonth()}&category=3&uncategorized=true`)
+
+  await expect(page.getByTestId('statement-totals-count')).toHaveText('12 movements')
+  const asked = statementQueries(watch)
+  expect(asked).toHaveLength(1)
+  expect(asked[0]).toContain('uncategorized=true')
+  expect(asked[0]).not.toContain('categoryId')
+  // No 400 can be painted, because the forbidden request never left.
+  await expect(page.getByTestId('statement-error')).toHaveCount(0)
+
   expect(watch.requests.every((request) => request.method() === 'GET')).toBe(true)
   expect(watch.consoleErrors).toEqual([])
 })

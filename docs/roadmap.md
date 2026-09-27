@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-09-26.
+> **Última revisión:** 2026-09-27.
 
 ## Este documento frente a los otros
 
@@ -24,12 +24,12 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Ya hay aplicación, y ya escribe.** 19 features cerradas. Las pantallas que
+**Ya hay aplicación, y ya escribe.** 20 features cerradas. Las pantallas que
 existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
 acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
 y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14) y
-el **extracto mes a mes** en `/movements` (F19). Etapas E0 a E6 cerradas; la E7 a
-medias.
+el **extracto mes a mes** en `/movements` con sus filtros y su búsqueda (F19, F20).
+Etapas E0 a E6 cerradas; la E7 a medias.
 
 **Lo que bloquea lo siguiente no es el frontend.** Las sumas de cualquier vista de
 flujo están infladas por los apuntes de depósito (285.000 €, el 58 % de la base del
@@ -53,7 +53,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
-| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19 |
+| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19, F20 |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
@@ -209,9 +209,27 @@ texto: la vista del histórico completo, confirmados incluidos.
 > puede cerrar; el arreglo es la **parte 1 de `../docs/handoff-sumas-honestas.md`**, ya
 > encargada al backend.
 >
-> **Qué falta en esta etapa:** filtros y búsqueda sobre el extracto (fecha, cuenta,
-> categoría, tipo, estado y texto, que el backend ya sirve), el **interruptor del ruido**
-> —depende de esa parte 1 del handoff— y **corregir la categoría desde el extracto**.
+> **F20 cerrada el 2026-09-27** — segunda rodaja: dentro del mes hay una barra con cuatro
+> controles (buscador por un trozo del concepto, cuenta, categoría y una casilla
+> `Uncategorized`) que afinan el mes sin sacarte de él. Las tres cifras pasan a ser las de
+> lo filtrado, siempre calculadas por el backend, y debajo aparece una línea que dice qué
+> has filtrado y cuántos movimientos son. Los cuatro filtros y el mes viven solo en la URL
+> (`/movements?month=2026-03&account=2&uncategorized=true&q=luz`), con las mismas claves que
+> la cola de revisión; hay `Clear filters` que no reinicia el mes, y una URL con categoría y
+> «sin categoría» a la vez se corrige antes de pedir nada. Sigue siendo solo lectura, con
+> una llamada nueva, `GET /api/accounts`, para llenar el desplegable. La lógica compartida
+> se mudó a `src/shared/movement-filters.ts` y la cola la re-exporta, sin cambiar de
+> comportamiento. Comprobada con el humano delante contra el backend real: ocho
+> combinaciones de filtros, cifras y recuento cuadrando en las ocho, y la URL imposible
+> corregida antes de salir la petición. Spec en `specs/20-statement-filters/`.
+>
+> 💡 **Lo que enseñó esa prueba:** julio de 2026 filtrado por la cuenta **n26** son 221,45 €
+> de entrada y 1.038,07 € de salida, cuando el mes entero lee 57.948 € y 59.096 €; por
+> **myinvestor** salen 55.169 € y 55.357 €, que es el depósito rodando. Hasta que llegue la
+> marca del backend, **filtrar por cuenta es la única forma de ver el gasto real**.
+>
+> **Qué falta en esta etapa:** el **interruptor del ruido** —depende de la parte 1 de
+> `../docs/handoff-sumas-honestas.md`— y **corregir la categoría desde el extracto**.
 
 ### E8 — Los dashboards ⬜
 

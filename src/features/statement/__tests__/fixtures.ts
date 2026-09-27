@@ -176,6 +176,55 @@ export const VALIDATION_ERROR_BODY = {
   message: 'El parámetro «from» no es una fecha válida',
 }
 
+/** The five accounts that fill the account select (feature 20), as the API sends them. */
+export const ACCOUNTS = [
+  {
+    id: 1,
+    iban: 'ES9820385778983000760236',
+    bank: 'bankinter',
+    alias: 'bankinter ···0236',
+    type: 'checking',
+    balance: '9954.63',
+  },
+  {
+    id: 2,
+    iban: 'ES6301289999990123456789',
+    bank: 'myinvestor',
+    alias: 'myinvestor ···6789',
+    type: 'checking',
+    balance: '3206.28',
+  },
+]
+
+/** The category tree that fills the category select, one level deep. */
+export const CATEGORIES = [
+  {
+    id: 1,
+    name: 'Food',
+    kind: 'expense',
+    parentId: null,
+    createdAt: '2026-08-06T18:30:00.000Z',
+    children: [
+      {
+        id: 2,
+        name: 'Groceries',
+        kind: 'expense',
+        parentId: 1,
+        createdAt: '2026-08-06T18:31:00.000Z',
+        children: [],
+      },
+    ],
+  },
+  {
+    id: 4,
+    name: 'Salary',
+    kind: 'income',
+    parentId: null,
+    createdAt: '2026-08-06T18:32:00.000Z',
+    children: [],
+  },
+]
+
 export function jsonResponse(body: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
@@ -213,6 +262,9 @@ export interface ApiCall {
  */
 export function mockApi(answers: {
   movements?: Answer | ((query: URLSearchParams) => Promise<Response>)
+  /** Feature 20: the two lists that fill the filter selects. Default to the fixtures. */
+  accounts?: Answer
+  categories?: Answer
 }) {
   const calls: ApiCall[] = []
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
@@ -222,13 +274,20 @@ export function mockApi(answers: {
     if (url.pathname === '/api/movements' && method === 'GET' && answers.movements) {
       return answers.movements(url.searchParams)
     }
+    if (url.pathname === '/api/accounts' && method === 'GET') {
+      return (answers.accounts ?? json(ACCOUNTS))()
+    }
+    if (url.pathname === '/api/categories' && method === 'GET') {
+      return (answers.categories ?? json(CATEGORIES))()
+    }
     return Promise.reject(new TypeError(`unexpected ${method} ${url.pathname}`))
   })
   return {
     calls,
     spy,
     /** Querystrings of the movement GETs, in order. */
-    queries: () => calls.map((call) => call.query.toString()),
+    queries: () =>
+      calls.filter((call) => call.path === MOVEMENTS).map((call) => call.query.toString()),
     methods: () => [...new Set(calls.map((call) => call.method))],
   }
 }

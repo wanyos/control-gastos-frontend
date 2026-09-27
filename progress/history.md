@@ -784,3 +784,40 @@ Plantilla para cada entrada nueva:
 - **Cierre:** feature 19 → **done**. E7 a medias: quedan filtros y búsqueda, el
   interruptor del ruido (depende de la parte 1 del handoff) y corregir categorías
   desde el extracto.
+
+## 2026-09-27 — Feature 20: statement-filters
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author`, `implementer` y
+  `reviewer`. Flujo SDD. Segunda rodaja de la E7.
+- **Decisión de producto previa del humano:** los filtros **afinan el mes**; se
+  conserva la navegación por meses y el rango libre de fechas no entra (se le
+  ofrecieron las tres opciones con maqueta).
+- **Spec:** `specs/20-statement-filters/`, 15 requisitos. El humano aprobó las 5
+  decisiones tal cual: la barra de la cola de revisión se **parte** (la lógica pura a
+  `src/shared/movement-filters.ts`, que `review/filters.ts` re-exporta; el componente
+  se copia con cuatro controles: búsqueda, cuenta, categoría y sin categoría), línea de
+  alcance con el recuento del propio filtro sin pedir el mes sin filtrar, mes y filtros
+  en la URL con las claves de la cola, desplegables completos con `GET /api/accounts` y
+  `GET /api/categories`, y «sin categoría» apagado al entrar.
+- **La combinación que el contrato rechaza** (`categoryId` junto a `uncategorized`) se
+  corrige en el cliente antes de que salga la petición: el 400 no puede verse.
+- **Revisión:** APROBADO sin cambios. El reviewer comprobó con `git diff` que **ningún
+  test de las features 15 a 18 cambió**, que la lógica mudada es idéntica carácter a
+  carácter, y que las dos desviaciones sobre tests existentes **refuerzan** lo que
+  protegían (el conjunto exacto de paths en vez de un `every`, y el test antifiltración
+  de mensajes ampliado a 8 combinaciones).
+- **T17, comprobación con el humano delante** (solo lectura): 8 combinaciones contra la
+  API real —mes entero, una cuenta, la de inversión, una categoría, sin categoría,
+  búsqueda, cuenta + sin categoría y búsqueda sin resultados—, con las cifras y el
+  recuento cuadrando en las 8. La URL imposible manda una sola petición sin
+  `categoryId` y sin error visible. Cero escrituras y cero errores de consola.
+- **Hallazgo de producto:** julio de 2026 en n26 son **221,45 € de entrada y 1.038,07 €
+  de salida**, frente a los 57.948 € y 59.096 € del mes entero; filtrando por
+  myinvestor salen 55.169 € y 55.357 €, que es el depósito rodando. Hasta que llegue la
+  marca del backend (parte 1 de `../docs/handoff-sumas-honestas.md`), **filtrar por
+  cuenta es la única forma de ver el gasto real**.
+- **Verificación:** type-check, lint, 1.135 tests (78 ficheros), build, 23 e2e y
+  `./init.sh` en verde. Se instalaron los binarios de Playwright que faltaban en la
+  máquina (no es dependencia nueva).
+- **Cierre:** feature 20 → **done**. E7 sigue 🟡: quedan el interruptor del ruido
+  (depende del backend) y corregir categorías desde el extracto.

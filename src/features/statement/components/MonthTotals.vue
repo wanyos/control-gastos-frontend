@@ -36,6 +36,11 @@
         </p>
       </div>
 
+      <!-- What the figures above were computed over, when filters narrow the month
+           (feature 20, R5). It lives OUTSIDE the permanent note on purpose: that note
+           talks about a whole month and does not change a word. -->
+      <p v-if="scope" class="text-sm text-ink-muted" data-test="statement-scope">{{ scope }}</p>
+
       <!-- Permanent on purpose: no close button, no tooltip (decisions.md 🔴 2). -->
       <p
         class="flex items-start gap-2 rounded-md bg-warning-subtle px-3 py-2 text-xs text-warning"
@@ -75,7 +80,15 @@ const FIGURES_NOTE =
   'already out of these figures, but you still see them in the list below. A clean view ' +
   'needs the noise switch, which comes in a later step.'
 
-const props = defineProps<{ pagination: Pagination; totals: Totals }>()
+const props = withDefaults(
+  defineProps<{
+    pagination: Pagination
+    totals: Totals
+    /** The line that names the active filters and their count (R5); absent without filters. */
+    scope?: string
+  }>(),
+  { scope: undefined },
+)
 
 const isNetNegative = computed(() => toCents(props.totals.net) < 0n)
 </script>

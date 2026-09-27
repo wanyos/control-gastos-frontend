@@ -3,11 +3,19 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 19 — statement-by-month (implementación)
-- **Inicio:** 2026-09-26
+- **Feature en curso:** 20 — statement-filters (implementación)
+- **Inicio:** 2026-09-27
 - **Agente:** leader (Claude Code) → implementer
 
 ## Plan
+
+Filtrar y buscar dentro del mes (F20): las tasks T0–T16 de
+`specs/20-statement-filters/tasks.md` en orden. La **T17 no es del implementer**
+(comprobación con el humano delante contra el backend real). Pantalla de **solo
+lectura**: ninguna petición suya escribe, y ninguna llamada real sale a `:3000` en
+los tests ni en el e2e (red de seguridad que aborta cualquier `/api` no prevista).
+
+## Plan anterior (F19, cerrada)
 
 El extracto mes a mes (F19): las tasks T0–T17 de
 `specs/19-statement-by-month/tasks.md` en orden. La **T18 no es del implementer**
@@ -277,8 +285,66 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   combinación inválida, desplegables completos con `GET /api/accounts` y
   `GET /api/categories`, y «sin categoría» apagado al entrar. F20 a `in_progress`.
 
+- 2026-09-27 — implementer arranca la F20. **T0 cerrado sin sorpresas**: (a)
+  `buildMovementsQuery` de `shared/movements.ts` ya descarta `categoryId` cuando
+  viaja `uncategorized: true` (tercera barrera); (b) las parejas de color de la
+  barra (`--ink-muted`/`--ink-body` sobre `--surface-app` y `--surface-card`,
+  `--border-default on --surface-card` de los inputs, `--negative on --surface-card`
+  del aviso de longitud) **ya tienen** su línea `contrast:` en `theme-dark.css`, así
+  que el tema no se toca; (c) `GET http://localhost:3000/api/accounts` devuelve las
+  **5 cuentas** reales (myinvestor, n26, openbank, bankinter, revolut) con `id`,
+  `iban`, `bank`, `alias` y `type` tal como dice el contrato (lectura, sin escribir).
+
+- 2026-09-27 — T1-T4: lo común de los filtros (`SEARCH_MIN/MAX/TOO_LONG`, `searchTerm`,
+  `firstQueryValue`, `positiveIntegerQuery`) se muda a `src/shared/movement-filters.ts` y
+  `review/filters.ts` lo re-exporta: la suite de `review` pasa **sin tocar ni un test**
+  (240). Nuevo `src/shared/accounts.ts` (solo los 5 campos del desplegable, saldos
+  ignorados) con sus tests.
+- 2026-09-27 — T5-T9: `statement/filters.ts` con los cuatro filtros, `monthQuery` mudada
+  de `months.ts` y ampliada, URL en los dos sentidos con la corrección silenciosa de la
+  combinación imposible, y las dos frases nuevas; `statementErrorMessage` pasa a
+  `{ message, action }`; el store gana `filters`, las dos listas y `applyFilters`.
+- 2026-09-27 — T10-T16: barra propia con **cuatro** controles (sin tipo, estado ni
+  fechas), copia del selector de categoría, línea de alcance en `MonthTotals` **fuera** de
+  la nota permanente, `StatementList` con las dos frases de vacío, y la vista con la URL
+  como única escritora de mes + filtros (`replace` al filtrar, `push` al cambiar de mes).
+- 2026-09-27 — **F20 implementada**: T0–T16 en `[x]` (la T17, con el humano delante contra
+  el backend real, sigue pendiente y no bloquea). 15 requisitos con test: **+4 ficheros y
+  +75 tests unitarios (1.135 en total)** y **2 escenarios e2e nuevos (23 en chromium)**,
+  con todas las llamadas interceptadas y la red de seguridad; **ninguna petición distinta
+  de `GET`** y ni un import de `@/features/review` en el extracto. La nota permanente de la
+  F19 no cambió ni una palabra y sigue visible con filtros. Puerta completa verde
+  (`type-check`, `lint`, 1.135 tests, `build`, e2e chromium, `./init.sh`). Sin
+  dependencias nuevas y sin tocar `theme-dark.css`; hubo que instalar los binarios de
+  Playwright (`pnpm exec playwright install chromium`), que faltaban en la máquina.
+  **Cinco desviaciones declaradas** en el informe (las dos que tocan tests de la F19:
+  las aserciones de `statementErrorMessage` en `months.spec.ts` por el cambio de firma de
+  la T6, y el test de solo-lectura de `StatementView.spec.ts`, que ahora mide los tres
+  paths de lectura). Informe en `progress/implementation/statement-filters.md`.
+  Falta el reviewer.
+
+- 2026-09-27 — reviewer aprueba la F20 sin cambios. Verificó con `git diff` que
+  ningún test de las F15-F18 cambió, que la mudanza de la lógica a `shared/` es
+  idéntica carácter a carácter, y que las dos desviaciones sobre tests existentes
+  refuerzan en vez de debilitar.
+- 2026-09-27 — **T17 hecha** con el humano delante, solo lectura: 8 combinaciones de
+  filtros contra la API real (mes entero, una cuenta, la de inversión, una categoría,
+  sin categoría, búsqueda, cuenta + sin categoría, y búsqueda sin resultados). Las
+  cifras coinciden en las 8. La línea de alcance dice «56 movements match these
+  filters in July 2026 · Account n26 ···4136». La URL imposible (categoría + sin
+  categoría) manda una sola petición con `uncategorized=true` y sin `categoryId`, sin
+  error visible, con la nota permanente presente. Cero escrituras y cero errores.
+- 2026-09-27 — Hallazgo de la prueba, útil para el humano: julio de 2026 en n26 son
+  221,45 € de entrada y 1.038,07 € de salida, mientras el mes entero lee 57.948 € y
+  59.096 €. Filtrando por myinvestor salen 55.169 € y 55.357 €: el depósito rodando.
+  Filtrar por cuenta es, hasta que llegue la marca del backend, la única forma de ver
+  el gasto real.
+
+- 2026-09-27 — F20 en `done`, E7 al día en el roadmap, historial escrito y puerta
+  repetida por el leader (init.sh: «Entorno listo»).
+
 ## Próximo paso
 
-Implementar la F20 y pasarla por el reviewer. Después de la E7 quedan el
-interruptor del ruido (espera la parte 1 de `../docs/handoff-sumas-honestas.md`) y
-corregir categorías desde el extracto.
+Dos caminos, los dos abiertos: corregir categorías desde el extracto (escribe, se
+puede hacer ya) o abrir la sesión del backend con `../docs/handoff-sumas-honestas.md`,
+que desbloquea el interruptor del ruido y la E8.
