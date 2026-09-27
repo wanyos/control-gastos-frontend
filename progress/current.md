@@ -260,8 +260,25 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   ahora mismo» reescrita: llevaba seis features desfasada), historial escrito y
   puerta repetida por el leader (init.sh: «Entorno listo»).
 
+- 2026-09-27 — Spec de la F20 escrito (`specs/20-statement-filters/`, 15 requisitos y
+  5 decisiones 🔴: la barra de la cola se parte en dos —cerebro compartido, cara
+  copiada— con solo cuatro controles y sin tipo/estado/fechas; línea de alcance con
+  recuento del filtro sin pedir el mes sin filtrar; mes y filtros en la URL con las
+  claves de la cola y la combinación imposible corregida en el cliente antes de pedir;
+  desplegables completos con `GET /api/accounts` (5) y `GET /api/categories` (16); y
+  «sin categoría» apagado al entrar). Segunda rodaja de la E7. La nota permanente de
+  la F19 no cambia ni una palabra. Feature en `spec_ready`, a la espera de la puerta
+  humana.
+
+- 2026-09-27 — El humano elige que **los filtros afinen el mes** (no entra rango libre
+  de fechas) y aprueba el spec de la F20 tal cual, las 5 🔴 incluidas: barra partida
+  (lógica a `shared/`, componente copiado con cuatro controles), línea de alcance con
+  el recuento del filtro, mes y filtros en la URL con corrección en cliente de la
+  combinación inválida, desplegables completos con `GET /api/accounts` y
+  `GET /api/categories`, y «sin categoría» apagado al entrar. F20 a `in_progress`.
+
 ## Próximo paso
 
-Siguiente rodaja de la E7: filtros y búsqueda en el extracto. El interruptor del
-ruido espera la parte 1 de `../docs/handoff-sumas-honestas.md` (sesión del backend).
-La E8 no debería empezar antes de esa parte.
+Implementar la F20 y pasarla por el reviewer. Después de la E7 quedan el
+interruptor del ruido (espera la parte 1 de `../docs/handoff-sumas-honestas.md`) y
+corregir categorías desde el extracto.

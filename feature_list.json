@@ -791,6 +791,60 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 20,
+      "name": "statement-filters",
+      "title": "Filtrar y buscar dentro del mes del extracto",
+      "intent": {
+        "que_quiero": "En el extracto quiero filtrar por cuenta, por categoría y por los que no tienen categoría, y buscar por un trozo del concepto, sin salir del mes que estoy mirando. Quiero ver de un tirón lo que aún no tiene categoría, para saber qué me falta. Y quiero que las sumas que veo se correspondan con lo que estoy viendo filtrado.",
+        "por_que": "Porque con 33 meses y miles de movimientos, mirar un mes entero no basta: quiero preguntarle cosas concretas, como cuánto me costó la luz en marzo o qué me queda sin categorizar de este mes. Hoy eso solo se puede hacer en la cola de revisión, que es una lista de trabajo, no mi histórico.",
+        "como_se_que_esta_bien": [
+          "Filtro por una cuenta y veo solo la suya, con sus propias sumas.",
+          "Filtro por una categoría y veo todo lo que la lleva en ese mes.",
+          "Pido los que no tienen categoría y veo cuántos son en ese mes.",
+          "Busco un trozo del concepto y lo encuentro, escriba con tildes o sin ellas.",
+          "Cambio de mes y los filtros que tenía puestos siguen puestos.",
+          "Si un filtro deja el mes sin nada, me lo dice y distingue eso de que el mes esté vacío.",
+          "Puedo quitar todos los filtros de una vez.",
+          "Recargo la página o le doy a atrás y sigo viendo lo mismo que estaba viendo."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero perder la navegación por meses: los filtros afinan el mes, no lo sustituyen.",
+          "No quiero todavía un rango libre de fechas: si me hace falta, se añade después.",
+          "No quiero que esta feature escriba nada: sigue siendo solo mirar.",
+          "No quiero que las sumas dejen de ser las del backend.",
+          "No quiero duplicar la barra de filtros de la cola de revisión si se puede reutilizar."
+        ],
+        "delego_en_agente": [
+          "Si la barra de filtros de la cola de revisión se reutiliza tal cual, se comparte o se copia.",
+          "Cuánto se espera al escribir en la búsqueda y qué se hace con textos demasiado cortos o largos.",
+          "Qué se enseña cuando hay filtros puestos: un resumen de lo filtrado, un contador, o nada.",
+          "Cómo se reparten los filtros y el mes en la URL.",
+          "Si el desplegable de cuentas y el de categorías se llenan con todo lo que existe o con lo que aparece en el mes."
+        ],
+        "respuestas_del_humano": [
+          "Los filtros afinan el mes: se conserva la navegación por meses y no entra todavía un rango libre de fechas."
+        ]
+      },
+      "acceptance": [
+        "Dentro del mes se puede filtrar por accountId, por categoryId y por uncategorized=true, y buscar con q, todo contra GET /api/movements junto al from y to del mes",
+        "Las sumas siguen siendo las de totals de la respuesta, que el backend calcula sobre el filtro aplicado: nunca se suman en el cliente",
+        "uncategorized y categoryId nunca viajan juntos (el contrato responde 400): elegir uno desmarca el otro",
+        "La búsqueda respeta los límites del contrato para q (2 a 100 caracteres) y espera tras la última tecla, como en la cola de revisión",
+        "Los filtros y el mes viven en la URL, de modo que recargar y el botón de atrás conservan lo que se estaba viendo",
+        "Al cambiar de mes los filtros se conservan",
+        "Un mes con filtros que no deja resultados se dice con un mensaje distinto del de un mes sin movimientos",
+        "Hay una forma de quitar todos los filtros de una vez",
+        "Solo lectura: ni un POST, PATCH ni DELETE en toda la pantalla",
+        "No cambia el comportamiento de la cola de revisión ni de las reglas; si se comparte la barra de filtros, sus tests siguen pasando",
+        "La nota permanente sobre las sumas infladas sigue visible y sin poder cerrarse",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }
