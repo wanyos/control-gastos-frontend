@@ -343,8 +343,22 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
 - 2026-09-27 — F20 en `done`, E7 al día en el roadmap, historial escrito y puerta
   repetida por el leader (init.sh: «Entorno listo»).
 
+- 2026-09-27 — spec_author redacta el spec de la **F21 `statement-fix-category`** (tercera rodaja de la E7, la primera vez que el extracto escribe): 17 requisitos, 22 tasks, entradas reales leídas (`PATCH /api/movements/:id` y `POST /api/category-rules` del contrato, y el código de las F16-F20). Feature a `spec_ready`; esperando la puerta de aprobación humana sobre `specs/21-statement-fix-category/decisions.md`.
+
+- 2026-09-27 — Con el backend trabajando en su parte del handoff, aquí se arranca la
+  F21 `statement-fix-category`: la única rodaja de la E7 que no depende de él.
+  Intención del humano a partir del borrador `docs/intent-f21-draft.md`, con sus
+  cuatro respuestas: solo la categoría, de uno en uno, sí crear reglas desde el
+  extracto, y la línea desaparece al momento si deja de encajar con el filtro.
+- 2026-09-27 — El humano aprueba el spec de la F21 tal cual, las 5 🔴 incluidas:
+  selector escondido (la etiqueta de categoría se vuelve editor en su sitio),
+  `Create rule` colgando de ese editor y sin categorizar el movimiento de origen,
+  la línea desaparece también filtrando por una categoría concreta, deshacer sin
+  cuenta atrás, y las cifras solo se repiden si hay filtro de categoría puesto.
+  F21 pasa a `in_progress`.
+
 ## Próximo paso
 
-Dos caminos, los dos abiertos: corregir categorías desde el extracto (escribe, se
-puede hacer ya) o abrir la sesión del backend con `../docs/handoff-sumas-honestas.md`,
-que desbloquea el interruptor del ruido y la E8.
+Implementar la F21 y pasarla por el reviewer; la T22 (prueba real, escribe) necesita
+visto bueno explícito del humano. Después, esperar la parte 1 de
+`../docs/handoff-sumas-honestas.md` para el interruptor del ruido y la E8.

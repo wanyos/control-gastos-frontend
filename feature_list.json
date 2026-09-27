@@ -845,6 +845,63 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 21,
+      "name": "statement-fix-category",
+      "title": "Corregir la categoría desde el extracto, y crear una regla desde ahí",
+      "intent": {
+        "que_quiero": "Cuando en el extracto vea un movimiento mal categorizado, quiero arreglarlo ahí mismo, sin ir a otra pantalla ni buscarlo de nuevo. Quiero poder ponerle o cambiarle la categoría a cualquier movimiento del mes que esté mirando, esté pendiente o ya confirmado, y quiero poder crear una regla desde ese movimiento, como ya hago desde la cola de revisión. Quiero que el cambio se vea al momento, que las sumas del mes se pongan al día sin recargar, y poder deshacer lo último por si me equivoco.",
+        "por_que": "Porque el extracto es donde de verdad veo las cosas raras: repasando un mes es cuando descubro que algo está en la categoría equivocada. Si para arreglarlo tengo que acordarme del concepto, irme a la cola de revisión y buscarlo —y encima solo está ahí si sigue pendiente—, no lo voy a hacer. Y cuando una regla se pase de amplia, me voy a enterar mirando el extracto, que es donde se ve el resultado.",
+        "como_se_que_esta_bien": [
+          "Cambio la categoría de un movimiento del mes y lo veo al instante.",
+          "Funciona igual con uno ya confirmado que con uno pendiente.",
+          "Las sumas del mes se actualizan solas después del cambio.",
+          "Puedo crear una regla desde un movimiento del extracto, viendo antes a cuántos afectaría, igual que en la cola.",
+          "Puedo deshacer lo último que hice y vuelve a estar como estaba.",
+          "Si el cambio falla, me lo dice claramente y no me deja la pantalla mintiendo.",
+          "Si tengo el filtro «sin categoría» puesto y categorizo una línea, esa línea desaparece al momento.",
+          "No puedo tocar por error el importe, la fecha ni el concepto."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero editar importe, fecha ni descripción.",
+          "No quiero borrar movimientos.",
+          "No quiero cambiar el estado desde aquí: ni confirmar ni devolver a pendiente.",
+          "No quiero acciones en bloque en el extracto: corrijo cosas sueltas, y en serie ya está la cola.",
+          "No quiero que esta feature mueva las sumas de sitio ni quite la nota que explica que están infladas.",
+          "No quiero que el extracto se convierta en otra cola de revisión."
+        ],
+        "delego_en_agente": [
+          "Si el control de categoría está siempre visible en cada línea o aparece al pasar por encima o al pulsar la línea.",
+          "Cuánto dura el deshacer y dónde se enseña.",
+          "Si se reutiliza tal cual lo de la cola de revisión (selector de categoría, deshacer, avisos y el diálogo de crear regla) o hace falta adaptarlo.",
+          "Qué pasa con la línea cuando el cambio la deja fuera de un filtro que no sea «sin categoría» (por ejemplo, filtrando por una categoría concreta)."
+        ],
+        "respuestas_del_humano": [
+          "Solo la categoría: el estado no se toca desde el extracto.",
+          "De uno en uno, lo más sencillo; sin acciones en bloque.",
+          "Sí se puede crear una regla desde el extracto.",
+          "Con el filtro «sin categoría» puesto, la línea categorizada desaparece al momento."
+        ]
+      },
+      "acceptance": [
+        "Desde una línea del extracto se puede asignar, cambiar o quitar la categoría con PATCH /api/movements/:id, enviando solo categoryId",
+        "Funciona igual con un movimiento confirmado que con uno pendiente: el status no viaja nunca en el cuerpo",
+        "Solo se ofrecen categorías cuyo kind case con el type del movimiento; un movimiento neutral no se categoriza, igual que en la feature 16",
+        "Tras el cambio, la lista y las sumas del mes se ponen al día con lo que devuelve la respuesta y un refresco en segundo plano, sin recargar la página",
+        "Hay deshacer de la última acción, que devuelve la categoría anterior con otro PATCH",
+        "Con el filtro uncategorized puesto, la línea que acaba de recibir categoría desaparece de la lista al momento",
+        "Desde una línea se puede crear una regla reutilizando el diálogo de la feature 17, con su previsualización de a cuántos afecta (feature 18)",
+        "Los errores se explican en inglés sin pintar el mensaje del backend, y ante un fallo que pudiera haber escrito se recarga en vez de afirmar que no pasó nada",
+        "No se envía ninguna propiedad fuera de categoryId, ni se ofrece cambiar estado, importe, fecha ni descripción",
+        "La nota permanente sobre las sumas infladas sigue visible y sin poder cerrarse, y las cifras siguen siendo las del backend",
+        "La cola de revisión, las reglas y la previsualización siguen funcionando igual; lo que se comparta no cambia su comportamiento",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }
