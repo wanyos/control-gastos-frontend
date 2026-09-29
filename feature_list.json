@@ -902,6 +902,59 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 22,
+      "name": "statement-exclude-from-totals",
+      "title": "Marcar movimientos como que no cuentan en mis sumas",
+      "intent": {
+        "que_quiero": "Quiero poder decirle a un movimiento que no cuenta en mis sumas: las aperturas y vencimientos de depósito, y los traspasos a cuentas mías que el programa no emparejó. Quiero poder hacerlo de varios a la vez, porque son decenas y de uno en uno no lo voy a hacer nunca. Quiero verlo claro: que un movimiento marcado se distinga de un vistazo, que las sumas del mes cambien al momento, y poder quitar la marca si me equivoco. Y que quede claro que marcar no borra ni cambia nada: el movimiento sigue en su sitio, con su importe y su fecha, y el saldo de la cuenta no se mueve.",
+        "por_que": "Porque hoy las sumas de cualquier mes están infladas y no me sirven para nada. Julio dice 57.948 € de entrada cuando lo mío fueron 221 €. Mientras no pueda apartar ese ruido, ni el extracto ni los dashboards que vienen después me dicen la verdad.",
+        "como_se_que_esta_bien": [
+          "Marco un movimiento y las sumas del mes bajan al momento en ese importe.",
+          "Marco varios de una vez, sin repetir el gesto uno por uno.",
+          "Un movimiento marcado se ve distinto en la lista: sé cuáles he apartado.",
+          "Le quito la marca y las sumas vuelven a incluirlo.",
+          "El importe, la fecha, la descripción y el saldo de la cuenta no cambian nunca.",
+          "Si algo falla, me lo dice y no me deja la pantalla diciendo algo que no es.",
+          "Puedo encontrar rápido lo que quiero marcar: los depósitos están todos en la cuenta de myinvestor, así que filtrando por ella me valen."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero que marcar cambie el importe, la fecha, la descripción ni el saldo.",
+          "No quiero que se marque nada solo, ni por regla ni por adivinanza: lo decido yo.",
+          "No quiero perder de vista lo marcado: apartado de las sumas no es lo mismo que escondido.",
+          "No quiero poder marcar desde la cola de revisión todavía: de momento, solo en el extracto."
+        ],
+        "delego_en_agente": [
+          "Cómo se ve un movimiento marcado sin que la lista se vuelva un árbol de Navidad.",
+          "Si hace falta pedir confirmación al marcar muchos de golpe.",
+          "Si conviene un deshacer como el de la cola, o basta con volver a pulsar.",
+          "Cómo conviven la selección múltiple y el editor de categoría que ya tiene la línea."
+        ],
+        "respuestas_del_humano": [
+          "Marcar en bloque, con selección múltiple.",
+          "Sin ayudas para encontrar los depósitos: están todos en la cuenta de myinvestor y se llega filtrando por ella. Lo más sencillo posible.",
+          "Solo desde el extracto, de momento.",
+          "Nada de marcar automáticamente por regla: la marca la escribe siempre el humano."
+        ]
+      },
+      "acceptance": [
+        "Desde el extracto se puede marcar y desmarcar excludedFromTotals con PATCH /api/movements/:id y, para varios, con PATCH /api/movements (hasta 200 ids sin repetir)",
+        "El valor viaja como booleano literal true o false: el contrato responde 400 a null, \"true\", 0 o 1",
+        "El cuerpo se construye campo a campo: al marcar solo viaja excludedFromTotals, nunca status ni categoryId",
+        "Tras marcar o desmarcar, las sumas del mes se vuelven a pedir: el backend las recalcula y esta es la única acción del extracto que sí las mueve",
+        "Un movimiento marcado se distingue en la lista y sigue visible: marcar no es esconder",
+        "Se puede marcar un movimiento de cualquier tipo, incluidos los neutral y las piernas de un traspaso, como permite el contrato",
+        "La selección múltiple respeta el tope de 200 del contrato y no manda ids repetidos",
+        "Los errores se explican en inglés sin pintar el mensaje del backend; ante un fallo que pudiera haber escrito, se recarga en vez de afirmar que no pasó nada",
+        "Nada marca movimientos por su cuenta: no hay reglas ni heurísticas que escriban esta marca",
+        "El editor de categoría de la feature 21 y el resto del extracto siguen funcionando igual",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }

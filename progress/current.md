@@ -426,9 +426,37 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   comentario de `statement/types.ts` decía que la pantalla solo lee), nota inline en la
   T3 y puerta repetida por el leader (init.sh: «Entorno listo»).
 
+- 2026-09-29 — Spec de la F22 escrito (`specs/22-statement-exclude-from-totals/`,
+  16 requisitos y 5 decisiones 🔴: modo de selección que se enciende a propósito y
+  aparta el editor de categoría de la F21, etiqueta gris `Not counted` con el importe
+  atenuado, confirmación a partir de 20 como en la F16, `Undo` sin cuenta atrás además
+  de volver a pulsar, y un único camino de escritura por `PATCH /api/movements`).
+  Redactado contra el contrato del backend del 2026-09-27 (feature 49): cuerpo
+  `{ ids, excludedFromTotals }` con booleano literal, y un refresco del mes en segundo
+  plano tras cada acción porque aquí las sumas **sí** se mueven. Feature en
+  `spec_ready`, a la espera de la puerta humana.
+
+- 2026-09-29 — El backend cierra su parte del handoff: features 49 (7711063) y 50
+  (a6195be). Existen `excludedFromTotals` (uno a uno y en bloque), los filtros
+  `excluded` y `transfer`, `GET /api/transfers`, `GET /api/transfers/ambiguous` y
+  `GET /api/investments/deposits`. Desbloqueadas las partes 2 y 3.
+- 2026-09-29 — Tres borradores repasados con el humano (`docs/intent-ruido-drafts.md`):
+  A marcar «no cuenta», B el interruptor del ruido, C revisar las parejas. Sus
+  respuestas: A en bloque, sin ayudas para encontrar depósitos (filtrando por
+  myinvestor basta) y solo en el extracto; B entra mostrándolo todo y el número de
+  interruptores lo decide el agente; C pantalla propia, verlas todas, y emparejar
+  dudosos dentro si cabe. **Acordado además: nada de marcar automáticamente por
+  regla** — la marca la escribe siempre el humano.
+- 2026-09-29 — El humano aprueba el spec de la F22 tal cual, las 5 🔴 incluidas: modo
+  `Select movements` (las casillas solo cuando se piden, y entonces la etiqueta de
+  categoría deja de ser pulsable), marcado con etiqueta gris `Not counted` e importe
+  atenuado, confirmación a partir de 20, `Undo` sin cuenta atrás, y **un único camino
+  de escritura** por `PATCH /api/movements` aunque sea un solo movimiento (esto
+  contradice a propósito el acceptance que había derivado el leader, y se aceptó por
+  ser un solo sitio donde algo puede colarse). F22 pasa a `in_progress`.
+
 ## Próximo paso
 
-El interruptor del ruido en el extracto: parte 2 de `../docs/handoff-sumas-honestas.md`,
-desbloqueada por la feature 49 del backend (`excludedFromTotals` y los filtros
-`transfer` y `excluded`). Conviene esperar a que el backend commitee y cierre su
-feature antes de construir contra su contrato.
+Implementar la F22 y pasarla por el reviewer; la T23 (escribe) necesita visto bueno
+explícito. Después, la B (interruptor del ruido) y la C (revisar parejas de
+traspaso), ya redactadas en borrador.
