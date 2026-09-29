@@ -955,6 +955,54 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 23,
+      "name": "statement-noise-toggle",
+      "title": "El interruptor del ruido: leer un mes limpio, y una nota que ya no mienta",
+      "intent": {
+        "que_quiero": "Quiero un interruptor en el extracto que esconda lo que no cuenta: lo que he marcado y los traspasos entre mis cuentas. Con el interruptor puesto quiero ver solo mi vida real; al quitarlo, verlo todo otra vez. Quiero que la pantalla me diga cuánto se está dejando fuera, para no olvidarme de que existe. Y quiero que la nota que hoy avisa de que las sumas están infladas cambie: cuando ya no lo estén, esa nota tiene que dejar de asustar y decir la verdad nueva.",
+        "por_que": "Porque una vez apartado el ruido, lo que quiero de un mes es leerlo limpio, sin 30.000 € de un depósito en medio. Y porque la nota permanente que pusimos era honesta mientras no había arreglo; mantenerla igual cuando ya lo hay sería mentir al revés.",
+        "como_se_que_esta_bien": [
+          "Pongo el interruptor y desaparecen de la lista los marcados y los traspasos.",
+          "Las sumas que veo se corresponden con lo que queda a la vista.",
+          "La pantalla me dice cuántos movimientos ha dejado fuera y por cuánto.",
+          "Quito el interruptor y vuelve todo.",
+          "El interruptor se recuerda al cambiar de mes y al recargar.",
+          "La nota sobre las sumas ya no dice que están infladas sin remedio: dice lo que pasa de verdad ahora."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero que el interruptor escriba nada: solo enseña o esconde.",
+          "No quiero que se ponga solo sin que yo lo sepa.",
+          "No quiero perder los filtros que ya hay ni la navegación por meses.",
+          "No quiero que desaparezca la posibilidad de ver lo apartado: esconder es una vista, no un borrado."
+        ],
+        "delego_en_agente": [
+          "Si es un interruptor o dos (lo marcado y los traspasos son cosas distintas por dentro, aunque para mí sean lo mismo).",
+          "Cómo se dice lo que queda fuera sin llenar la pantalla de texto.",
+          "Qué dice exactamente la nota nueva.",
+          "Cómo conviven el interruptor y los filtros que ya existen, y qué manda si se contradicen."
+        ],
+        "respuestas_del_humano": [
+          "Al entrar se ve todo: el interruptor empieza apagado.",
+          "El número de interruptores lo decide el agente; el humano se inclinaba por dos pero sin seguridad."
+        ]
+      },
+      "acceptance": [
+        "El extracto puede pedir la lista con excluded=none y/o transfer=none para esconder lo apartado, usando los parámetros que añadió la feature 49 del backend",
+        "Las sumas que se enseñan siguen siendo las de totals de la respuesta, que el backend calcula sobre el filtro aplicado",
+        "Con el interruptor puesto, la pantalla dice cuántos movimientos quedan fuera y por cuánto, sin inventar cifras en el cliente",
+        "El interruptor vive en la URL junto al mes y los filtros, y se conserva al cambiar de mes, al recargar y al volver atrás",
+        "Empieza apagado: al entrar se ve todo",
+        "La nota permanente de la feature 19 se reescribe: deja de decir que las sumas están infladas sin remedio y explica el estado real, incluido qué se aparta y cómo verlo",
+        "Solo lectura: el interruptor no escribe nada",
+        "Convive con los filtros de la feature 20 y con la selección de la feature 22 sin romperlos; si el interruptor esconde un movimiento seleccionado, la pantalla se comporta de forma previsible",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "pnpm type-check, pnpm lint, pnpm test:unit, pnpm build y ./init.sh terminan en verde"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }

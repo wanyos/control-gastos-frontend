@@ -516,9 +516,37 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
 - 2026-09-29 — F22 en `done`, E7 al día en el roadmap, historial escrito y puerta
   repetida por el leader (init.sh: «Entorno listo»).
 
+- 2026-09-29 — **F23 `statement-noise-toggle` con spec redactado** (spec_author):
+  `specs/23-statement-noise-toggle/{decisions,requirements,design,tasks}.md`, 14
+  requisitos + 8 restricciones, feature a `spec_ready`. Solo lectura: un interruptor
+  `Hide what does not count` (`excluded=none&transfer=none`) y la reescritura de la
+  nota permanente de la F19. Pendiente: **puerta de aprobación humana** sobre
+  `specs/23-statement-noise-toggle/decisions.md` (5 puntos 🔴).
+
+- 2026-09-29 — **F23: segunda vuelta del spec antes de aprobarlo** (spec_author).
+  La nota pierde los literales «17», «2» y «150 €»: el texto fijo queda **sin ninguna
+  cifra** (R14) y la única viva es `ambiguousCount` de `GET /api/transfers/ambiguous`,
+  **una lectura por sesión** (R15). Descartados a propósito `GET /api/transfers` →
+  `pairs.length` (habla de toda la historia y trae las 40 parejas completas) y el
+  recuento de marcados del mes (1 petición por mes y por filtro). 15 requisitos; la
+  feature sigue en `spec_ready` esperando la puerta sobre los 🔴 2 y 3.
+
+- 2026-09-29 — El leader objeta la 🔴 2 de la F23: la nota propuesta clavaba «17
+  traspasos», «2 parejas falsas» y «150 €», que es la misma enfermedad que la feature
+  viene a curar. El humano elige **calcularlo**. Aviso previo: el «17» salió de una
+  búsqueda por conceptos con falsos positivos posibles y el «2» de mirar dos multas
+  entre los dos; ninguno de esos dos es calculable. Se pide rehacer la nota con lo
+  calculable en vivo y lo que es juicio del humano dicho sin cifra.
+- 2026-09-29 — Nota rehecha y **F23 aprobada por el humano**: texto fijo sin cifras,
+  más una frase viva solo si hay grupos dudosos (`ambiguousCount` de
+  `GET /api/transfers/ambiguous`, **una petición por sesión**; con 0 o si falla, no
+  sale y no se pinta error). Descartadas por coste `pairs.length` y el recuento de
+  marcados del mes. El resto de 🔴 tal cual: un solo interruptor, nota gris en vez de
+  ámbar, sin importe (la API lo da a cero por definición) y interruptor y filtros
+  aplicándose los dos. F23 pasa a `in_progress`.
+
 ## Próximo paso
 
-Quedan dos features de la E7, ya revisadas en borrador con el humano
-(`docs/intent-ruido-drafts.md`): el interruptor del ruido y revisar las parejas de
-traspaso. Y sin usar en el frontend, `GET /api/investments/deposits` (feature 50 del
-backend), que encaja en la E8.
+Implementar la F23 y pasarla por el reviewer; su comprobación final es de solo
+lectura. Después, la última de la E7: revisar las parejas de traspaso (pantalla
+propia), ya revisada en borrador con el humano.
