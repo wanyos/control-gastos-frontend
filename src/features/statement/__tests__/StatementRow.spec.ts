@@ -8,7 +8,7 @@ import { createValidators } from '@/shared/validation'
 import { formatMoney } from '@/shared/money'
 
 import StatementRow from '../components/StatementRow.vue'
-import { CATEGORIES, EXPENSE, INCOME, NEUTRAL, TRANSFER, movement } from './fixtures'
+import { CATEGORIES, EXPENSE, INCOME, NEUTRAL, TRANSFER, excluded, movement } from './fixtures'
 
 const checks = createValidators('test')
 const parse = (raw: Record<string, unknown>): Movement => parseMovement(checks, raw, 'movement')
@@ -157,5 +157,107 @@ describe('StatementRow (R9, R10)', () => {
     expect(mountRow(raw).get('[data-test="statement-row-account"]').text()).toBe(
       'sabadell · sabadell ···1111',
     )
+  })
+
+  // --- The selection mode and the mark (feature 22) ---
+
+  describe('the checkbox of the selection mode (R4, R5, R6)', () => {
+    it('paints NO checkbox while the mode is off (R4)', () => {
+      const row = mountRow(EXPENSE)
+
+      expect(row.find('[data-test="statement-row-select"]').exists()).toBe(false)
+      expect(row.find('input[type="checkbox"]').exists()).toBe(false)
+    })
+
+    it('paints one checkbox per row while the mode is on, named after the movement (R5)', () => {
+      const row = mountRow(EXPENSE, { selectable: true })
+
+      const box = row.get('[data-test="statement-row-select"] input')
+      expect(box.attributes('aria-label')).toBe('Select CAFETERÍA CENTRAL')
+      expect((box.element as HTMLInputElement).checked).toBe(false)
+    })
+
+    it('shows the row as ticked and asks the parent to toggle it', async () => {
+      const row = mountRow(EXPENSE, { selectable: true, selected: true })
+      const box = row.get('[data-test="statement-row-select"] input')
+      expect((box.element as HTMLInputElement).checked).toBe(true)
+
+      await box.setValue(false)
+
+      expect(row.emitted('toggle')).toHaveLength(1)
+    })
+
+    it('stops the category badge from being pressable in that mode (R6)', () => {
+      const off = mountRow(EXPENSE)
+      expect(off.find('[data-test="statement-row-category-button"]').exists()).toBe(true)
+
+      const on = mountRow(EXPENSE, { selectable: true })
+
+      expect(on.find('[data-test="statement-row-category-button"]').exists()).toBe(false)
+      expect(on.find('button').exists()).toBe(false)
+      // The badge is still there: it is not pressable, it has not gone.
+      expect(on.get('[data-test="statement-row-category"]').text()).toBe('Food')
+    })
+
+    it('gives the badge back as a button when the mode is turned off again (R6)', async () => {
+      const row = mountRow(EXPENSE, { selectable: true })
+
+      await row.setProps({ selectable: false })
+
+      expect(row.find('[data-test="statement-row-category-button"]').exists()).toBe(true)
+      expect(row.find('[data-test="statement-row-select"]').exists()).toBe(false)
+    })
+
+    it('disables the checkbox while a write is in flight (C5)', () => {
+      const row = mountRow(EXPENSE, { selectable: true, busy: true })
+
+      expect(
+        (row.get('[data-test="statement-row-select"] input').element as HTMLInputElement).disabled,
+      ).toBe(true)
+    })
+  })
+
+  describe('a movement that does not count in the figures (R8, R9)', () => {
+    it('carries the `Not counted` badge, with its reason', () => {
+      const row = mountRow(excluded(EXPENSE))
+
+      const badge = row.get('[data-test="statement-row-excluded"]')
+      expect(badge.text()).toBe('Not counted')
+      expect(badge.attributes('title')).toBe("Not counted in this month's figures")
+    })
+
+    it('has no badge at all when it is not marked', () => {
+      expect(mountRow(EXPENSE).find('[data-test="statement-row-excluded"]').exists()).toBe(false)
+    })
+
+    it('lives next to the Transfer badge, both at once', () => {
+      const row = mountRow(excluded(TRANSFER))
+
+      expect(row.find('[data-test="statement-row-transfer"]').exists()).toBe(true)
+      expect(row.find('[data-test="statement-row-excluded"]').exists()).toBe(true)
+    })
+
+    it('greys the amount out without changing it, and adds no other marking (🔴 2)', () => {
+      const plain = mountRow(EXPENSE).get('[data-test="statement-row-amount"]')
+      const marked = mountRow(excluded(EXPENSE)).get('[data-test="statement-row-amount"]')
+
+      expect(marked.text()).toBe(plain.text())
+      expect(marked.classes()).toContain('text-ink-muted')
+      expect(plain.classes()).toContain('text-ink-strong')
+      // No coloured row, no strikethrough, no side stripe.
+      const row = mountRow(excluded(EXPENSE))
+      expect(row.get('[data-test="statement-row"]').classes().join(' ')).toBe(
+        mountRow(EXPENSE).get('[data-test="statement-row"]').classes().join(' '),
+      )
+      expect(marked.classes().join(' ')).not.toContain('line-through')
+    })
+
+    it('greys an income out too, sign and figure untouched', () => {
+      const marked = mountRow(excluded(INCOME)).get('[data-test="statement-row-amount"]')
+
+      expect(marked.text()).toBe(formatMoney('1200.00'))
+      expect(marked.classes()).toContain('text-ink-muted')
+      expect(marked.classes()).not.toContain('text-positive')
+    })
   })
 })

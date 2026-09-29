@@ -7,8 +7,9 @@
 // already importing it had to change.
 //
 // The READ half came first (feature 18); since feature 21 the single-movement PATCH
-// lives here too (see the write half at the bottom): the statement writes the same
-// field the review queue does. The BULK PATCH stayed in `features/review`.
+// lives here too (see the write half at the bottom), and since feature 22 the BULK
+// PATCH as well: the statement marks a whole selection as not counted, and
+// `features/statement` may not import from `features/review`.
 // Per ADR-002 the raw response is mapped to the frontend types with the shared
 // boundary checks, so a contract drift surfaces as a ValidationError naming the
 // failing field. Closed enumerations of the contract (`type`, `status`, `kind`) are
@@ -67,6 +68,12 @@ export interface Movement {
   /** Open text. */
   origin: string
   status: MovementStatus
+  /**
+   * `true` = the movement does NOT count in `income` / `expense` (contract, backend
+   * feature 49). It changes no amount and no balance: only the figures. Every
+   * movement is born `false`, and only the human writes it (feature 22).
+   */
+  excludedFromTotals: boolean
   transferId: string | null
   daySequence: number | null
   createdAt: string
@@ -202,6 +209,10 @@ export function parseMovement(v: Validators, raw: unknown, path: string): Moveme
         : v.asString(movement.paymentMethod, `${path}.paymentMethod`),
     origin: v.asText(movement.origin, `${path}.origin`),
     status: v.asMember(movement.status, MOVEMENT_STATUSES, `${path}.status`),
+    // Mandatory on purpose: the backend sends it since its feature 49, and a missing
+    // field must surface as a ValidationError naming it, not as a whole month
+    // silently read as «not marked» (design §5).
+    excludedFromTotals: v.asFlag(movement.excludedFromTotals, `${path}.excludedFromTotals`),
     transferId:
       movement.transferId === null ? null : v.asText(movement.transferId, `${path}.transferId`),
     daySequence:
@@ -257,14 +268,17 @@ export async function getMovements(
 
 // ─── The write half, shared since feature 21 ──────────────────────────────
 // `PATCH /api/movements/:id` started in `features/review` (feature 16) and moved here
-// untouched when a second screen — the statement — needed the same call. The bulk
-// PATCH (`updateMovements`) stayed in `review`: the statement acts on one movement at
-// a time, and having it here would invite using it from there.
+// untouched when a second screen — the statement — needed the same call (feature 21).
+// The bulk PATCH followed it in feature 22, also untouched, when the statement started
+// writing `excludedFromTotals` over a whole selection. `features/review` re-exports
+// both, so every caller written for features 15 and 16 keeps importing them from there.
 
-/** The only two fields a movement accepts (contract: PATCH /api/movements/:id). */
+/** The only three fields a movement accepts (contract: PATCH /api/movements[/:id]). */
 export interface MovementChanges {
   categoryId?: number | null
   status?: MovementStatus
+  /** Since the backend's feature 49; written by the statement (feature 22). */
+  excludedFromTotals?: boolean
 }
 
 const updateChecks = createValidators(`PATCH ${MOVEMENTS_PATH}/:id`)
@@ -283,6 +297,12 @@ export function changesBody(changes: MovementChanges): MovementChanges {
   const body: MovementChanges = {}
   if ('categoryId' in changes) body.categoryId = changes.categoryId ?? null
   if (changes.status !== undefined) body.status = changes.status
+  // `typeof === 'boolean'` on purpose: the contract answers 400 to `null`, `"true"`,
+  // `0` and `1`, and never converts them. A value that is not a literal boolean does
+  // not leave the frontend (design §3, feature 22).
+  if (typeof changes.excludedFromTotals === 'boolean') {
+    body.excludedFromTotals = changes.excludedFromTotals
+  }
   return body
 }
 
@@ -301,7 +321,7 @@ export async function updateMovement(
 ): Promise<Movement> {
   const body = changesBody(changes)
   if (Object.keys(body).length === 0) {
-    updateChecks.reject('body', 'a change of categoryId or status')
+    updateChecks.reject('body', 'a change of categoryId, status or excludedFromTotals')
   }
   return parseUpdatedMovement(await client<unknown>(`${MOVEMENTS_PATH}/${id}`, patch(body)))
 }
@@ -316,4 +336,53 @@ export function needsReload(error: AppError): boolean {
     return false
   }
   return true
+}
+
+// ─── The bulk PATCH, shared since feature 22 ──────────────────────────────
+
+/** The contract's cap for `PATCH /api/movements`: ids from 1 to 200, no repeats. */
+export const MAX_IDS = 200
+
+/** Body of PATCH /api/movements: ids plus at least one of the three fields. */
+export interface BulkUpdate extends MovementChanges {
+  ids: number[]
+}
+
+export interface BulkResult {
+  updated: number
+  movements: Movement[]
+}
+
+const bulkChecks = createValidators(`PATCH ${MOVEMENTS_PATH}`)
+
+/** Maps `PATCH /api/movements`, or throws ValidationError. */
+export function parseBulkResult(raw: unknown): BulkResult {
+  const v = bulkChecks
+  const body = v.asObject(raw, 'response')
+  return {
+    updated: v.asInteger(body.updated, 'updated'),
+    movements: v
+      .asArray(body.movements, 'movements')
+      .map((item, i) => parseMovement(v, item, `movements[${i}]`)),
+  }
+}
+
+/**
+ * Writes the same change on many movements in one request. The ids are deduplicated
+ * and the contract's limits are checked here, before the network: the backend answers
+ * 400 to an empty `ids`, to repeated ids and to more than MAX_IDS.
+ */
+export async function updateMovements(
+  update: BulkUpdate,
+  client: HttpClient = http,
+): Promise<BulkResult> {
+  const ids = [...new Set(update.ids)]
+  if (ids.length === 0 || ids.length > MAX_IDS) {
+    bulkChecks.reject('ids', `between 1 and ${MAX_IDS} movements`)
+  }
+  const changes = changesBody(update)
+  if (Object.keys(changes).length === 0) {
+    bulkChecks.reject('body', 'a change of categoryId, status or excludedFromTotals')
+  }
+  return parseBulkResult(await client<unknown>(MOVEMENTS_PATH, patch({ ids, ...changes })))
 }

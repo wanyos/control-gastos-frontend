@@ -478,7 +478,7 @@ concretas, cada spec registra `await page.route('**/api/**', route => route.abor
 y encima declara las llamadas que sí espera (las rutas posteriores ganan). Motivo:
 el proxy de `vite.config.ts` reenvía `/api` al backend real de `:3000`, así que una
 llamada no prevista **saldría de verdad** — con la red, se aborta y el test se pone
-rojo, que es lo que queremos ver. La cumplen los **siete** specs de `e2e/`; el smoke
+rojo, que es lo que queremos ver. La cumplen los **ocho** specs de `e2e/`; el smoke
 `app-boot.spec.ts` la incorporó en la higiene del 2026-09-23 (era el único que le
 faltaba) sin que ninguna llamada nueva apareciera: sus tres rutas ya lo cubrían.
 El sexto es `e2e/statement.spec.ts` (feature #19, el extracto mes a mes): de
@@ -493,6 +493,11 @@ el cuerpo que viaja para comprobar que solo lleva `categoryId`, y su aserción d
 es la de esta feature — en toda la sesión solo hay `GET` y `PATCH`, nunca un `DELETE` ni
 un `PUT`. Como toda petición a `/api` está interceptada y la red de seguridad aborta
 cualquier otra, **nunca** sale una escritura de verdad hacia el backend de `:3000`.
+El octavo es `e2e/statement-exclude-from-totals.spec.ts` (feature #22, marcar lo que no
+cuenta): también **escribe**, y en bloque. Intercepta `PATCH **/api/movements` (la ruta
+del listado, así que distingue por método), lee el cuerpo para comprobar que solo lleva
+`ids` y `excludedFromTotals`, y afirma que los únicos métodos de toda la sesión son
+`GET` y `PATCH`.
 
 Desde la feature #15 la **barra lateral** pide `GET /api/movements` (el recuento de
 pendientes, `pageSize=1`) también al montar y en todas las rutas, así que el smoke

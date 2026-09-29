@@ -3,19 +3,59 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 21 — statement-fix-category (implementación)
-- **Inicio:** 2026-09-27
+- **Feature en curso:** 22 — statement-exclude-from-totals (implementación)
+- **Inicio:** 2026-09-29
 - **Agente:** leader (Claude Code) → implementer
 
 ## Plan
 
+Marcar movimientos como que no cuentan en las sumas (F22): las tasks **T0–T22** de
+`specs/22-statement-exclude-from-totals/tasks.md` en orden. La **T23 no es del
+implementer** (escribe en datos reales; necesita visto bueno explícito del humano).
+Es la **primera acción del extracto que mueve las cifras del mes**: tras cada
+escritura se pide el mes una vez en segundo plano (`refreshQuietly`) y las cifras
+nunca se calculan en el cliente. Un **único camino de escritura**
+(`statement/service.ts::setMovementsExcluded` → `PATCH /api/movements`) con un cuerpo
+de exactamente `{ ids, excludedFromTotals }`: ni `status` ni `categoryId` pueden
+viajar. Ninguna llamada real sale a `:3000` en los tests ni en el e2e (red de
+seguridad que aborta cualquier `/api` no prevista).
+
+## Bitácora de la sesión
+
+- `./init.sh` de partida en **verde** (82 ficheros, 1212 tests, e2e chromium OK).
+- T0 comprobado: `asFlag` rechaza `"true"`, `0` y `null`; las fixtures de `review`,
+  `statement` y `category-rules` tienen un único constructor de movimiento cada una;
+  las parejas de color de `Not counted` (badge neutral, `--ink-body on
+  --surface-sunken`) y del importe atenuado (`--ink-muted on --surface-card` y `on
+  --surface-sunken`) ya están declaradas en `theme-dark.css`.
+- T1–T3: `excludedFromTotals` entra en `Movement` / `parseMovement` / `MovementChanges`
+  (obligatorio, `asFlag`) y el PATCH en bloque baja a `src/shared/movements.ts` con sus
+  tipos; `review` los re-exporta.
+- T4: suites de `review` y `category-rules` verdes; solo cambia **una línea** de
+  `review/__tests__/service.spec.ts` (igualdad exhaustiva del movimiento parseado).
+- T5–T8: `setMovementsExcluded` (único camino de escritura, cuerpo literal) y la lógica
+  pura (`STATEMENT_BULK_THRESHOLD`, `exclusionSummary`, `NOTHING_TO_CHANGE`, el gesto en
+  `writeErrorMessage`), con sus tests.
+- T9–T14: modo selección, `idsToChange`, `setExcluded` con refresco silencioso siempre,
+  `undoExclusion`, y el test de que las cifras nunca se calculan aquí.
+- T15–T20: `StatementRow` (casilla, `Not counted`, importe atenuado, badge no pulsable),
+  `StatementSelectionBar`, `ExcludeConfirmDialog`, `StatementList`, `StatementView`.
+  La nota permanente de la F19 queda **sin tocar** (verificado, T20).
+- T21: `e2e/statement-exclude-from-totals.spec.ts` con los 6 recorridos. Los cinco e2e
+  anteriores que fabrican movimientos ganan **una línea de fixture** cada uno
+  (`excludedFromTotals: false`): sin ella el parseo obligatorio deja sus listas vacías.
+  Ninguna aserción suya cambia.
+- T22: puerta completa en verde (type-check, lint, 1292 tests unitarios, build, e2e
+  chromium 34 tests, `./init.sh`). Informe en
+  `progress/implementation/statement-exclude-from-totals.md`.
+- **T23 no ejecutada**: escribe en datos reales, necesita visto bueno explícito del
+  humano.
+- Pendiente: veredicto del `reviewer`. La feature sigue en `in_progress`.
+
+## Plan anterior (F21, cerrada)
+
 Corregir la categoría desde el extracto (F21): las tasks T0–T21 de
-`specs/21-statement-fix-category/tasks.md` en orden. La **T22 no es del implementer**
-(escribe en datos reales; necesita visto bueno explícito del humano). Es la **primera
-vez que el extracto escribe**: el cuerpo del `PATCH` lleva solo `categoryId` y se
-construye en un único sitio (`statement/service.ts::setMovementCategory`), así que el
-`status` no puede viajar. Ninguna llamada real sale a `:3000` en los tests ni en el
-e2e (red de seguridad que aborta cualquier `/api` no prevista).
+`specs/21-statement-fix-category/tasks.md`.
 
 ## Plan anterior (F20, cerrada)
 
@@ -455,8 +495,30 @@ con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
   contradice a propósito el acceptance que había derivado el leader, y se aceptó por
   ser un solo sitio donde algo puede colarse). F22 pasa a `in_progress`.
 
+- 2026-09-29 — reviewer aprueba la F22 sin cambios. Verificó que un valor no booleano
+  no sale del frontend, las tres capas contra el tope de 200 y los repetidos, y que
+  `MonthTotals` no tiene diff (con git). Dejó tres correcciones de documentación, ya
+  hechas por el leader: `architecture.md` (el extracto ya escribe en bloque y el PATCH
+  en bloque bajó a `shared/`), `stack.md` (son ocho specs e2e) y `verification.md`
+  (recomendaba `pnpm test:unit run`, que con `vitest run` como script sale en error).
+- 2026-09-29 — **Los 29 apuntes de depósito ya estaban marcados**: los marcó la sesión
+  del backend al probar su feature 49 contra datos reales. Efecto: el histórico pasa de
+  446.014/439.372 € a **170.512/154.522 €**, y julio de 2026 de 57.948/59.096 € a
+  **2.785,90/4.096,05 €**. Avisado el humano de que otra sesión escribió en sus datos.
+- 2026-09-29 — **T23 hecha** con visto bueno explícito del humano («marcar y
+  desmarcar»), sobre un movimiento sin marcar: 42373 (TRANS INM/ EMILIA BENITEZ,
+  350 €, 31 de agosto). Al marcarlo la entrada del mes baja de 2.590,26 € a 2.240,26 €
+  —exactamente 350— y al deshacer vuelve. Con el modo selección encendido la categoría
+  deja de ser pulsable; la fila marcada se distingue. Dos PATCH en bloque con solo
+  `ids` y `excludedFromTotals`. Antes y después idénticos salvo `updatedAt`. Cero
+  errores.
+
+- 2026-09-29 — F22 en `done`, E7 al día en el roadmap, historial escrito y puerta
+  repetida por el leader (init.sh: «Entorno listo»).
+
 ## Próximo paso
 
-Implementar la F22 y pasarla por el reviewer; la T23 (escribe) necesita visto bueno
-explícito. Después, la B (interruptor del ruido) y la C (revisar parejas de
-traspaso), ya redactadas en borrador.
+Quedan dos features de la E7, ya revisadas en borrador con el humano
+(`docs/intent-ruido-drafts.md`): el interruptor del ruido y revisar las parejas de
+traspaso. Y sin usar en el frontend, `GET /api/investments/deposits` (feature 50 del
+backend), que encaja en la E8.

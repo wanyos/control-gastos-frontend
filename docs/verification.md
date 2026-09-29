@@ -19,8 +19,7 @@ menos un test que:
 **Comando para ejecutar los tests unitarios** (Vitest, entorno jsdom):
 
 ```bash
-pnpm test:unit          # modo watch (interactivo)
-pnpm test:unit run      # una sola pasada, útil en CI / verificación
+pnpm test:unit          # una sola pasada (es lo que corre init.sh y la puerta)
 ```
 
 > `init.sh` detecta el script de tests unitarios de `package.json`

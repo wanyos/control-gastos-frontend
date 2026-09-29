@@ -31,6 +31,8 @@ const base = {
   paymentMethod: null,
   origin: 'imported',
   status: 'pending_review',
+  /** Since the backend's feature 49 every movement carries it, born false. */
+  excludedFromTotals: false,
   transferId: null,
   createdAt: '2026-08-06T18:30:00.000Z',
   updatedAt: '2026-08-06T18:30:00.000Z',

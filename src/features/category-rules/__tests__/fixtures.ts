@@ -263,6 +263,7 @@ export const movement = (
   paymentMethod: null,
   origin: 'imported',
   status: 'pending_review',
+  excludedFromTotals: false,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-08-06T18:30:00.000Z',

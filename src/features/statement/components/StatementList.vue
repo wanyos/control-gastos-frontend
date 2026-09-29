@@ -35,7 +35,10 @@
             :categories="categories"
             :editing="movement.id === editingId"
             :busy="busy"
+            :selectable="selectable"
+            :selected="selectedIds.includes(movement.id)"
             @edit="emit('edit', movement.id)"
+            @toggle="emit('toggle', movement.id)"
             @categorize="(categoryId) => emit('categorize', movement.id, categoryId)"
             @create-rule="emit('create-rule', movement)"
             @close-editor="emit('close-editor')"
@@ -71,7 +74,10 @@
 // the month at the end and never touches the figures, which are the month's (R13).
 // Feature 20: nothing matching a filter is a DIFFERENT sentence from an empty month,
 // and it offers the way out (R13). Feature 21: the list owns no logic about writing —
-// it passes the editor's state down and the row's three events up.
+// it passes the editor's state down and the row's three events up. Feature 22 adds the
+// selection the same way: the mode and the ticked ids go down, the toggle goes up, and
+// a marked movement is NOT hidden, filtered or moved — it stays exactly where the API
+// put it (R9).
 import { computed } from 'vue'
 
 import BaseButton from '@/shared/components/BaseButton.vue'
@@ -101,6 +107,10 @@ const props = withDefaults(
     editingId?: number | null
     /** A write is in flight (C2). */
     busy?: boolean
+    /** Feature 22: the selection mode is on, so every row shows its checkbox (R4). */
+    selectable?: boolean
+    /** Feature 22: the ids ticked right now. */
+    selectedIds?: number[]
   }>(),
   {
     emptyState: 'month',
@@ -109,6 +119,8 @@ const props = withDefaults(
     categories: null,
     editingId: null,
     busy: false,
+    selectable: false,
+    selectedIds: () => [],
   },
 )
 
@@ -119,6 +131,7 @@ const emit = defineEmits<{
   categorize: [number, number | null]
   'create-rule': [Movement]
   'close-editor': []
+  toggle: [number]
 }>()
 
 /** The API's own count, not the length of the list: the month is what is empty. */

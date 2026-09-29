@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-09-27.
+> **Última revisión:** 2026-09-29.
 
 ## Este documento frente a los otros
 
@@ -24,22 +24,24 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Ya hay aplicación, y ya escribe.** 21 features cerradas. Las pantallas que
+**Ya hay aplicación, y ya escribe.** 22 features cerradas. Las pantallas que
 existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
 acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
 y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14) y
-el **extracto mes a mes** en `/movements` con sus filtros, su búsqueda y la corrección de
-categoría desde la propia línea (F19, F20, F21).
+el **extracto mes a mes** en `/movements` con sus filtros, su búsqueda, la corrección de
+categoría desde la propia línea y el marcado en bloque de lo que no cuenta en las sumas
+(F19, F20, F21, F22).
 Etapas E0 a E6 cerradas; la E7 a medias.
 
-**El ruido de las sumas ya se puede atacar.** Las sumas de cualquier vista de flujo
-siguen infladas por los apuntes de depósito (285.000 €, el 58 % de la base del humano),
-pero desde la **feature 49 del backend** (comprobada el 2026-09-27) las respuestas traen
-`excludedFromTotals`, el contrato documenta los filtros `transfer=only|none` y
-`excluded=only|none`, y esa marca **se puede escribir**. Es decir, la parte 1 de
-`../docs/handoff-sumas-honestas.md` está servida: el interruptor del ruido ya no está
-bloqueado, solo está sin hacer. **La E8, los dashboards, hereda las mismas cifras:**
-conviene montar el interruptor antes de empezarla.
+**El ruido de las sumas ya se está atacando, y se nota.** La **F22** (cerrada el
+2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
+**los 29 apuntes de depósito ya están marcados**: el histórico pasa de 446.014 / 439.372 €
+a **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90 /
+4.096,05 €**. La parte 1 de `../docs/handoff-sumas-honestas.md` está servida por la
+**feature 49 del backend** (respuestas con `excludedFromTotals`, filtros
+`transfer=only|none` y `excluded=only|none`, y escritura de la marca). Lo que falta es
+**esconder** ese ruido, no apartarlo: hoy lo marcado sigue a la vista. **La E8, los
+dashboards, hereda estas cifras:** conviene rematar el interruptor antes de empezarla.
 
 ---
 
@@ -56,7 +58,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
-| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19, F20, F21 |
+| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19, F20, F21, F22 |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
@@ -206,13 +208,14 @@ texto: la vista del histórico completo, confirmados incluidos.
 > al céntimo con la API, y las 11 marcas `Transfer` de diciembre de 2025 iguales a sus 11
 > `transferId`. Spec en `specs/19-statement-by-month/`.
 >
-> ⚠️ **Las sumas que hoy enseña la pantalla están infladas por los depósitos**: los 29
-> apuntes de depósito de myinvestor (285.000 €, el 58 % de la base) cuentan como entrada y
-> salida. La pantalla lo dice con una nota fija que no se puede cerrar. **Ya no es un
-> bloqueo:** la parte 1 de `../docs/handoff-sumas-honestas.md` la sirvió la feature 49 del
-> backend, comprobada el 2026-09-27 mientras se probaba la F21 — las respuestas traen
-> `excludedFromTotals`, hay filtros `transfer=only|none` y `excluded=only|none`, y la marca
-> se puede escribir. Falta la feature del frontend que lo use.
+> ⚠️ ~~**Las sumas que hoy enseña la pantalla están infladas por los depósitos**~~ —
+> **resuelto el 2026-09-29 por la F22**: los 29 apuntes de depósito de myinvestor
+> (285.000 €, el 58 % de la base) ya están marcados y no cuentan. La parte 1 de
+> `../docs/handoff-sumas-honestas.md` la sirvió la feature 49 del backend
+> (`excludedFromTotals`, filtros `transfer=only|none` y `excluded=only|none`, y la marca
+> escribible) y la F22 es la feature del frontend que la usa. Queda la nota fija de la
+> pantalla, que todavía dice que las cifras están infladas: la reescribe el interruptor
+> del ruido.
 >
 > **F20 cerrada el 2026-09-27** — segunda rodaja: dentro del mes hay una barra con cuatro
 > controles (buscador por un trozo del concepto, cuenta, categoría y una casilla
@@ -248,11 +251,37 @@ texto: la vista del histórico completo, confirmados incluidos.
 > Vivienda y deshacer, dos `PATCH` con solo `categoryId`, el antes y el después idénticos
 > salvo `updatedAt` y cero errores. Spec en `specs/21-statement-fix-category/`.
 >
-> **Qué falta en esta etapa:** solo el **interruptor del ruido** (esconder o marcar los
-> traspasos y los depósitos para que las cifras sean honestas). Desde el 2026-09-27 **es
-> posible**: la feature 49 del backend ya entrega `excludedFromTotals`, los filtros
-> `transfer=only|none` y `excluded=only|none` y la escritura de esa marca. Corregir la
-> categoría desde el extracto ya está hecho (F21).
+> **F22 cerrada el 2026-09-29** — cuarta rodaja, y la primera vez que el extracto **mueve
+> las cifras**: en `/movements` hay un botón `Select movements` que saca una casilla en
+> cada línea y una barra arriba; marcas las que quieras y `Exclude from totals` las aparta
+> de las sumas (`Include in totals` las devuelve). Lo marcado **sigue en la lista**, con
+> una etiqueta gris `Not counted` y el importe apagado, y las tres cifras del mes se
+> vuelven a pedir al backend, así que bajan de verdad. Una sola petición
+> `PATCH /api/movements` con el cuerpo **solo `{ ids, excludedFromTotals }`**, pregunta de
+> confirmación a partir de 20 movimientos y `Undo` sin cuenta atrás sobre exactamente los
+> que cambiaron. Nada marca nada por su cuenta: la marca la escribe siempre el humano.
+> Comprobada contra el backend real con el humano delante: movimiento 42373, la entrada de
+> agosto bajando de 2.590,26 € a 2.240,26 € al marcarlo y volviendo al deshacer, con dos
+> `PATCH` en bloque de cuerpo limpio. Spec en `specs/22-statement-exclude-from-totals/`.
+>
+> 💡 **Los 29 apuntes de depósito ya están marcados** (los marcó la sesión del backend al
+> probar su feature 49 contra datos reales): el histórico pasa de 446.014 / 439.372 € a
+> **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90 /
+> 4.096,05 €**. Filtrar por cuenta ya no es la única forma de ver el gasto real.
+>
+> **Qué falta en esta etapa** (las dos ya redactadas en borrador y acordadas con el humano):
+>
+> 1. **El interruptor del ruido** — esconder lo marcado y los traspasos, para que la lista
+>    y las cifras cuenten lo mismo, con los filtros `excluded` y `transfer` del contrato
+>    (hoy sin usar). Reescribe también la nota fija del mes.
+> 2. **Revisar las parejas de traspaso** — pantalla propia, contra `GET /api/transfers` y
+>    `GET /api/transfers/ambiguous`, para confirmar o descartar los emparejamientos que el
+>    backend no da por seguros.
+>
+> **La parte del backend del traspaso `../docs/handoff-sumas-honestas.md` está cerrada**
+> (features 49 y 50, commits `7711063` y `a6195be`). De ahí queda **sin usar en el
+> frontend** la feature 50: `GET /api/investments/deposits`, lo que ganó cada depósito,
+> que no encaja aquí sino en la **vista de Patrimonio (E8)**.
 
 ### E8 — Los dashboards ⬜
 
@@ -260,6 +289,9 @@ Ingresos vs gastos del mes, saldo por cuenta, patrimonio total y su evolución,
 reparto por categoría, comparativa entre meses. El backend ya expone los
 agregados: `GET /api/overview`, `GET /api/investments/overview`,
 `GET /api/net-worth`.
+
+> Aquí encaja también `GET /api/investments/deposits` (feature 50 del backend, commit
+> `a6195be`): lo que ganó cada depósito. Está servido y **sin usar en el frontend**.
 
 ### E9 — Que esto se vea desde algún sitio ⬜
 

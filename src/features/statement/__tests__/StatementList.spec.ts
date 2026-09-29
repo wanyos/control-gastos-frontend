@@ -6,7 +6,7 @@ import { parseMovementPage } from '@/shared/movements'
 
 import StatementList from '../components/StatementList.vue'
 import { groupByDay } from '../months'
-import { BIG_MONTH_PAGE_ONE, CATEGORIES, EMPTY_MONTH_PAGE, MONTH_PAGE } from './fixtures'
+import { BIG_MONTH_PAGE_ONE, CATEGORIES, EMPTY_MONTH_PAGE, MONTH_PAGE, excluded } from './fixtures'
 
 const tree = parseCategories(CATEGORIES)
 
@@ -128,6 +128,66 @@ describe('StatementList (R8, R11, R13)', () => {
       const list = mountList({ editingId: 10, categories: tree, busy: true })
 
       expect(list.get('select').attributes('disabled')).toBeDefined()
+    })
+  })
+
+  // --- The selection and the mark (feature 22) ---
+
+  describe('passing the selection down (R5, R8, R9)', () => {
+    it('shows no checkbox at all while the mode is off (R4)', () => {
+      const list = mountList()
+
+      expect(list.findAll('[data-test="statement-row-select"]')).toHaveLength(0)
+    })
+
+    it('shows one checkbox per row while the mode is on, and ticks the chosen ones', () => {
+      const list = mountList({ selectable: true, selectedIds: [10, 12] })
+
+      expect(list.findAll('[data-test="statement-row-select"]')).toHaveLength(5)
+      const ticked = list
+        .findAll('[data-test="statement-row-select"] input')
+        .map((box) => (box.element as HTMLInputElement).checked)
+      expect(ticked).toEqual([true, false, true, false, false])
+    })
+
+    it('raises the toggle of the row it came from', async () => {
+      const list = mountList({ selectable: true })
+
+      await list.findAll('[data-test="statement-row-select"] input')[2]?.setValue(true)
+
+      expect(list.emitted('toggle')).toEqual([[12]])
+    })
+
+    it('neither hides, nor filters, nor reorders a marked movement (R9)', () => {
+      const marked = parseMovementPage({
+        ...MONTH_PAGE,
+        movements: [
+          excluded(MONTH_PAGE.movements[0] as Record<string, unknown>),
+          MONTH_PAGE.movements[1] as Record<string, unknown>,
+          excluded(MONTH_PAGE.movements[2] as Record<string, unknown>),
+          MONTH_PAGE.movements[3] as Record<string, unknown>,
+          MONTH_PAGE.movements[4] as Record<string, unknown>,
+        ],
+      })
+
+      const list = mountList({ days: groupByDay(marked.movements), pagination: marked.pagination })
+
+      expect(list.findAll('[data-test="statement-row"]')).toHaveLength(5)
+      expect(
+        list.findAll('[data-test="statement-row-description"]').map((row) => row.text()),
+      ).toEqual([
+        'CAFETERÍA CENTRAL',
+        'COMPRA SUPERMERCADO',
+        'NOMINA SEPTIEMBRE',
+        'TRANSFERENCIA A MYINVESTOR',
+        'AJUSTE DE SALDO',
+      ])
+      expect(list.findAll('[data-test="statement-row-excluded"]')).toHaveLength(2)
+      expect(list.findAll('[data-test="statement-day-label"]').map((day) => day.text())).toEqual([
+        '11 Sept 2026',
+        '4 Sept 2026',
+        '2 Sept 2026',
+      ])
     })
   })
 })

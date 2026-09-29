@@ -103,7 +103,9 @@ src/
       months.ts           # todo lo puro del mes: rango, salto, URL, agrupación por día y textos
       filters.ts          # los cuatro filtros ↔ querystring de la API y de la URL (#20)
       actions.ts          # filtro de categoría, textos del aviso y de los errores, puras (#21)
-      service.ts          # setMovementCategory: PATCH /api/movements/:id con solo `categoryId` (#21)
+      service.ts          # setMovementCategory: PATCH /api/movements/:id con solo `categoryId` (#21);
+                          # setMovementsExcluded: PATCH /api/movements con solo ids y
+                          # excludedFromTotals (#22)
       types.ts            # re-export de los tipos de shared/movements + DayGroup
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
@@ -121,7 +123,7 @@ src/
     movements.ts          # movimientos: tipos, parseo, GET /api/movements y la espera tras la
                           # última tecla (#18); y la escritura de uno solo —changesBody,
                           # patch, parseUpdatedMovement, updateMovement, MovementChanges y
-                          # needsReload— desde la #21 (el PATCH en bloque sigue en review)
+                          # needsReload— desde la #21, y el PATCH en bloque desde la #22
   services/
     http.ts               # cliente HTTP base: createHttp(config) + http (feature #2)
 ```
@@ -130,17 +132,16 @@ src/
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
 
-> **El extracto escribe una sola cosa desde la feature #21.** Nació de solo lectura
-> (feature #19) y hoy `features/statement/` manda **un** `PATCH /api/movements/:id`, y
-> nada más: ni `POST`, ni `DELETE`, ni `PATCH` en bloque. Ese cuerpo se construye en un
-> único sitio, `statement/service.ts::setMovementCategory`, que solo sabe escribir
-> `categoryId`: el store del extracto **no importa `updateMovement`**, así que el
-> `status` no puede viajar ni por descuido (importa más aquí que en la cola, porque el
-> extracto enseña también los confirmados). La mitad de escritura de un movimiento
-> (`changesBody`, `patch`, `parseUpdatedMovement`, `updateMovement`, `MovementChanges` y
-> `needsReload`) vive en `shared/movements.ts` desde esta feature, junto a la de
-> lectura; el `PATCH` en bloque se queda en `review`, la única pantalla que actúa sobre
-> varios a la vez.
+> **Lo que el extracto escribe, y nada más.** Nació de solo lectura (feature #19). Desde
+> la #21 manda `PATCH /api/movements/:id` con **solo** `categoryId`, y desde la #22
+> `PATCH /api/movements` con **solo** `ids` y `excludedFromTotals`. Ni `POST` ni
+> `DELETE`. Cada cuerpo se construye en un único sitio —`setMovementCategory` y
+> `setMovementsExcluded`, los dos en `statement/service.ts`—, así que el `status` no
+> puede viajar ni por descuido: importa más aquí que en la cola, porque el extracto
+> enseña también los confirmados. La escritura de un movimiento (`changesBody`, `patch`,
+> `parseUpdatedMovement`, `updateMovement`, `MovementChanges` y `needsReload`) vive en
+> `shared/movements.ts` desde la #21, junto a la de lectura, y el `PATCH` en bloque bajó
+> ahí desde la #22: lo usan la cola y el extracto.
 >
 > **Y desde la feature #21 tiene una dependencia, en el mismo sentido que ya existía:**
 > `statement/views/StatementView.vue` monta `RuleDialog` de `category-rules`, igual que

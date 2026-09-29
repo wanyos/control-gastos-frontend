@@ -3,6 +3,19 @@
     class="flex items-center gap-3 rounded-md px-3 py-2.5 hover:bg-surface-sunken"
     data-test="statement-row"
   >
+    <!-- Only while the selection mode is on: off, the statement reads as a month and
+         93 checkboxes would undo that (R4, decisions.md 🔴 1). -->
+    <BaseCheckbox
+      v-if="selectable"
+      class="shrink-0"
+      label=""
+      :model-value="selected ?? false"
+      :disabled="busy"
+      :aria-label="`Select ${movement.description}`"
+      data-test="statement-row-select"
+      @update:model-value="emit('toggle')"
+    />
+
     <span class="size-2 shrink-0 rounded-full" :class="dotClass" aria-hidden="true" />
 
     <div class="min-w-0 flex-1">
@@ -28,6 +41,17 @@
       Transfer
     </BaseBadge>
 
+    <BaseBadge
+      v-if="movement.excludedFromTotals"
+      size="sm"
+      tone="neutral"
+      :title="EXCLUDED_HINT"
+      :aria-label="EXCLUDED_HINT"
+      data-test="statement-row-excluded"
+    >
+      Not counted
+    </BaseBadge>
+
     <RowCategoryEditor
       v-if="editing"
       :movement="movement"
@@ -42,7 +66,7 @@
          its own place, so the row keeps its width and the month keeps reading as a
          month (decisions.md 🔴 1). A neutral movement has no editor to open (R5). -->
     <button
-      v-else-if="canCategorize"
+      v-else-if="canCategorize && !selectable"
       type="button"
       class="shrink-0 rounded-pill focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       :title="CHANGE_HINT"
@@ -83,12 +107,16 @@
 // One line of the statement. Same layout as the review row, and since feature 21 it
 // carries ONE control: its category badge, which becomes the editor in its own place
 // when pressed (R2, R3). Nothing else about the movement can be touched from here (C1).
+// Feature 22 adds a SECOND control, and only while the selection mode is on: a
+// checkbox. In that mode the category badge stops being a button, so one click can
+// never mean two things (R6); the badge is still there, just not pressable.
 // The date is not repeated — the day header above the row carries it (R8, R9) — and
 // `balanceAfter` is never painted: only three of the five accounts bring it (R9).
 import { computed } from 'vue'
 
 import { bankLabel } from '@/shared/banks'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
+import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
 import { formatMoney } from '@/shared/money'
 
 import RowCategoryEditor from './RowCategoryEditor.vue'
@@ -102,6 +130,10 @@ const props = defineProps<{
   editing?: boolean
   /** A write is in flight (C2). */
   busy?: boolean
+  /** Feature 22: the selection mode is on, so the row shows its checkbox (R4, R5). */
+  selectable?: boolean
+  /** Feature 22: this row is ticked. */
+  selected?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -109,10 +141,14 @@ const emit = defineEmits<{
   categorize: [number | null]
   'create-rule': []
   'close-editor': []
+  toggle: []
 }>()
 
 /** Why a neutral badge is not a button (R5). */
 const NEUTRAL_HINT = "Neutral movements can't be categorized"
+
+/** Why this row is in the list but out of the three figures (feature 22, R8). */
+const EXCLUDED_HINT = "Not counted in this month's figures"
 const CHANGE_HINT = 'Change category'
 
 /** A neutral movement accepts no category: the contract answers 400 (R5). */
@@ -151,6 +187,10 @@ const amount = computed(() =>
 )
 
 const amountClass = computed(() => {
+  // A marked movement keeps its amount, its sign and its place: only the ink goes
+  // quiet. No coloured background, no strikethrough and no side stripe — with
+  // myinvestor filtered nearly every row of the month is marked (🔴 2, R8, R9).
+  if (props.movement.excludedFromTotals) return 'text-ink-muted'
   if (props.movement.type === 'income') return 'text-positive'
   return props.movement.type === 'neutral' ? 'text-ink-muted' : 'text-ink-strong'
 })

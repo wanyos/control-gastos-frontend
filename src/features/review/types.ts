@@ -28,20 +28,11 @@ export type {
 } from '@/shared/movements'
 
 // `MovementChanges` went with the single-movement PATCH to `@/shared/movements` in
-// feature 21; re-exported so every import written for features 15 and 16 still works.
-export type { MovementChanges } from '@/shared/movements'
+// feature 21, and `BulkUpdate` / `BulkResult` with the bulk PATCH in feature 22;
+// re-exported so every import written for features 15 and 16 still works.
+export type { BulkResult, BulkUpdate, MovementChanges } from '@/shared/movements'
 
-import type { DateOnly, Movement, MovementChanges, MovementType } from '@/shared/movements'
-
-/** Body of PATCH /api/movements: ids plus at least one of the two fields. */
-export interface BulkUpdate extends MovementChanges {
-  ids: number[]
-}
-
-export interface BulkResult {
-  updated: number
-  movements: Movement[]
-}
+import type { DateOnly, MovementChanges, MovementType } from '@/shared/movements'
 
 /** One PATCH of the undo: the ids that shared the same previous value. */
 export interface UndoGroup {

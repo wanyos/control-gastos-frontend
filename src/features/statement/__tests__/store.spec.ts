@@ -10,6 +10,12 @@ import {
   ACCOUNTS,
   CATEGORIES,
   EXPENSE,
+  EXPENSE_SAME_DAY,
+  INCOME,
+  bulkResult,
+  excluded,
+  fakeMonth,
+  movement as rawMovement,
   GROCERIES,
   NOT_FOUND_BODY,
   PENDING_EXPENSE,
@@ -696,6 +702,414 @@ describe('useStatementStore', () => {
 
       expect(api.patches()).toHaveLength(0)
       expect(store.lastAction).toBeNull()
+    })
+  })
+
+  // --- Marking movements as not counted (feature 22) ---
+
+  describe('the selection mode (R4, R5, R6, R7)', () => {
+    it('starts off, with nothing selected', async () => {
+      mockApi({ movements: json(MONTH_PAGE) })
+      const store = useStatementStore()
+      await store.show('2026-09')
+
+      expect(store.isSelecting).toBe(false)
+      expect(store.selectedIds).toEqual([])
+      expect(store.selectedCount).toBe(0)
+    })
+
+    it('closes the open category editor when it is turned on (R6)', async () => {
+      mockApi({ movements: json(MONTH_PAGE) })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      store.openEditor(10)
+
+      store.startSelecting()
+
+      expect(store.isSelecting).toBe(true)
+      expect(store.editingId).toBeNull()
+    })
+
+    it('ticks and unticks a row, and empties the selection when turned off (R7)', async () => {
+      mockApi({ movements: json(MONTH_PAGE) })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      store.startSelecting()
+
+      store.toggleSelected(10)
+      store.toggleSelected(11)
+      store.toggleSelected(10)
+      expect(store.selectedIds).toEqual([11])
+
+      store.stopSelecting()
+
+      expect(store.isSelecting).toBe(false)
+      expect(store.selectedIds).toEqual([])
+    })
+
+    it('selects every row on screen, and clears them again', async () => {
+      mockApi({ movements: json(MONTH_PAGE) })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      store.startSelecting()
+
+      store.selectAllShown()
+      expect(store.selectedIds).toEqual([10, 11, 12, 13, 14])
+
+      store.clearSelection()
+      expect(store.selectedIds).toEqual([])
+    })
+
+    it('never ticks more than the 200 ids the contract accepts (R2)', async () => {
+      const many = Array.from({ length: 220 }, (_item, index) =>
+        rawMovement({
+          id: 1000 + index,
+          type: 'expense',
+          bookingDate: '2026-09-03',
+          valueDate: '2026-09-03',
+          amount: '1.00',
+          description: `RECIBO ${index}`,
+        }),
+      )
+      mockApi({
+        movements: json({
+          movements: many,
+          pagination: { page: 1, pageSize: 200, total: 220, totalPages: 1 },
+          totals: TOTALS,
+        }),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      store.startSelecting()
+
+      store.selectAllShown()
+      expect(store.selectedIds).toHaveLength(200)
+
+      // One more click on a row that is not ticked yet changes nothing.
+      store.toggleSelected(1215)
+      expect(store.selectedIds).toHaveLength(200)
+      expect(store.selectedIds).not.toContain(1215)
+    })
+
+    it('empties the selection when the month changes, and keeps the mode on (R7)', async () => {
+      mockApi({
+        movements: (query) =>
+          json(query.get('from') === '2026-08-01' ? OTHER_MONTH_PAGE : MONTH_PAGE)(),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      store.startSelecting()
+      store.selectAllShown()
+
+      await store.shift(-1)
+
+      expect(store.selectedIds).toEqual([])
+      expect(store.isSelecting).toBe(true)
+    })
+
+    it('empties the selection when a filter changes (R7)', async () => {
+      mockApi({ movements: json(MONTH_PAGE) })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      store.startSelecting()
+      store.toggleSelected(10)
+
+      await store.applyFilters({ ...EMPTY_FILTERS, accountId: 2 })
+
+      expect(store.selectedIds).toEqual([])
+    })
+  })
+
+  describe('marking a selection as not counted (R1, R2, R3, R9 ... R16)', () => {
+    /** Ticks the given rows with the checkboxes, exactly as the bar does. */
+    const select = (store: ReturnType<typeof useStatementStore>, ids: number[]): void => {
+      store.startSelecting()
+      for (const id of ids) store.toggleSelected(id)
+    }
+
+    const MONTH_FIGURES = { income: '1200.00', expense: '57.37', net: '1142.63' }
+
+    it('sends ONE request with the two ids and asks the month once more (R1, R11, R12)', async () => {
+      const month = fakeMonth()
+      const api = mockApi({ movements: month.movements, bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      expect(store.result?.totals).toEqual(MONTH_FIGURES)
+      select(store, [10, 11])
+
+      await store.setExcluded(true)
+
+      expect(api.patches()).toHaveLength(1)
+      expect(api.patches()[0]?.path).toBe('/api/movements')
+      expect(api.patches()[0]?.rawBody).toBe('{"ids":[10,11],"excludedFromTotals":true}')
+      // One GET of the month before the write, ONE after it: the quiet refresh (R12).
+      expect(api.queries()).toHaveLength(2)
+      expect(api.queries()[1]).toBe('from=2026-09-01&to=2026-09-30&page=1&pageSize=200')
+      expect(store.isLoading).toBe(false)
+      // The rows say it, and the figures are the backend's new ones (C3).
+      expect(
+        store.result?.movements.filter((row) => row.excludedFromTotals).map((row) => row.id),
+      ).toEqual([10, 11])
+      expect(store.result?.totals).toEqual({ income: '1200.00', expense: '0.00', net: '1200.00' })
+      expect(store.actionNotice).toBe('2 movements excluded from totals')
+      expect(store.actionMessage).toBeNull()
+      expect(store.selectedIds).toEqual([])
+      expect(store.lastExclusion).toEqual({ ids: [10, 11], excluded: true })
+    })
+
+    it('sends only the ids that really change (R2)', async () => {
+      const month = fakeMonth([excluded(EXPENSE), excluded(EXPENSE_SAME_DAY), INCOME])
+      const api = mockApi({ movements: month.movements, bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11, 12])
+
+      await store.setExcluded(true)
+
+      expect(api.patches()).toHaveLength(1)
+      expect(api.patches()[0]?.rawBody).toBe('{"ids":[12],"excludedFromTotals":true}')
+      expect(store.actionNotice).toBe('1 movement excluded from totals')
+      expect(store.lastExclusion).toEqual({ ids: [12], excluded: true })
+    })
+
+    it('sends NOTHING when everything ticked is already like that (R3)', async () => {
+      const month = fakeMonth([excluded(EXPENSE), excluded(EXPENSE_SAME_DAY)])
+      const api = mockApi({ movements: month.movements, bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11])
+
+      await store.setExcluded(true)
+
+      expect(api.patches()).toHaveLength(0)
+      expect(api.queries()).toHaveLength(1)
+      expect(store.actionNotice).toBe('Nothing to change: those movements are already like that.')
+      expect(store.lastExclusion).toBeNull()
+      expect(store.canUndo).toBe(false)
+      // The selection is still there: nothing happened to it.
+      expect(store.selectedIds).toEqual([10, 11])
+    })
+
+    it('puts a selection back in the totals with `false` (R1)', async () => {
+      const month = fakeMonth([excluded(EXPENSE), EXPENSE_SAME_DAY, INCOME])
+      const api = mockApi({ movements: month.movements, bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10])
+
+      await store.setExcluded(false)
+
+      expect(api.patches()[0]?.rawBody).toBe('{"ids":[10],"excludedFromTotals":false}')
+      expect(store.result?.movements.find((row) => row.id === 10)?.excludedFromTotals).toBe(false)
+      expect(store.actionNotice).toBe('1 movement back in totals')
+    })
+
+    it('marks a neutral movement and a transfer leg like any other (R10)', async () => {
+      const month = fakeMonth()
+      const api = mockApi({ movements: month.movements, bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [13, 14])
+
+      await store.setExcluded(true)
+
+      expect(api.patches()[0]?.rawBody).toBe('{"ids":[13,14],"excludedFromTotals":true}')
+      expect(store.result?.movements.find((row) => row.id === 13)?.excludedFromTotals).toBe(true)
+      expect(store.result?.movements.find((row) => row.id === 14)?.excludedFromTotals).toBe(true)
+    })
+
+    it('hides, filters and reorders nothing: the marked rows stay put (R9)', async () => {
+      const month = fakeMonth()
+      mockApi({ movements: month.movements, bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 12])
+
+      await store.setExcluded(true)
+
+      expect(store.result?.movements.map((row) => row.id)).toEqual([10, 11, 12, 13, 14])
+      expect(store.days.map((day) => day.date)).toEqual(['2026-09-11', '2026-09-04', '2026-09-02'])
+    })
+
+    it('puts back exactly the ids of the last batch, with the opposite value (R14)', async () => {
+      const month = fakeMonth()
+      const api = mockApi({ movements: month.movements, bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11])
+      await store.setExcluded(true)
+      expect(store.canUndo).toBe(true)
+
+      await store.undo()
+
+      expect(api.patches()).toHaveLength(2)
+      expect(api.patches()[1]?.rawBody).toBe('{"ids":[10,11],"excludedFromTotals":false}')
+      expect(store.result?.movements.every((row) => !row.excludedFromTotals)).toBe(true)
+      expect(store.result?.totals).toEqual(MONTH_FIGURES)
+      expect(store.actionNotice).toBe('2 movements back in totals')
+      expect(store.lastExclusion).toBeNull()
+      expect(store.canUndo).toBe(false)
+    })
+
+    it('undoes only the ids that changed, not the whole selection (R2, R14)', async () => {
+      const month = fakeMonth([excluded(EXPENSE), EXPENSE_SAME_DAY, INCOME])
+      const api = mockApi({ movements: month.movements, bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11, 12])
+      await store.setExcluded(true)
+
+      await store.undo()
+
+      expect(api.patches()[1]?.rawBody).toBe('{"ids":[11,12],"excludedFromTotals":false}')
+      // The one that was already marked before the batch is left alone.
+      expect(store.result?.movements.find((row) => row.id === 10)?.excludedFromTotals).toBe(true)
+    })
+
+    it('ignores a second click while one write is in flight (C5)', async () => {
+      const slow = deferred()
+      const api = mockApi({ movements: json(MONTH_PAGE), bulkPatch: slow.answer })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11])
+
+      const first = store.setExcluded(true)
+      expect(store.isActing).toBe(true)
+      await store.setExcluded(true)
+      slow.resolve(jsonResponse(bulkResult([excluded(EXPENSE), excluded(EXPENSE_SAME_DAY)])))
+      await first
+
+      expect(api.patches()).toHaveLength(1)
+      expect(store.isActing).toBe(false)
+    })
+
+    it('a 400 says so in English and does NOT reload the month (R15, R16)', async () => {
+      const api = mockApi({
+        movements: json(MONTH_PAGE),
+        bulkPatch: json(VALIDATION_ERROR_BODY, 400),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11])
+
+      await store.setExcluded(true)
+
+      expect(api.queries()).toHaveLength(1)
+      expect(store.actionMessage).toBe('Nothing changed. The server rejected that change.')
+      expect(store.actionMessage).not.toContain('parametro')
+      expect(store.actionNotice).toBeNull()
+      expect(store.lastExclusion).toBeNull()
+      // Nothing was written, so the selection stays and the gesture can be retried.
+      expect(store.selectedIds).toEqual([10, 11])
+    })
+
+    it('a 404 reloads the month before painting the failure (R16)', async () => {
+      const api = mockApi({ movements: json(MONTH_PAGE), bulkPatch: json(NOT_FOUND_BODY, 404) })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11])
+
+      await store.setExcluded(true)
+
+      expect(api.queries()).toHaveLength(2)
+      expect(store.actionMessage).toBe(
+        'Nothing changed: one of those movements no longer exists. Reloading the month.',
+      )
+      expect(store.actionMessage).not.toContain('existe')
+      expect(store.lastExclusion).toBeNull()
+    })
+
+    it('a network failure says nothing changed and reloads nothing', async () => {
+      const api = mockApi({ movements: json(MONTH_PAGE), bulkPatch: networkDown })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10])
+
+      await expect(store.setExcluded(true)).resolves.toBeUndefined()
+
+      expect(api.queries()).toHaveLength(1)
+      expect(store.actionMessage).toBe("Couldn't reach the server. Nothing changed.")
+    })
+
+    it('never computes a figure itself: they are the ones of the last answer (C3)', async () => {
+      // The answer carries figures that do NOT match the movements on screen, so a
+      // client that subtracted the marked amounts would show something else entirely.
+      const api = mockApi({
+        movements: json(MONTH_PAGE),
+        bulkPatch: json(bulkResult([excluded(EXPENSE), excluded(INCOME)])),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 12])
+
+      await store.setExcluded(true)
+
+      expect(api.patches()).toHaveLength(1)
+      expect(store.result?.totals).toEqual(TOTALS)
+      expect(store.result?.pagination.total).toBe(5)
+    })
+
+    it('a quiet refresh that fails leaves the rows already changed (design §6)', async () => {
+      let first = true
+      const api = mockApi({
+        movements: () => {
+          if (first) {
+            first = false
+            return json(MONTH_PAGE)()
+          }
+          return networkDown()
+        },
+        bulkPatch: json(bulkResult([excluded(EXPENSE)])),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10])
+
+      await store.setExcluded(true)
+
+      expect(api.queries()).toHaveLength(2)
+      expect(store.result?.movements.find((row) => row.id === 10)?.excludedFromTotals).toBe(true)
+      expect(store.actionNotice).toBe('1 movement excluded from totals')
+      expect(store.error).toBeNull()
+    })
+
+    it('forgets the Undo when the month changes (R7)', async () => {
+      const month = fakeMonth()
+      mockApi({
+        movements: (query) =>
+          query.get('from') === '2026-08-01' ? json(OTHER_MONTH_PAGE)() : month.movements(),
+        bulkPatch: month.bulkPatch,
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10])
+      await store.setExcluded(true)
+
+      await store.shift(-1)
+
+      expect(store.lastExclusion).toBeNull()
+      expect(store.canUndo).toBe(false)
+      expect(store.actionNotice).toBeNull()
+    })
+
+    it('only one Undo is offered at a time: a category write replaces the batch', async () => {
+      const month = fakeMonth()
+      mockApi({
+        movements: month.movements,
+        bulkPatch: month.bulkPatch,
+        patch: json(changed(EXPENSE_SAME_DAY, { categoryId: 2, category: GROCERIES })),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10])
+      await store.setExcluded(true)
+      expect(store.lastExclusion).not.toBeNull()
+
+      await store.categorize(11, 2)
+
+      expect(store.lastExclusion).toBeNull()
+      expect(store.lastAction?.movementId).toBe(11)
+      expect(store.canUndo).toBe(true)
     })
   })
 })

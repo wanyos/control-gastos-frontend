@@ -859,3 +859,49 @@ Plantilla para cada entrada nueva:
   `./init.sh` en verde.
 - **Cierre:** feature 21 → **done**. De la E7 queda solo el interruptor del ruido, que
   ya es posible.
+
+## 2026-09-29 — Feature 22: statement-exclude-from-totals
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author`, `implementer` y
+  `reviewer`. Flujo SDD. Cuarta rodaja de la E7 y la que hace que las sumas dejen de
+  mentir.
+- **Contexto:** el backend cerró su parte del traspaso `../docs/handoff-sumas-honestas.md`
+  con las features **49** (`7711063`) y **50** (`a6195be`): `excludedFromTotals`
+  escribible uno a uno y en bloque, filtros `excluded` y `transfer`,
+  `GET /api/transfers`, `GET /api/transfers/ambiguous` y `GET /api/investments/deposits`.
+- **Se repasaron con el humano tres borradores de intención** (`docs/intent-ruido-drafts.md`):
+  marcar, el interruptor y revisar parejas. De sus respuestas salió esta feature y quedó
+  acordado algo que no es código: **nada de marcar automáticamente por regla**; la marca
+  la escribe siempre el humano.
+- **Spec:** `specs/22-statement-exclude-from-totals/`, 16 requisitos. El humano aprobó
+  las 5 decisiones tal cual: modo `Select movements` (las casillas solo cuando se piden,
+  y entonces el editor de categoría de la F21 se apaga, para que el extracto siga siendo
+  para leer), marcado con etiqueta gris y el importe atenuado en vez de fila coloreada
+  (en myinvestor casi todo el mes irá marcado), confirmación a partir de 20 como en la
+  F16, `Undo` sin cuenta atrás, y **un único camino de escritura** por
+  `PATCH /api/movements` aunque sea un solo movimiento.
+- **Esa última contradice a propósito el `acceptance`** que había derivado el leader, que
+  hablaba de usar los dos endpoints. Se aceptó porque un solo camino es un solo sitio
+  donde puede colarse un campo que no debe viajar.
+- **Revisión:** APROBADO sin cambios. El reviewer verificó que un valor no booleano ni
+  sale del frontend, las tres capas contra el tope de 200 y los ids repetidos, que
+  `MonthTotals` no tiene diff (con `git`, no leyendo), y que tras cada acción se pide el
+  mes una sola vez sin calcular nada en cliente. Dejó tres correcciones de documentación
+  que hizo el leader, una ajena a la feature: `docs/verification.md` recomendaba
+  `pnpm test:unit run`, que con `vitest run` como script sale con error.
+- **Hallazgo al preparar la prueba: los 29 apuntes de depósito ya estaban marcados**,
+  por la sesión del backend al probar su feature 49 contra datos reales. Efecto medido:
+  el histórico pasa de 446.014/439.372 € a **170.512/154.522 €**, y julio de 2026 de
+  57.948/59.096 € a **2.785,90/4.096,05 €**. Se avisó al humano de que otra sesión había
+  escrito en sus datos.
+- **T23, prueba con visto bueno explícito** («marcar y desmarcar»), sobre un movimiento
+  sin marcar: 42373 (TRANS INM/ EMILIA BENITEZ, 350 €, 31 de agosto). Al marcarlo la
+  entrada del mes baja de 2.590,26 € a 2.240,26 € —exactamente 350— y al deshacer vuelve.
+  Con el modo selección encendido la categoría deja de ser pulsable y la fila marcada se
+  distingue. Dos PATCH con solo `ids` y `excludedFromTotals`. Antes y después idénticos
+  salvo `updatedAt`. Cero errores de consola.
+- **Verificación:** type-check, lint, 1.292 tests (84 ficheros), build, 34 e2e y
+  `./init.sh` en verde.
+- **Cierre:** feature 22 → **done**. De la E7 quedan dos: el interruptor del ruido y
+  revisar las parejas de traspaso, las dos ya en borrador. Y queda sin usar en el
+  frontend `GET /api/investments/deposits` (feature 50 del backend), que encaja en la E8.

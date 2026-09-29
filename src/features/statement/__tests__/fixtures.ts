@@ -29,6 +29,9 @@ const base = {
   paymentMethod: null,
   origin: 'imported',
   status: 'confirmed',
+  // Since the backend's feature 49 every movement carries it, and it is born false
+  // (feature 22).
+  excludedFromTotals: false,
   transferId: null,
   balanceAfter: null,
   daySequence: 1,
@@ -268,8 +271,13 @@ export function mockApi(answers: {
   /** Feature 20: the two lists that fill the filter selects. Default to the fixtures. */
   accounts?: Answer
   categories?: Answer
-  /** Feature 21: `PATCH /api/movements/:id`, the only write of this screen. */
+  /** Feature 21: `PATCH /api/movements/:id`, the write of the category editor. */
   patch?: Answer | ((id: number, body: unknown) => Promise<Response>)
+  /**
+   * Feature 22: `PATCH /api/movements`, the ONLY write of the exclusion gesture —
+   * also when a single movement is selected (design §2).
+   */
+  bulkPatch?: Answer | ((body: unknown) => Promise<Response>)
   /** Feature 21: `POST /api/category-rules`, the rule born from a line (R16). */
   createRule?: Answer
 }) {
@@ -286,6 +294,9 @@ export function mockApi(answers: {
       rawBody,
       contentType: headers.get('Content-Type') ?? undefined,
     })
+    if (method === 'PATCH' && url.pathname === '/api/movements' && answers.bulkPatch) {
+      return answers.bulkPatch(rawBody === undefined ? undefined : JSON.parse(rawBody))
+    }
     if (method === 'PATCH' && PATCH_ONE.test(url.pathname) && answers.patch) {
       const id = Number(url.pathname.split('/').at(-1))
       return answers.patch(id, rawBody === undefined ? undefined : JSON.parse(rawBody))
@@ -307,9 +318,11 @@ export function mockApi(answers: {
   return {
     calls,
     spy,
-    /** Querystrings of the movement GETs, in order. */
+    /** Querystrings of the movement GETs, in order (the bulk PATCH shares the path). */
     queries: () =>
-      calls.filter((call) => call.path === MOVEMENTS).map((call) => call.query.toString()),
+      calls
+        .filter((call) => call.path === MOVEMENTS && call.method === 'GET')
+        .map((call) => call.query.toString()),
     methods: () => [...new Set(calls.map((call) => call.method))],
     /** The writes, in order: path and the body as it travelled (feature 21). */
     patches: () => calls.filter((call) => call.method === 'PATCH'),
@@ -355,4 +368,68 @@ export const NOT_FOUND_BODY = {
   statusCode: 404,
   code: 'NOT_FOUND',
   message: 'No existe el movimiento 10',
+}
+
+/** The shape of `PATCH /api/movements` (feature 22): what changed, already changed. */
+export const bulkResult = (movements: Record<string, unknown>[]): Record<string, unknown> => ({
+  updated: movements.length,
+  movements,
+})
+
+/** The same movement marked (or unmarked) as not counted, as the bulk PATCH gives it back. */
+export const excluded = (raw: Record<string, unknown>, value = true): Record<string, unknown> =>
+  changed(raw, { excludedFromTotals: value })
+
+/**
+ * A month whose figures move when movements are marked: the fake subtracts the marked
+ * amounts in the ANSWER, never in the client, so a test can tell a refreshed figure
+ * from a computed one (C3). It answers both the GET of the month and the bulk PATCH.
+ */
+export function fakeMonth(seed: readonly Record<string, unknown>[] = MONTH_PAGE.movements) {
+  const rows = new Map<number, Record<string, unknown>>(
+    seed.map((row) => [row.id as number, { ...row }]),
+  )
+
+  const figures = () => {
+    let income = 0
+    let expense = 0
+    for (const row of rows.values()) {
+      if (row.excludedFromTotals === true || row.transferId !== null) continue
+      if (row.type === 'income') income += Number(row.amount)
+      if (row.type === 'expense') expense += Number(row.amount)
+    }
+    return {
+      income: income.toFixed(2),
+      expense: expense.toFixed(2),
+      net: (income - expense).toFixed(2),
+    }
+  }
+
+  return {
+    rows,
+    movements: (): Promise<Response> => {
+      const movements = [...rows.values()]
+      return Promise.resolve(
+        jsonResponse({
+          movements,
+          pagination: { page: 1, pageSize: 200, total: movements.length, totalPages: 1 },
+          totals: figures(),
+        }),
+      )
+    },
+    bulkPatch: (body: unknown): Promise<Response> => {
+      const { ids, excludedFromTotals } = (body ?? {}) as {
+        ids?: number[]
+        excludedFromTotals?: boolean
+      }
+      const movements = (ids ?? []).flatMap((id) => {
+        const row = rows.get(id)
+        if (!row) return []
+        row.excludedFromTotals = excludedFromTotals
+        row.updatedAt = '2026-09-29T10:00:00.000Z'
+        return [{ ...row }]
+      })
+      return Promise.resolve(jsonResponse({ updated: movements.length, movements }))
+    },
+  }
 }

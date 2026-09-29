@@ -21,8 +21,11 @@ import {
   VALIDATION_ERROR_BODY,
   changed,
   deferred,
+  excluded,
+  fakeMonth,
   json,
   mockApi,
+  movement as rawMovement,
   networkDown,
 } from './fixtures'
 
@@ -590,6 +593,219 @@ describe('StatementView', () => {
 
       expect(wrapper.find('[data-test="statement-action-summary"]').exists()).toBe(false)
       expect(wrapper.findAll('[data-test="row-category-editor"]')).toHaveLength(0)
+    })
+  })
+
+  // --- Marking movements as not counted (feature 22) ---
+
+  describe('the selection mode from the screen (R5, R6, R13, R14)', () => {
+    /** A month of 24 rows, so the confirmation threshold of 20 can be crossed. */
+    const BIG_SELECTION = {
+      movements: Array.from({ length: 24 }, (_item, index) =>
+        rawMovement({
+          id: 300 + index,
+          type: 'expense',
+          bookingDate: '2026-09-03',
+          valueDate: '2026-09-03',
+          amount: '1.00',
+          description: `RECIBO ${index}`,
+        }),
+      ),
+      pagination: { page: 1, pageSize: 200, total: 24, totalPages: 1 },
+      totals: TOTALS,
+    }
+
+    const tick = async (
+      wrapper: Awaited<ReturnType<typeof mountView>>['wrapper'],
+      index: number,
+    ) => {
+      await wrapper.findAll('[data-test="statement-row-select"] input')[index]?.setValue(true)
+    }
+
+    it('shows one button and no checkbox until it is turned on (R4)', async () => {
+      const { wrapper } = await mountView('/movements', { movements: json(MONTH_PAGE) })
+
+      expect(wrapper.get('[data-test="statement-start-selecting"]').text()).toBe('Select movements')
+      expect(wrapper.find('[data-test="statement-selection-bar"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="statement-row-select"]')).toHaveLength(0)
+      expect(wrapper.findAll('[data-test="statement-row-category-button"]')).toHaveLength(4)
+    })
+
+    it('swaps the button for the bar, and the category badges stop being buttons (R5, R6)', async () => {
+      const { wrapper } = await mountView('/movements', { movements: json(MONTH_PAGE) })
+
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+
+      expect(wrapper.find('[data-test="statement-start-selecting"]').exists()).toBe(false)
+      expect(wrapper.get('[data-test="statement-selected-count"]').text()).toBe('0 selected')
+      expect(wrapper.findAll('[data-test="statement-row-select"]')).toHaveLength(5)
+      expect(wrapper.findAll('[data-test="statement-row-category-button"]')).toHaveLength(0)
+
+      await wrapper.get('[data-test="statement-selection-done"]').trigger('click')
+
+      expect(wrapper.find('[data-test="statement-selection-bar"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="statement-row-select"]')).toHaveLength(0)
+      expect(wrapper.findAll('[data-test="statement-row-category-button"]')).toHaveLength(4)
+    })
+
+    it('writes the ticked rows with one request and shows what it did (R1, R11, R14)', async () => {
+      const month = fakeMonth()
+      const { api, wrapper } = await mountView('/movements', {
+        movements: month.movements,
+        bulkPatch: month.bulkPatch,
+      })
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await tick(wrapper, 0)
+      await tick(wrapper, 1)
+
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+
+      expect(api.patches()).toHaveLength(1)
+      expect(api.patches()[0]?.rawBody).toBe('{"ids":[10,11],"excludedFromTotals":true}')
+      expect(wrapper.get('[data-test="statement-action-summary"]').text()).toContain(
+        '2 movements excluded from totals',
+      )
+      expect(wrapper.findAll('[data-test="statement-row-excluded"]')).toHaveLength(2)
+      expect(wrapper.get('[data-test="statement-selected-count"]').text()).toBe('0 selected')
+      // The figures are the ones the refreshed month brought (C3).
+      expect(wrapper.get('[data-test="statement-totals-out"]').text()).toBe(formatMoney('0.00'))
+    })
+
+    it('puts the batch back from the Undo of the notice (R14)', async () => {
+      const month = fakeMonth()
+      const { api, wrapper } = await mountView('/movements', {
+        movements: month.movements,
+        bulkPatch: month.bulkPatch,
+      })
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await tick(wrapper, 0)
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+
+      await wrapper.get('[data-test="statement-action-undo"]').trigger('click')
+      await flushPromises()
+
+      expect(api.patches()).toHaveLength(2)
+      expect(api.patches()[1]?.rawBody).toBe('{"ids":[10],"excludedFromTotals":false}')
+      expect(wrapper.findAll('[data-test="statement-row-excluded"]')).toHaveLength(0)
+      expect(wrapper.find('[data-test="statement-action-undo"]').exists()).toBe(false)
+    })
+
+    it('says there is nothing to change instead of writing (R3)', async () => {
+      const month = fakeMonth([excluded(EXPENSE)])
+      const { api, wrapper } = await mountView('/movements', {
+        movements: month.movements,
+        bulkPatch: month.bulkPatch,
+      })
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await tick(wrapper, 0)
+
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+
+      expect(api.patches()).toHaveLength(0)
+      expect(wrapper.get('[data-test="statement-action-summary"]').text()).toContain(
+        'Nothing to change: those movements are already like that.',
+      )
+    })
+
+    it('asks first from 20 movements up, naming the exact number (R13)', async () => {
+      const { api, wrapper } = await mountView('/movements', {
+        movements: json(BIG_SELECTION),
+        bulkPatch: json({ updated: 0, movements: [] }),
+      })
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await wrapper.get('[data-test="statement-select-all"]').trigger('click')
+
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+
+      expect(document.body.textContent).toContain('Exclude 24 movements from totals?')
+      expect(api.patches()).toHaveLength(0)
+    })
+
+    it('sends nothing when the question is cancelled (R13)', async () => {
+      const { api, wrapper } = await mountView('/movements', {
+        movements: json(BIG_SELECTION),
+        bulkPatch: json({ updated: 0, movements: [] }),
+      })
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await wrapper.get('[data-test="statement-select-all"]').trigger('click')
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+
+      at('[data-test="statement-exclude-cancel"]')?.click()
+      await flushPromises()
+
+      expect(api.patches()).toHaveLength(0)
+      expect(document.querySelector('[role="dialog"]')).toBeNull()
+      // The selection is untouched: the question was cancelled, not the batch.
+      expect(wrapper.get('[data-test="statement-selected-count"]').text()).toBe('24 selected')
+    })
+
+    it('writes the whole batch once the question is answered (R13)', async () => {
+      const { api, wrapper } = await mountView('/movements', {
+        movements: json(BIG_SELECTION),
+        bulkPatch: json({
+          updated: 24,
+          movements: BIG_SELECTION.movements.map((row) => excluded(row)),
+        }),
+      })
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await wrapper.get('[data-test="statement-select-all"]').trigger('click')
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+
+      at('[data-test="statement-exclude-continue"]')?.click()
+      await flushPromises()
+
+      expect(api.patches()).toHaveLength(1)
+      expect(JSON.parse(api.patches()[0]?.rawBody ?? '{}')).toEqual({
+        ids: BIG_SELECTION.movements.map((row) => row.id),
+        excludedFromTotals: true,
+      })
+    })
+
+    it('does not ask for a batch under the threshold (R13)', async () => {
+      const month = fakeMonth()
+      const { api, wrapper } = await mountView('/movements', {
+        movements: month.movements,
+        bulkPatch: month.bulkPatch,
+      })
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await wrapper.get('[data-test="statement-select-all"]').trigger('click')
+
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+
+      expect(document.querySelector('[role="dialog"]')).toBeNull()
+      expect(api.patches()).toHaveLength(1)
+    })
+
+    it('paints the English sentence of a failure and never the backend one (R15)', async () => {
+      const { wrapper } = await mountView('/movements', {
+        movements: json(MONTH_PAGE),
+        bulkPatch: json(VALIDATION_ERROR_BODY, 400),
+      })
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await tick(wrapper, 0)
+
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+
+      const line = wrapper.get('[data-test="statement-action-error"]').text()
+      expect(line).toBe('Nothing changed. The server rejected that change.')
+      expect(wrapper.text()).not.toContain('«from»')
+    })
+
+    it('leaves the permanent note of the F19 exactly where it was (C4)', async () => {
+      const { wrapper } = await mountView('/movements', { movements: json(MONTH_PAGE) })
+      const before = wrapper.get('[data-test="statement-totals-note"]').text()
+
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+
+      expect(wrapper.get('[data-test="statement-totals-note"]').text()).toBe(before)
     })
   })
 })

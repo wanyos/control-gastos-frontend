@@ -30,10 +30,36 @@
     <StatementActionNotice
       :summary="store.actionNotice"
       :error="store.actionMessage"
-      :undoable="store.lastAction !== null"
+      :undoable="store.canUndo"
       :busy="store.isActing"
-      @undo="store.undoLast()"
+      @undo="store.undo()"
     />
+
+    <!-- The selection mode of the F22: off, a single button; on, the bar. It sits in
+         the same place either way, so turning it on does not push the figures (🔴 1). -->
+    <StatementSelectionBar
+      v-if="store.isSelecting"
+      :selected-count="store.selectedCount"
+      :shown-count="store.shown"
+      :busy="store.isActing"
+      @exclude="askOrWrite(true)"
+      @include="askOrWrite(false)"
+      @select-all="store.selectAllShown()"
+      @clear="store.clearSelection()"
+      @done="store.stopSelecting()"
+    />
+
+    <div v-else-if="store.result">
+      <BaseButton
+        variant="secondary"
+        size="sm"
+        data-test="statement-start-selecting"
+        @click="store.startSelecting()"
+      >
+        <template #icon><ListChecks :size="14" aria-hidden="true" /></template>
+        Select movements
+      </BaseButton>
+    </div>
 
     <p v-if="store.isLoading" class="text-sm text-ink-muted" data-test="statement-loading">
       {{ loadingMonthLine(store.month) }}
@@ -77,12 +103,26 @@
       :categories="store.categories"
       :editing-id="store.editingId"
       :busy="store.isActing"
+      :selectable="store.isSelecting"
+      :selected-ids="store.selectedIds"
       @load-more="store.loadMore()"
       @clear="onFilters({ ...EMPTY_FILTERS })"
       @edit="store.openEditor"
       @categorize="(id, categoryId) => store.categorize(id, categoryId)"
       @create-rule="onCreateRule"
       @close-editor="store.closeEditor()"
+      @toggle="store.toggleSelected"
+    />
+
+    <!-- Only from STATEMENT_BULK_THRESHOLD movements up, and it names how many are
+         really going to change, not how many are ticked (R13, R2). -->
+    <ExcludeConfirmDialog
+      v-if="asking !== null"
+      :open="true"
+      :count="asking.count"
+      :excluded="asking.excluded"
+      @confirm="confirmExclusion"
+      @cancel="asking = null"
     />
 
     <!-- The rule dialog of the F17 as it is, with the preview of the F18 (R16). Saving
@@ -110,11 +150,15 @@
 // The statement screen. The URL is the single writer of the month AND of the filters:
 // the nav and the bar rewrite the query and the watcher below turns that into the
 // request, so back, forward, reload and a shared link all behave the same (R3, R4, R8).
-// Since feature 21 the screen also writes, and only one thing: the category of one
-// movement, through the store (R1, C1). Creating a rule from a line writes nothing on
-// that line (R17).
+// Since feature 21 the screen also writes: the category of one movement, and — since
+// feature 22 — the exclusion mark over a selection, both through the store (R1, C1).
+// Creating a rule from a line writes nothing on that line (R17). The exclusion is the
+// only gesture of this screen that MOVES the three figures, and it moves them by asking
+// the backend again, never by doing arithmetic here (C3).
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
+import { ListChecks } from '@lucide/vue'
 
 import RuleDialog from '@/features/category-rules/components/RuleDialog.vue'
 import { proposeMatchText } from '@/features/category-rules/rules'
@@ -123,12 +167,14 @@ import type { NewRule } from '@/features/category-rules/types'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
 
-import { findCategoryName } from '../actions'
+import { STATEMENT_BULK_THRESHOLD, findCategoryName } from '../actions'
+import ExcludeConfirmDialog from '../components/ExcludeConfirmDialog.vue'
 import MonthNav from '../components/MonthNav.vue'
 import MonthTotals from '../components/MonthTotals.vue'
 import StatementActionNotice from '../components/StatementActionNotice.vue'
 import StatementFilterBar from '../components/StatementFilterBar.vue'
 import StatementList from '../components/StatementList.vue'
+import StatementSelectionBar from '../components/StatementSelectionBar.vue'
 import {
   EMPTY_FILTERS,
   filterScopeLine,
@@ -224,4 +270,29 @@ async function onSaveRule(rule: NewRule): Promise<void> {
 const emptyState = computed<'month' | 'noMatches'>(() =>
   hasActiveFilters(store.filters) ? 'noMatches' : 'month',
 )
+
+// ─── Marking movements as not counted (feature 22: R5, R13, R14) ───────────
+
+/** The exclusion waiting for an answer, or null while nothing is being asked. */
+const asking = ref<{ excluded: boolean; count: number } | null>(null)
+
+/**
+ * A small batch is written straight away; a big one asks first, naming the exact
+ * number the store is really going to send (R2, R13). An empty batch goes through too:
+ * the store answers it with `Nothing to change` and sends nothing (R3).
+ */
+function askOrWrite(excluded: boolean): void {
+  const count = store.idsToChange(excluded).length
+  if (count >= STATEMENT_BULK_THRESHOLD) {
+    asking.value = { excluded, count }
+    return
+  }
+  void store.setExcluded(excluded)
+}
+
+function confirmExclusion(): void {
+  const pending = asking.value
+  asking.value = null
+  if (pending) void store.setExcluded(pending.excluded)
+}
 </script>

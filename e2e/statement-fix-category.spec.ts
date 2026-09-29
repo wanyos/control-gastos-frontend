@@ -35,6 +35,8 @@ const movement = (id: number, day: string, extra: Record<string, unknown> = {}) 
   paymentMethod: null,
   origin: 'imported',
   status: 'confirmed',
+  // Since the backend's feature 49 every movement carries it, born false (feature 22).
+  excludedFromTotals: false,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-09-12T18:30:00.000Z',

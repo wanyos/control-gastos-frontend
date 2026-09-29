@@ -4,7 +4,7 @@
 
 import { API_NETWORK, ApiError, ValidationError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
-import { needsReload } from '@/shared/movements'
+import { MAX_IDS, needsReload } from '@/shared/movements'
 
 import type { Category, CategoryKind, Movement, MovementChanges, UndoGroup } from './types'
 
@@ -12,6 +12,11 @@ import type { Category, CategoryKind, Movement, MovementChanges, UndoGroup } fro
 // of the PATCH, not this screen — and is re-exported so nothing that imported it from
 // here had to change.
 export { needsReload }
+
+// `MAX_IDS` moved to `@/shared/movements` in feature 22 with the bulk PATCH it belongs
+// to — it is the contract's cap, not this screen's — and is re-exported so nothing that
+// imported it from here had to change.
+export { MAX_IDS }
 
 /** Finds a category anywhere in the tree: the children are one level deep, but this walks it whole. */
 export function findCategory(categories: Category[] | null, id: number | null): Category | null {
@@ -23,9 +28,6 @@ export function findCategory(categories: Category[] | null, id: number | null): 
   }
   return null
 }
-
-/** The contract's cap for `PATCH /api/movements`: ids from 1 to 200, no repeats. */
-export const MAX_IDS = 200
 
 /** From here up, a bulk action asks first (decisions.md 🔴 3). */
 export const BULK_CONFIRM_THRESHOLD = 20
