@@ -78,3 +78,17 @@ que aborta cualquier `/api` no prevista).
   Cero escrituras y cero errores.
 
 
+
+- 2026-09-30 — **Higiene (no es feature): la puerta ya incluye lint y formato.**
+  `./init.sh` declaraba «Entorno listo» sin pasar el linter (era el hallazgo del
+  reviewer en la F23). Ahora tiene dos pasos nuevos: **5. Lint** (`pnpm
+  lint:oxlint:check` → `oxlint .` **sin `--fix`**) y **6. Formato** (`pnpm
+  format:check` → `prettier --check` sobre las mismas rutas que `pnpm format`);
+  los dos paran la puerta en rojo. Tests, e2e y resumen pasan a ser 7, 8 y 9.
+  `pnpm lint` (con `--fix`) se queda igual para el uso a mano: la variante de
+  comprobación se llama `lint:oxlint:check` porque el glob `lint:*` de `run-s`
+  **sí** captura un `lint:check` y habría cambiado `pnpm lint`. `format:check`
+  no encontró **ningún** archivo sin formatear, así que no se reformateó nada.
+  Actualizados `docs/verification.md` (tabla «Qué comprueba la puerta» y las dos
+  parejas arregla/comprueba) y `docs/stack.md`. Sin dependencias nuevas, sin
+  tocar el backend, sin commits.

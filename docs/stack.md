@@ -348,8 +348,10 @@ feature #8; ver *Iconos (Lucide)*.
   | Build | `pnpm build` | `run-p type-check "build-only"` → type-check + `vite build`. |
   | Preview | `pnpm preview` | Sirve el build de producción (`4173`). |
   | Type-check | `pnpm type-check` | `vue-tsc --build` (incluye `.vue`). |
-  | Lint | `pnpm lint` | `run-s lint:*` → solo `oxlint . --fix` (ver *Lint (solo oxlint)*). |
+  | Lint | `pnpm lint` | `run-s lint:*` → solo `oxlint . --fix`; **arregla** (ver *Lint (solo oxlint)*). |
+  | Lint (check) | `pnpm lint:oxlint:check` | `oxlint .` sin `--fix`; **no toca archivos**. Es el que corre `./init.sh`. |
   | Format | `pnpm format` | `prettier --write` sobre **todo el código** (ver *Formato (Prettier)*). |
+  | Format (check) | `pnpm format:check` | `prettier --check` sobre las mismas rutas; **no toca archivos**. Es el que corre `./init.sh`. |
 
 ## Formato (Prettier)
 
@@ -378,12 +380,29 @@ prettier --write --experimental-cli src/ e2e/ "*.config.ts" env.d.ts index.html 
   blanca de `@source` de Tailwind).
 - Exclusiones en `.prettierignore`: `src/assets/styles/` (copia literal del
   design system, debe seguir byte-idéntica) y `design-system/`.
+- **`pnpm format:check`** (higiene 2026-09-30) es el mismo comando con
+  `--check` en vez de `--write`: **misma lista de rutas**, misma config, pero no
+  escribe nada. Es el que ejecuta `./init.sh` (sección 6), porque una puerta de
+  verificación comprueba y no arregla. Si al añadir una carpeta al script se te
+  olvida añadirla también a `format:check`, la puerta deja de vigilarla en
+  silencio: **las dos listas tienen que ir siempre iguales**.
 
 ## Lint (solo oxlint)
 
 > Feature #12 (`dependency-cleanup-and-upgrade`, 2026-09-13). Decisión del
 > humano: **ESLint y todo su ecosistema se retiraron**; el único linter es
 > **oxlint** `~1.82.0`. `pnpm lint` = `run-s "lint:*"` → `oxlint . --fix`.
+
+**Dos entradas: una arregla, otra comprueba** (higiene 2026-09-30).
+`pnpm lint` lleva `--fix` y **modifica archivos**: perfecto mientras trabajas,
+inaceptable en una puerta de verificación. Por eso existe
+**`pnpm lint:oxlint:check`** (`oxlint .`, sin `--fix`), que es la que ejecuta
+`./init.sh` (sección 5). El nombre es largo a propósito: `pnpm lint` es
+`run-s "lint:*"` y ese glob **capturaría** un `lint:check` (comprobado), con lo
+que el uso a mano pasaría a correr también la comprobación; el `*` de
+npm-run-all no cruza los dos puntos, así que `lint:oxlint:check` queda fuera y
+`pnpm lint` no cambia. Un linter nuevo seguiría el patrón
+`lint:<herramienta>` + `lint:<herramienta>:check`.
 
 Configuración en `.oxlintrc.json`:
 
@@ -576,11 +595,14 @@ mezclar 20 paquetes hace imposible saber cuál fue. El orden que funciona es:
 1. Línea base: `./init.sh` en verde **antes** de tocar nada.
 2. Todo lo **minor/patch** junto (`ncu -u --target minor`) → verificar.
 3. Cada **major uno a uno**, verificando entre medias.
-4. Cierre: `pnpm type-check`, `pnpm test`, `pnpm lint`, `pnpm build`.
+4. Cierre: `pnpm type-check`, `pnpm build` (lo demás lo cubre ya la puerta).
 
-`./init.sh` **no cubre** ni el lint ni el build (solo hace type-check, la suite
-unitaria y, desde la feature #6, el e2e smoke en chromium). En una
-actualización de dependencias hay que lanzarlos a mano.
+Desde la higiene del **2026-09-30**, `./init.sh` cubre type-check (tsc), **lint
+sin `--fix`**, **formato (`prettier --check`)**, la suite unitaria y el e2e smoke
+en chromium. Lo que sigue **sin** cubrir es `pnpm type-check` (vue-tsc, que mira
+los `.vue`) y `pnpm build`: en una actualización de dependencias hay que
+lanzarlos a mano. Ver la tabla completa en `docs/verification.md` → *Qué
+comprueba la puerta*.
 
 ### Por qué TypeScript 7 no entra (todavía)
 

@@ -252,7 +252,7 @@
 # declarar cualquier tarea como `done`. Si falla, la sesión no debe avanzar.
 #
 # Detecta automáticamente el stack del proyecto y ejecuta la verificación
-# apropiada. Si tu proyecto usa un stack no soportado, edita la sección 4.
+# apropiada. Si tu proyecto usa un stack no soportado, edita la sección 7.
 
 set -u
 
@@ -355,7 +355,7 @@ fi
 if [ "$STACK" = "unknown" ]; then
   warn "No se ha detectado un stack conocido"
   warn "El harness funcionará pero sin verificación de tests automática"
-  warn "Edita init.sh sección 4 para añadir tu stack si es necesario"
+  warn "Edita init.sh sección 7 para añadir tu stack si es necesario"
 else
   ok "Stack detectado: $STACK"
   if [ -n "$RUNTIME_VERSION" ]; then
@@ -540,10 +540,50 @@ if [ "$STACK" = "node" ] && [ -f "tsconfig.json" ]; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────
-# 5. Ejecución de tests (depende del stack)
+# 5. Lint (solo comprobación, sin --fix)
+# ─────────────────────────────────────────────────────────────────────
+# WHY (higiene 2026-09-30): hasta hoy la puerta decía "Entorno listo" sin haber
+# pasado el linter, y un `pnpm lint` en rojo se coló hasta la revisión de la
+# feature 23. Aquí se usa `lint:oxlint:check` (oxlint SIN --fix) a propósito:
+# una puerta de verificación comprueba, no arregla. `pnpm lint` sigue siendo
+# el de siempre (con --fix) para el trabajo a mano.
+if [ "$STACK" = "node" ] && grep -q '"lint:oxlint:check"' package.json 2>/dev/null; then
+  echo ""
+  echo "── 5. Lint (oxlint, sin --fix) ─────────────────────────"
+
+  info "Ejecutando: $PKG lint:oxlint:check"
+  if $PKG lint:oxlint:check; then
+    ok "Lint OK (oxlint sin errores)"
+  else
+    fail "Lint fallido (oxlint reporta errores). Arréglalo con: $PKG lint"
+    EXIT_CODE=1
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────
+# 6. Formato (Prettier en modo comprobación)
+# ─────────────────────────────────────────────────────────────────────
+# WHY: no había ninguna comprobación de formato, así que el formato podía
+# divergir sin que nada se quejara. `format:check` es `prettier --check` sobre
+# exactamente las mismas rutas que `pnpm format`; no escribe nada.
+if [ "$STACK" = "node" ] && grep -q '"format:check"' package.json 2>/dev/null; then
+  echo ""
+  echo "── 6. Formato (prettier --check) ───────────────────────"
+
+  info "Ejecutando: $PKG format:check"
+  if $PKG format:check; then
+    ok "Formato OK (Prettier sin diferencias)"
+  else
+    fail "Hay archivos sin formatear. Arréglalo con: $PKG format"
+    EXIT_CODE=1
+  fi
+fi
+
+# ─────────────────────────────────────────────────────────────────────
+# 7. Ejecución de tests (depende del stack)
 # ─────────────────────────────────────────────────────────────────────
 echo ""
-echo "── 5. Ejecutando tests ─────────────────────────────────"
+echo "── 7. Ejecutando tests ─────────────────────────────────"
 
 if [ -z "$TEST_CMD" ]; then
   warn "No hay comando de tests configurado para el stack '$STACK'"
@@ -559,14 +599,14 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────
-# 6. E2E smoke (chromium) — puerta de humo real (feature 6: e2e-smoke)
+# 8. E2E smoke (chromium) — puerta de humo real (feature 6: e2e-smoke)
 # ─────────────────────────────────────────────────────────────────────
 # Solo chromium, para que la arrancada de sesión siga siendo rápida; los
 # tres navegadores quedan disponibles con `pnpm test:e2e`. Si faltan los
 # navegadores de Playwright en la máquina, se degrada con un aviso claro en
 # vez de reventar con un error críptico.
 echo ""
-echo "── 6. E2E smoke (chromium) ─────────────────────────────"
+echo "── 8. E2E smoke (chromium) ─────────────────────────────"
 
 E2E_CMD=""
 if [ -f "package.json" ] && grep -q '"test:e2e"' package.json 2>/dev/null; then
@@ -592,10 +632,10 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────
-# 7. Resumen
+# 9. Resumen
 # ─────────────────────────────────────────────────────────────────────
 echo ""
-echo "── 7. Resumen ──────────────────────────────────────────"
+echo "── 9. Resumen ──────────────────────────────────────────"
 
 if [ $EXIT_CODE -eq 0 ]; then
   ok "Entorno listo. Puedes empezar a trabajar."

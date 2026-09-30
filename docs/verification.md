@@ -26,7 +26,8 @@ pnpm test:unit          # una sola pasada (es lo que corre init.sh y la puerta)
 > (`test:unit` → `vitest run`, añadido en la feature #2) y ejecuta la suite
 > automáticamente en su bloque de tests, además del type-check. Desde la
 > feature #6 también ejecuta el **e2e smoke limitado a chromium**
-> (sección 6 del script).
+> (sección 8 del script). Desde la higiene del 2026-09-30 ejecuta además
+> **lint y formato** (secciones 5 y 6); ver *Qué comprueba la puerta*.
 
 ### Nivel 2 — Test de integración / E2E (obligatorio para features de UI)
 
@@ -49,7 +50,7 @@ HEADED=1 pnpm test:e2e             # con ventanas visibles (por defecto es headl
 pnpm build && CI=true pnpm test:e2e
 ```
 
-La puerta de `./init.sh` (sección 6) ejecuta el e2e limitado a chromium contra
+La puerta de `./init.sh` (sección 8) ejecuta el e2e limitado a chromium contra
 el dev server y termina en rojo si falla; si faltan los navegadores de
 Playwright, degrada con un aviso claro en vez de fallar.
 
@@ -92,17 +93,64 @@ Ver `docs/specs.md` para el proceso SDD completo y la notación EARS.
 - ❌ Marcar la feature como `done` sin pasar `./init.sh`.
 - ❌ Añadir tests que solo se llaman a sí mismos (espejos del código).
 
+## Qué comprueba la puerta (`./init.sh`)
+
+> Reescrito en la higiene del **2026-09-30**. Hasta entonces el script decía
+> «Entorno listo» **sin haber pasado el linter**, y no existía ninguna
+> comprobación de formato. Por eso un `pnpm lint` en rojo (un
+> `no-underscore-dangle`) llegó vivo hasta la revisión de la feature #23.
+
+Orden de los pasos, de arriba abajo. Cualquiera que falle pone `EXIT_CODE=1` y
+el script termina con `[FAIL] Entorno NO está listo`:
+
+| # | Paso | Comando real |
+|---|------|--------------|
+| 1 | Detección de stack | — |
+| 2 | Archivos base del arnés | — |
+| 3 | `feature_list.json` + specs de las features `sdd` | — |
+| 4 | Type check | `npx tsc --noEmit` |
+| 5 | **Lint (nuevo)** | `pnpm lint:oxlint:check` → `oxlint .` |
+| 6 | **Formato (nuevo)** | `pnpm format:check` → `prettier --check …` |
+| 7 | Tests unitarios | `pnpm test:unit` |
+| 8 | E2E smoke | `pnpm test:e2e --project=chromium` |
+| 9 | Resumen | — |
+
+### Arreglar vs. comprobar: dos parejas de scripts
+
+Una puerta de verificación **comprueba, no arregla**: si modificara archivos, el
+verde sería una consecuencia de la propia puerta y no una propiedad del código.
+Por eso cada herramienta tiene dos entradas:
+
+| Uso a mano (**arregla**) | Puerta (**no arregla**) |
+|---|---|
+| `pnpm lint` → `run-s "lint:*"` → `oxlint . --fix` | `pnpm lint:oxlint:check` → `oxlint .` |
+| `pnpm format` → `prettier --write …` | `pnpm format:check` → `prettier --check …` |
+
+Las dos variantes de cada pareja miran **exactamente lo mismo** (mismas rutas,
+misma config); solo cambia si escriben en disco.
+
+> **Por qué el nombre es `lint:oxlint:check` y no `lint:check`.** `pnpm lint` es
+> `run-s "lint:*"`, y ese glob **sí** captura `lint:check` (comprobado), así que
+> el uso a mano habría pasado a correr también la comprobación. El `*` de
+> npm-run-all no cruza los dos puntos, de modo que `lint:oxlint:check` queda
+> fuera del glob y `pnpm lint` se comporta igual que siempre. Si algún día se
+> añade otro linter, su variante de comprobación sigue el mismo patrón
+> (`lint:<herramienta>:check`).
+
 ## Verificación final antes de cerrar
 
-`init.sh` cubre el type-check (tsc) y la suite unitaria (`pnpm test`). El
-gate completo antes de dar una feature por `done` es:
+Desde la higiene del 2026-09-30 `./init.sh` cubre también lint y formato, así
+que el gate a mano se reduce a lo que el script **no** hace (`vue-tsc` sobre
+`.vue` y el build de producción):
 
 ```bash
-./init.sh              # entorno + type-check + tests unitarios → [OK] Entorno listo
+./init.sh              # entorno + type-check + lint + formato + unit + e2e → [OK] Entorno listo
 pnpm type-check        # vue-tsc --build (incluye .vue; init.sh solo corre tsc)
-pnpm lint              # oxlint sin errores (único linter desde la feature #12)
 pnpm build             # el build de producción compila
 ```
+
+`pnpm lint` ya no hace falta en el cierre (la puerta lo cubre sin `--fix`);
+úsalo mientras trabajas, para que te arregle lo arreglable.
 
 Si algo de lo anterior está rojo, **no** marques nada como `done`. Anota el
 bloqueo en `progress/current.md` y pon la feature en `blocked` en

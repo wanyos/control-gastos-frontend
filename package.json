@@ -13,7 +13,9 @@
     "type-check": "vue-tsc --build",
     "lint": "run-s \"lint:*\"",
     "lint:oxlint": "oxlint . --fix",
-    "format": "prettier --write --experimental-cli src/ e2e/ \"*.config.ts\" env.d.ts index.html \"tsconfig*.json\" .oxlintrc.json package.json"
+    "lint:oxlint:check": "oxlint .",
+    "format": "prettier --write --experimental-cli src/ e2e/ \"*.config.ts\" env.d.ts index.html \"tsconfig*.json\" .oxlintrc.json package.json",
+    "format:check": "prettier --check --experimental-cli src/ e2e/ \"*.config.ts\" env.d.ts index.html \"tsconfig*.json\" .oxlintrc.json package.json"
   },
   "dependencies": {
     "@lucide/vue": "^1.45.0",
