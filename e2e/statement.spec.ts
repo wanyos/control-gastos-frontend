@@ -6,6 +6,9 @@ import type { Page, Request } from '@playwright/test'
 // aborts anything it did not foresee, so nothing ever reaches the real backend on
 // :3000 and no write can leak out.
 
+/** Feature 23: the note was rewritten whole and no longer carries a single digit. */
+const NOTE_START = 'These figures already leave out what does not count'
+
 const BANKINTER = {
   id: 1,
   iban: 'ES9820385778983000760236',
@@ -155,6 +158,11 @@ async function prepare(page: Page) {
   )
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
   await page.route('**/api/accounts', (route) => route.fulfill({ json: ACCOUNTS }))
+  // Feature 23: the permanent note asks for this once per session; without the route
+  // the safety net would abort it and Chromium would log the failure as an error.
+  await page.route('**/api/transfers/ambiguous', (route) =>
+    route.fulfill({ json: { ambiguousCount: 0, ambiguous: [] } }),
+  )
   await page.route('**/api/categories', (route) => route.fulfill({ json: CATEGORIES }))
   await page.route('**/api/movements*', (route) => {
     const query = new URL(route.request().url()).searchParams
@@ -197,7 +205,7 @@ test('opens on the current month with its figures, its note and its days', async
   await expect(page.getByTestId('statement-totals-in')).toContainText('57.949,11')
   await expect(page.getByTestId('statement-totals-out')).toContainText('59.096,42')
   await expect(page.getByTestId('statement-totals-net')).toContainText('-1.147,31')
-  await expect(page.getByTestId('statement-totals-note')).toContainText('raw bank movements')
+  await expect(page.getByTestId('statement-totals-note')).toContainText(NOTE_START)
   await expect(page.getByTestId('statement-day')).toHaveCount(2)
   await expect(page.getByTestId('statement-row')).toHaveCount(3)
   await expect(page.getByTestId('statement-row-transfer')).toHaveCount(1)
@@ -310,7 +318,7 @@ test('filtering inside the month changes the figures and the count (feature 20)'
   await expect(page.getByTestId('statement-scope')).toContainText('Uncategorized')
   await expect(page.getByTestId('statement-row')).toHaveCount(1)
   // The permanent note of the F19 is still there, word for word and undismissable.
-  await expect(page.getByTestId('statement-totals-note')).toContainText('raw bank movements')
+  await expect(page.getByTestId('statement-totals-note')).toContainText(NOTE_START)
   expect(statementQueries(watch).at(-1)).toContain('uncategorized=true')
 
   // Clearing leaves the month where it was.

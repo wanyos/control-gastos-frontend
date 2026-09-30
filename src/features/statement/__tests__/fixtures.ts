@@ -172,6 +172,25 @@ export const BIG_MONTH_PAGE_TWO = {
   totals: TOTALS,
 }
 
+/**
+ * Feature 23: what the month looks like with the switch ON — the paired transfer and
+ * the movement marked as not counted are simply not in the answer, because the backend
+ * left them out. The figures are the SAME as the ones of the whole month, which is the
+ * fact the whole feature rests on (design §1).
+ */
+export const HIDDEN_MONTH_PAGE = {
+  movements: [EXPENSE, EXPENSE_SAME_DAY, INCOME, NEUTRAL],
+  pagination: { page: 1, pageSize: 200, total: 4, totalPages: 1 },
+  totals: TOTALS,
+}
+
+/** The count read of the switch: one row asked for, the whole month counted (R7). */
+export const COUNT_PAGE = {
+  movements: [EXPENSE],
+  pagination: { page: 1, pageSize: 1, total: 5, totalPages: 5 },
+  totals: TOTALS,
+}
+
 /** The backend's own error body, in Spanish as the real one. */
 export const VALIDATION_ERROR_BODY = {
   statusCode: 400,
@@ -280,6 +299,12 @@ export function mockApi(answers: {
   bulkPatch?: Answer | ((body: unknown) => Promise<Response>)
   /** Feature 21: `POST /api/category-rules`, the rule born from a line (R16). */
   createRule?: Answer
+  /**
+   * Feature 23: `GET /api/transfers/ambiguous`, the only live figure of the note. It
+   * defaults to «none», so a test that does not care about it neither sees the sentence
+   * nor hits an unexpected call (R15).
+   */
+  ambiguous?: Answer
 }) {
   const calls: ApiCall[] = []
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
@@ -313,6 +338,9 @@ export function mockApi(answers: {
     if (url.pathname === '/api/categories' && method === 'GET') {
       return (answers.categories ?? json(CATEGORIES))()
     }
+    if (url.pathname === AMBIGUOUS_TRANSFERS && method === 'GET') {
+      return (answers.ambiguous ?? json(noAmbiguous()))()
+    }
     return Promise.reject(new TypeError(`unexpected ${method} ${url.pathname}`))
   })
   return {
@@ -330,6 +358,29 @@ export function mockApi(answers: {
 }
 
 export const MOVEMENTS = '/api/movements'
+
+export const AMBIGUOUS_TRANSFERS = '/api/transfers/ambiguous'
+
+/** The answer of `GET /api/transfers/ambiguous`: `ambiguousCount` is always the length. */
+export const ambiguousGroups = (count: number): Record<string, unknown> => ({
+  ambiguousCount: count,
+  ambiguous: Array.from({ length: count }, (_, i) => ({
+    amount: '500.00',
+    movements: [
+      {
+        id: 100 + i,
+        accountId: 1,
+        accountAlias: 'bankinter ···0236',
+        type: 'expense',
+        bookingDate: '2026-08-01',
+        description: 'TRANSFERENCIA',
+      },
+    ],
+  })),
+})
+
+/** Nothing doubtful: a plain 200, not an error (contract). */
+const noAmbiguous = (): Record<string, unknown> => ambiguousGroups(0)
 
 const PATCH_ONE = /^\/api\/movements\/\d+$/
 
@@ -407,12 +458,19 @@ export function fakeMonth(seed: readonly Record<string, unknown>[] = MONTH_PAGE.
 
   return {
     rows,
-    movements: (): Promise<Response> => {
-      const movements = [...rows.values()]
+    // Feature 23: it also honours the two scopes of the switch, so a test can watch a
+    // row leave the month the way the backend would take it out — and the count read
+    // (`pageSize=1`, no scopes) gets the total of the WHOLE month, as the contract says.
+    movements: (query?: URLSearchParams): Promise<Response> => {
+      const hidden = query?.get('excluded') === 'none' && query?.get('transfer') === 'none'
+      const movements = [...rows.values()].filter(
+        (row) => !hidden || (row.excludedFromTotals !== true && row.transferId === null),
+      )
+      const pageSize = Number(query?.get('pageSize') ?? 200)
       return Promise.resolve(
         jsonResponse({
-          movements,
-          pagination: { page: 1, pageSize: 200, total: movements.length, totalPages: 1 },
+          movements: pageSize === 1 ? movements.slice(0, 1) : movements,
+          pagination: { page: 1, pageSize, total: movements.length, totalPages: 1 },
           totals: figures(),
         }),
       )

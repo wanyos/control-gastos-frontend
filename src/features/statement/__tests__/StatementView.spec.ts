@@ -10,8 +10,11 @@ import { currentMonth, formatMonthLabel, monthRange, shiftMonth } from '../month
 import {
   BIG_MONTH_PAGE_ONE,
   BIG_MONTH_PAGE_TWO,
+  COUNT_PAGE,
   CREATED_RULE,
   EMPTY_MONTH_PAGE,
+  HIDDEN_MONTH_PAGE,
+  ambiguousGroups,
   EXPENSE,
   GROCERIES,
   MONTH_PAGE,
@@ -189,11 +192,13 @@ describe('StatementView', () => {
     await flushPromises()
 
     expect(api.methods()).toEqual(['GET'])
-    // Feature 20 added the two lists that fill the selects; all three paths are reads.
+    // Feature 20 added the two lists that fill the selects and feature 23 the doubtful
+    // groups of the note; all four paths are reads (C1).
     expect([...new Set(api.calls.map((call) => call.path))].sort()).toEqual([
       '/api/accounts',
       '/api/categories',
       '/api/movements',
+      '/api/transfers/ambiguous',
     ])
   })
 
@@ -292,7 +297,11 @@ describe('StatementView', () => {
         '5 movements match these filters in March 2026 · Account bankinter ···0236 · "luz"',
       )
       expect(wrapper.find('[data-test="statement-totals-note"]').exists()).toBe(true)
-      expect(wrapper.get('[data-test="statement-totals-note"]').text()).toContain('July 2026')
+      // Feature 23: the note no longer names a month nor carries a single digit (R14).
+      expect(wrapper.get('[data-test="statement-totals-note"]').text()).toContain(
+        'These figures already leave out what does not count',
+      )
+      expect(wrapper.get('[data-test="statement-totals-note"]').text()).not.toMatch(/\d/)
     })
 
     it('names the chosen category in the scope line (R5)', async () => {
@@ -806,6 +815,193 @@ describe('StatementView', () => {
       await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
 
       expect(wrapper.get('[data-test="statement-totals-note"]').text()).toBe(before)
+    })
+  })
+  // ─── The noise switch (feature 23) ────────────────────────────────────────
+  describe('the noise switch', () => {
+    /** The month with the switch on, plus the count read it triggers (R2, R7). */
+    const hidden: Answers = {
+      movements: (query) => {
+        if (query.get('pageSize') === '1') return json(COUNT_PAGE)()
+        return json(query.get('excluded') === 'none' ? HIDDEN_MONTH_PAGE : MONTH_PAGE)()
+      },
+    }
+
+    const box = (wrapper: Awaited<ReturnType<typeof mountView>>['wrapper']) =>
+      wrapper.get('[data-test="statement-noise-switch"]').get('input')
+
+    it('is off when the address does not mention it, and the whole month is shown (R1)', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', hidden)
+
+      expect(box(wrapper).element.checked).toBe(false)
+      expect(api.queries()).toEqual(['from=2026-09-01&to=2026-09-30&page=1&pageSize=200'])
+      expect(wrapper.findAll('[data-test="statement-row"]')).toHaveLength(5)
+      expect(wrapper.find('[data-test="statement-hidden-count"]').exists()).toBe(false)
+    })
+
+    it('turning it on writes hide=true and keeps every other key of the URL (R4)', async () => {
+      const { api, router, wrapper } = await mountView(
+        '/movements?month=2026-09&account=1&uncategorized=true&q=luz',
+        hidden,
+      )
+
+      await box(wrapper).setValue(true)
+      await flushPromises()
+
+      expect(router.currentRoute.value.query).toEqual({
+        month: '2026-09',
+        hide: 'true',
+        account: '1',
+        uncategorized: 'true',
+        q: 'luz',
+      })
+      expect(api.queries().at(-2)).toBe(
+        'accountId=1&from=2026-09-01&to=2026-09-30&uncategorized=true&q=luz&excluded=none&transfer=none&page=1&pageSize=200',
+      )
+      expect(api.methods()).toEqual(['GET'])
+    })
+
+    it('keeps the category key as it was, not only the uncategorized one (R4)', async () => {
+      const { router, wrapper } = await mountView('/movements?month=2026-09&category=2', hidden)
+
+      await box(wrapper).setValue(true)
+      await flushPromises()
+
+      expect(router.currentRoute.value.query).toEqual({
+        month: '2026-09',
+        hide: 'true',
+        category: '2',
+      })
+    })
+
+    it('comes up on from the address, and hides the marked ones and the transfers (R5)', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09&hide=true', hidden)
+
+      expect(box(wrapper).element.checked).toBe(true)
+      expect(api.queries()[0]).toBe(
+        'from=2026-09-01&to=2026-09-30&excluded=none&transfer=none&page=1&pageSize=200',
+      )
+      expect(wrapper.findAll('[data-test="statement-row"]')).toHaveLength(4)
+    })
+
+    it.each(['1', 'yes'])('comes up OFF when the address says hide=%s (R5)', async (raw) => {
+      const { api, wrapper } = await mountView(`/movements?month=2026-09&hide=${raw}`, hidden)
+
+      expect(box(wrapper).element.checked).toBe(false)
+      expect(api.queries()[0]).not.toContain('excluded')
+    })
+
+    it('says how many are held back only while it is on, and never an amount (R7, R8)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09&hide=true', hidden)
+
+      const line = wrapper.get('[data-test="statement-hidden-count"]')
+      expect(line.text()).toBe('Hiding 1 movement')
+      expect(line.text()).not.toContain('€')
+
+      await box(wrapper).setValue(false)
+      await flushPromises()
+
+      expect(wrapper.find('[data-test="statement-hidden-count"]').exists()).toBe(false)
+    })
+
+    it('a failed count changes nothing on the screen (R9)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09&hide=true', {
+        movements: (query) =>
+          query.get('pageSize') === '1' ? networkDown() : json(HIDDEN_MONTH_PAGE)(),
+      })
+
+      expect(wrapper.find('[data-test="statement-hidden-count"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="statement-error"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="statement-row"]')).toHaveLength(4)
+      expect(wrapper.get('[data-test="statement-totals-in"]').text()).toBe(
+        formatMoney(TOTALS.income),
+      )
+    })
+
+    it('the three figures do not move when it is turned on (R6, design §1)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09', hidden)
+      const before = wrapper.get('[data-test="statement-totals-in"]').text()
+
+      await box(wrapper).setValue(true)
+      await flushPromises()
+
+      expect(wrapper.get('[data-test="statement-totals-in"]').text()).toBe(before)
+      expect(wrapper.get('[data-test="statement-totals-out"]').text()).toBe(
+        formatMoney(TOTALS.expense),
+      )
+    })
+
+    it('nothing left to show names both causes and offers the switch back (R12)', async () => {
+      const { router, wrapper } = await mountView(
+        '/movements?month=2026-09&hide=true&q=transferencia',
+        {
+          movements: (query) =>
+            query.get('pageSize') === '1' ? json(COUNT_PAGE)() : json(EMPTY_MONTH_PAGE)(),
+        },
+      )
+
+      const empty = wrapper.get('[data-test="statement-nothing-left"]')
+      expect(empty.text()).toContain('Nothing left to show in September 2026')
+      expect(empty.text()).toContain('what these filters match is hidden')
+      expect(wrapper.find('[data-test="statement-no-matches"]').exists()).toBe(false)
+
+      await wrapper.get('[data-test="statement-show-everything"]').trigger('click')
+      await flushPromises()
+
+      // The switch goes off and the filters stay exactly where they were (C5).
+      expect(router.currentRoute.value.query).toEqual({ month: '2026-09', q: 'transferencia' })
+    })
+
+    it('`Clear filters` empties the bar and leaves the switch ON (C5)', async () => {
+      const { router, wrapper } = await mountView(
+        '/movements?month=2026-09&hide=true&account=1&q=luz',
+        hidden,
+      )
+
+      await wrapper.get('[data-test="clear-filters"]').trigger('click')
+      await flushPromises()
+
+      expect(router.currentRoute.value.query).toEqual({ month: '2026-09', hide: 'true' })
+      expect(box(wrapper).element.checked).toBe(true)
+    })
+
+    it('the switch survives a month change, filters included (R4)', async () => {
+      const { router, wrapper } = await mountView('/movements?month=2026-09&hide=true', hidden)
+
+      await wrapper.get('[data-test="statement-prev"]').trigger('click')
+      await flushPromises()
+
+      expect(router.currentRoute.value.query).toEqual({ month: '2026-08', hide: 'true' })
+      expect(box(wrapper).element.checked).toBe(true)
+    })
+
+    it('reads the doubtful groups once per session and puts them in the note (R15)', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        ...hidden,
+        ambiguous: json(ambiguousGroups(2)),
+      })
+
+      expect(wrapper.get('[data-test="statement-totals-note"]').text()).toContain(
+        '2 groups look like transfers but could not be paired automatically.',
+      )
+
+      await box(wrapper).setValue(true)
+      await flushPromises()
+      await wrapper.get('[data-test="statement-prev"]').trigger('click')
+      await flushPromises()
+
+      expect(api.calls.filter((call) => call.path === '/api/transfers/ambiguous')).toHaveLength(1)
+    })
+
+    it('with no doubtful group the note keeps only its fixed text, and no error (R15)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09', {
+        ...hidden,
+        ambiguous: networkDown,
+      })
+
+      expect(wrapper.find('[data-test="statement-ambiguous-note"]').exists()).toBe(false)
+      expect(wrapper.get('[data-test="statement-totals-note"]').text()).not.toMatch(/\d/)
+      expect(wrapper.find('[data-test="statement-error"]').exists()).toBe(false)
     })
   })
 })

@@ -96,16 +96,21 @@ src/
                           # también corrige la categoría de una línea (su única escritura)
       components/         # MonthNav, MonthTotals, StatementList, StatementRow,
                           # StatementFilterBar, StatementCategorySelect (#20);
-                          # RowCategoryEditor, StatementActionNotice (#21)
+                          # RowCategoryEditor, StatementActionNotice (#21);
+                          # NoiseSwitch (#23: el interruptor del ruido y el `Hiding N`)
       views/              # StatementView (ruta /movements)
       store.ts            # useStatementStore: mes, página del mes, carga, error, Load more,
                           # filtros (#20), editor abierto, escritura y deshacer (#21)
       months.ts           # todo lo puro del mes: rango, salto, URL, agrupación por día y textos
-      filters.ts          # los cuatro filtros ↔ querystring de la API y de la URL (#20)
+      filters.ts          # los cuatro filtros ↔ querystring de la API y de la URL (#20);
+                          # el interruptor `hideNoise` (`hide=true` en la URL, `excluded=none`
+                          # y `transfer=none` en la API), `hiddenCountQuery`,
+                          # `hiddenCountLine` y `nothingLeftLine` (#23)
       actions.ts          # filtro de categoría, textos del aviso y de los errores, puras (#21)
       service.ts          # setMovementCategory: PATCH /api/movements/:id con solo `categoryId` (#21);
                           # setMovementsExcluded: PATCH /api/movements con solo ids y
-                          # excludedFromTotals (#22)
+                          # excludedFromTotals (#22); getAmbiguousCount: GET
+                          # /api/transfers/ambiguous, solo lectura, una vez por sesión (#23)
       types.ts            # re-export de los tipos de shared/movements + DayGroup
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
@@ -120,7 +125,8 @@ src/
     banks.ts              # bankLabel(slug): nombre legible de banco, lista abierta (feature #13)
     money.ts              # importes exactos y formato es-ES / en-GB (feature #9)
     categories.ts         # árbol de categorías: tipos, parseo y GET /api/categories (feature #17)
-    movements.ts          # movimientos: tipos, parseo, GET /api/movements y la espera tras la
+    movements.ts          # movimientos: tipos (con `MovementScope` y los parámetros
+                          # `transfer` / `excluded` de la #23), parseo, GET /api/movements y la espera tras la
                           # última tecla (#18); y la escritura de uno solo —changesBody,
                           # patch, parseUpdatedMovement, updateMovement, MovementChanges y
                           # needsReload— desde la #21, y el PATCH en bloque desde la #22
@@ -132,6 +138,16 @@ src/
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
 
+> **El interruptor del ruido no escribe (feature #23).** Es de **solo lectura**: cambia
+> la pregunta que se le hace a `GET /api/movements` —`excluded=none` y `transfer=none`
+> juntos, un solo interruptor— y nada más. Esconder se hace en el servidor, nunca
+> filtrando aquí la lista ya descargada, para que `pagination.total`, el `Load more` y
+> las tres cifras sigan siendo del backend. Lo escondido se dice **en número** (la resta
+> de dos `pagination.total`) y **nunca en importe**: con `excluded=only` o
+> `transfer=only` el contrato devuelve los tres `totals` a `"0.00"` por construcción, así
+> que el importe no existe en ninguna respuesta y calcularlo aquí sería justo la
+> aritmética inventada que esta pantalla lleva cinco features evitando.
+>
 > **Lo que el extracto escribe, y nada más.** Nació de solo lectura (feature #19). Desde
 > la #21 manda `PATCH /api/movements/:id` con **solo** `categoryId`, y desde la #22
 > `PATCH /api/movements` con **solo** `ids` y `excludedFromTotals`. Ni `POST` ni

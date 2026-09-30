@@ -57,20 +57,100 @@ describe('MonthTotals (R5, R6, R7)', () => {
     }
   })
 
-  describe('the permanent note (R6)', () => {
+  // The note the F19 wrote said the figures were inflated beyond repair and quoted July
+  // 2026 in euros. Both claims died the day the deposits were marked, so the F23
+  // rewrote it whole: no hand-written number survives, and the only live figure is the
+  // one the backend counts itself.
+  describe('the permanent note (R14, R15)', () => {
     const note = () => mountTotals().get('[data-test="statement-totals-note"]')
 
-    it('says the four things, with July 2026 as the example', () => {
+    /** The fixed text, letter by letter: it is the heart of the feature (design §8). */
+    const FIXED_NOTE =
+      'These figures already leave out what does not count: the two legs of a paired ' +
+      'transfer, and everything you marked as not counted. Both stay in the list — turn ' +
+      'on "Hide what does not count" to read the month without them. Two things no count ' +
+      'can tell you: a transfer of yours whose other leg was never imported still counts ' +
+      'as money in and out until you mark it, and a pair the app detected may not be a ' +
+      'transfer at all.'
+
+    it('is the fixed text, word for word (R14)', () => {
+      expect(note().text()).toBe(FIXED_NOTE)
+    })
+
+    it('carries no figure of any kind: not one digit (R14)', () => {
+      expect(note().text()).not.toMatch(/\d/)
+    })
+
+    it('no longer says the figures are inflated, nor names a month (R14)', () => {
       const text = note().text()
 
-      expect(text).toContain('raw bank movements')
-      expect(text).toContain('count as money in and out')
-      expect(text).toContain('July 2026')
-      expect(text).toContain('57.949')
-      expect(text).toContain('59.096')
-      expect(text).toContain('one deposit rolling over')
-      expect(text).toContain('Paired transfers are already out of these figures')
-      expect(text).toContain('noise switch')
+      for (const gone of [
+        'inflated',
+        'raw bank movements',
+        'one deposit rolling over',
+        'noise switch, which comes in a later step',
+        'July',
+        'August',
+        '2026',
+        '€',
+      ]) {
+        expect(text).not.toContain(gone)
+      }
+    })
+
+    it('says what the figures are made of, how to read the month clean, and what no count knows', () => {
+      const text = note().text()
+
+      expect(text).toContain('already leave out what does not count')
+      expect(text).toContain('the two legs of a paired transfer')
+      expect(text).toContain('everything you marked as not counted')
+      expect(text).toContain('turn on "Hide what does not count"')
+      expect(text).toContain('whose other leg was never imported')
+      expect(text).toContain('a pair the app detected may not be a transfer at all')
+    })
+
+    describe('the only live figure (R15)', () => {
+      const noteWith = (ambiguousGroups: number | null) =>
+        mountTotals({ ambiguousGroups }).get('[data-test="statement-totals-note"]')
+
+      it('is absent while the count is unknown or the read failed', () => {
+        expect(noteWith(null).text()).toBe(FIXED_NOTE)
+        expect(
+          mountTotals({ ambiguousGroups: null })
+            .find('[data-test="statement-ambiguous-note"]')
+            .exists(),
+        ).toBe(false)
+      })
+
+      it('is absent with zero groups, and no error is painted', () => {
+        expect(noteWith(0).text()).toBe(FIXED_NOTE)
+        expect(
+          mountTotals({ ambiguousGroups: 0 })
+            .find('[data-test="statement-ambiguous-note"]')
+            .exists(),
+        ).toBe(false)
+      })
+
+      it('is one sentence in singular with one group', () => {
+        expect(
+          mountTotals({ ambiguousGroups: 1 }).get('[data-test="statement-ambiguous-note"]').text(),
+        ).toBe('1 group looks like a transfer but could not be paired automatically.')
+      })
+
+      it('is one sentence in plural with three, in the same paragraph, after the fixed text', () => {
+        const text = noteWith(3).text()
+
+        expect(text).toContain(
+          '3 groups look like transfers but could not be paired automatically.',
+        )
+        expect(text.indexOf('These figures already leave out')).toBeLessThan(
+          text.indexOf('3 groups look like transfers'),
+        )
+      })
+
+      it('is the ONLY digit the note ever shows', () => {
+        expect(noteWith(3).text().match(/\d+/g)).toEqual(['3'])
+      })
     })
 
     it('cannot be dismissed: no close button anywhere in the block', () => {

@@ -18,11 +18,11 @@ import {
   matchesCategoryFilter,
   writeErrorMessage,
 } from './actions'
-import { EMPTY_FILTERS, monthQuery } from './filters'
-import type { StatementFilters } from './filters'
+import { EMPTY_FILTERS, hiddenCountQuery, monthQuery } from './filters'
+import type { HideNoise, StatementFilters } from './filters'
 import { currentMonth, groupByDay, shiftMonth } from './months'
 import type { MonthKey } from './months'
-import { setMovementCategory, setMovementsExcluded } from './service'
+import { getAmbiguousCount, setMovementCategory, setMovementsExcluded } from './service'
 import type { AccountSummary, Category, DayGroup, Movement, MovementPage } from './types'
 
 /** What the last successful write did, and how to put it back (R11, R12). */
@@ -58,6 +58,19 @@ export const useStatementStore = defineStore('statement', () => {
   const month = ref<MonthKey>(currentMonth())
   /** The four filters that narrow the month on screen (feature 20, R1). */
   const filters = ref<StatementFilters>({ ...EMPTY_FILTERS })
+  /**
+   * The noise switch (feature 23). It starts OFF and never turns itself on: only the
+   * URL can (R1, R5). Hiding happens in the backend, in the very same request as the
+   * month, so `pagination.total`, `Load more` and the three figures keep belonging to
+   * what is on screen (design §2).
+   */
+  const hideNoise = ref<HideNoise>(false)
+  /**
+   * How many movements the switch is holding back: the count of the month WITHOUT
+   * hiding minus the one on screen, both of them the backend's (R7). Null when the
+   * switch is off or when that extra read failed, and then nothing is painted (R9).
+   */
+  const hiddenCount = ref<number | null>(null)
   /** Null while never loaded, or when the last load of a month failed. */
   const result = ref<MovementPage | null>(null)
   /** The movements of pages 2..n the user brought with `Load more`, in order (R13). */
@@ -73,6 +86,12 @@ export const useStatementStore = defineStore('statement', () => {
   /** The whole category tree, asked once per session; null while unknown (R14). */
   const categories = ref<Category[] | null>(null)
   const categoriesFailed = ref(false)
+  /**
+   * Groups that look like transfers and could not be paired on their own, asked ONCE
+   * per session: it depends neither on the month nor on the filters (feature 23, R15).
+   * Null while unknown or after a failure, and then the note keeps only its fixed text.
+   */
+  const ambiguousGroups = ref<number | null>(null)
 
   // --- Feature 21: correcting a category from the statement ---
   /** The row whose category editor is open, or null: only one at a time (C2). */
@@ -103,6 +122,7 @@ export const useStatementStore = defineStore('statement', () => {
   let loadRun = 0
   let accountsRequested = false
   let categoriesRequested = false
+  let ambiguousRequested = false
 
   /** The whole month on screen, grouped by day in the order the API sent it (R8). */
   const days = computed<DayGroup[]>(() =>
@@ -125,26 +145,32 @@ export const useStatementStore = defineStore('statement', () => {
   async function show(
     next: MonthKey,
     nextFilters: StatementFilters = filters.value,
+    nextHideNoise: HideNoise = hideNoise.value,
     client?: HttpClient,
   ): Promise<void> {
     const run = ++loadRun
     month.value = next
     filters.value = nextFilters
+    hideNoise.value = nextHideNoise
     isLoading.value = true
     error.value = null
     extra.value = []
     page.value = 0
+    // A stale number would say how much of ANOTHER month is hidden (R7).
+    hiddenCount.value = null
     // A new month or a new filter is a new context: the open editor and the Undo of
     // the last write go with it (R13), and so does the selection — a ticked id that is
     // no longer on screen would be a trap (feature 22, R7). The selection MODE stays
     // on: the user is still in the middle of the job, only the month changed.
     selectedIds.value = []
     forgetAction()
+    let loaded = false
     try {
-      const loaded = await getMovements(monthQuery(next, nextFilters), client)
+      const answer = await getMovements(monthQuery(next, nextFilters, 1, nextHideNoise), client)
       if (run !== loadRun) return
-      result.value = loaded
-      page.value = loaded.pagination.page
+      result.value = answer
+      page.value = answer.pagination.page
+      loaded = true
     } catch (rejection) {
       if (run !== loadRun) return
       result.value = null
@@ -152,16 +178,42 @@ export const useStatementStore = defineStore('statement', () => {
     } finally {
       if (run === loadRun) isLoading.value = false
     }
+    // After the month, never instead of it: the list is already on screen when the
+    // count travels, and a failure of this one changes nothing (R7, R9).
+    if (loaded) await loadHiddenCount(run, client)
   }
 
   /** The two arrows: one month back or forward, keeping the filters put (R12). */
   function shift(delta: number, client?: HttpClient): Promise<void> {
-    return show(shiftMonth(month.value, delta), filters.value, client)
+    return show(shiftMonth(month.value, delta), filters.value, hideNoise.value, client)
   }
 
   /** A filter changed: same month, first page again (R3). */
   function applyFilters(next: StatementFilters, client?: HttpClient): Promise<void> {
-    return show(month.value, next, client)
+    return show(month.value, next, hideNoise.value, client)
+  }
+
+  /**
+   * The extra read of the switch: the same month and the same filters WITHOUT hiding
+   * anything, one row, and the difference of the two `pagination.total` is the number
+   * (R7). Both counts are the backend's; nothing is added up here (C3). It shares the
+   * guard of the month, so the answer about a month nobody is looking at is dropped,
+   * and a failure only blanks its own number — never the list, the figures nor
+   * `error` (R9).
+   */
+  async function loadHiddenCount(run: number, client?: HttpClient): Promise<void> {
+    if (!hideNoise.value) {
+      hiddenCount.value = null
+      return
+    }
+    try {
+      const all = await getMovements(hiddenCountQuery(month.value, filters.value), client)
+      if (run !== loadRun) return
+      hiddenCount.value = Math.max(all.pagination.total - (result.value?.pagination.total ?? 0), 0)
+    } catch {
+      if (run !== loadRun) return
+      hiddenCount.value = null
+    }
   }
 
   /**
@@ -175,7 +227,10 @@ export const useStatementStore = defineStore('statement', () => {
     isLoadingMore.value = true
     error.value = null
     try {
-      const loaded = await getMovements(monthQuery(month.value, filters.value, next), client)
+      const loaded = await getMovements(
+        monthQuery(month.value, filters.value, next, hideNoise.value),
+        client,
+      )
       if (run !== loadRun) return
       extra.value = [...extra.value, ...loaded.movements]
       page.value = next
@@ -219,7 +274,12 @@ export const useStatementStore = defineStore('statement', () => {
    * `pagination` are NEVER touched here: they are the backend's (R10).
    */
   function adoptUpdated(updated: Movement): void {
-    const gone = hasCategoryFilter(filters.value) && !matchesCategoryFilter(updated, filters.value)
+    // Two ways of no longer belonging to what is on screen: the category filter of the
+    // F21 and — since the F23 — the switch, when what was just marked is exactly what
+    // the switch promises to hide. The Undo of the notice line brings it back (R13).
+    const gone =
+      (hasCategoryFilter(filters.value) && !matchesCategoryFilter(updated, filters.value)) ||
+      (hideNoise.value && (updated.excludedFromTotals || updated.transferId !== null))
     const rows = result.value?.movements
     const at = rows?.findIndex((row) => row.id === updated.id) ?? -1
     if (rows && at !== -1) {
@@ -242,7 +302,10 @@ export const useStatementStore = defineStore('statement', () => {
   async function refreshQuietly(client?: HttpClient): Promise<void> {
     const run = ++loadRun
     try {
-      const loaded = await getMovements(monthQuery(month.value, filters.value, 1), client)
+      const loaded = await getMovements(
+        monthQuery(month.value, filters.value, 1, hideNoise.value),
+        client,
+      )
       if (run !== loadRun) return
       result.value = loaded
       page.value = loaded.pagination.page
@@ -250,7 +313,10 @@ export const useStatementStore = defineStore('statement', () => {
       extra.value = extra.value.filter((row) => !onPageOne.has(row.id))
     } catch {
       // The write did go through; the figures will be right at the next movement.
+      return
     }
+    // What was just marked is now among the hidden ones: the number has to say so (R7).
+    await loadHiddenCount(run, client)
   }
 
   /** One lane for every write: a second click while one is in flight does nothing (C2). */
@@ -299,7 +365,7 @@ export const useStatementStore = defineStore('statement', () => {
         // The screen could be lying: reload the month instead of claiming nothing
         // happened (R15). The reload goes FIRST because it forgets the last action
         // (R13) — including any sentence — and then the failure is painted.
-        if (needsReload(failure)) await show(month.value, filters.value, client)
+        if (needsReload(failure)) await show(month.value, filters.value, hideNoise.value, client)
         actionError.value = failure
         actionMessage.value = writeErrorMessage(failure)
       }
@@ -412,7 +478,7 @@ export const useStatementStore = defineStore('statement', () => {
         // The screen could be lying: reload the month instead of claiming nothing
         // happened (R16). The reload goes FIRST because it forgets the last action
         // — including any sentence — and then the failure is painted (R15).
-        if (needsReload(failure)) await show(month.value, filters.value, client)
+        if (needsReload(failure)) await show(month.value, filters.value, hideNoise.value, client)
         actionError.value = failure
         actionMessage.value = writeErrorMessage(failure, 'exclusion')
       }
@@ -479,9 +545,28 @@ export const useStatementStore = defineStore('statement', () => {
     }
   }
 
+  /**
+   * The only live figure of the permanent note, read ONCE per session: it depends on
+   * neither the month nor the filters, so changing either asks for nothing (R15). A
+   * failure leaves it null and the note keeps just its fixed text — no error is painted
+   * anywhere, because this is the ornament of a sentence, not the month (R15).
+   */
+  async function loadAmbiguous(client?: HttpClient): Promise<void> {
+    if (ambiguousRequested) return
+    ambiguousRequested = true
+    try {
+      ambiguousGroups.value = await getAmbiguousCount(client)
+    } catch {
+      ambiguousGroups.value = null
+    }
+  }
+
   return {
     month,
     filters,
+    hideNoise,
+    hiddenCount,
+    ambiguousGroups,
     result,
     extra,
     page,
@@ -513,6 +598,7 @@ export const useStatementStore = defineStore('statement', () => {
     loadMore,
     loadAccounts,
     loadCategories,
+    loadAmbiguous,
     openEditor,
     closeEditor,
     categorize,

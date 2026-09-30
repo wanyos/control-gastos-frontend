@@ -100,6 +100,14 @@ export interface MovementPage {
 }
 
 /**
+ * Which half of a two-valued field a request keeps (contract, backend feature 49):
+ * `only` leaves just the ones that have it, `none` just the ones that do not. There is
+ * no third value — anything else is a 400 `VALIDATION_ERROR` — so the type itself is
+ * the last barrier before the request (feature 23).
+ */
+export type MovementScope = 'only' | 'none'
+
+/**
  * What a request to `GET /api/movements` asks for. `categoryId` and
  * `uncategorized` are mutually exclusive (the backend answers 400 to both).
  */
@@ -112,6 +120,10 @@ export interface MovementQuery {
   categoryId?: number
   uncategorized?: true
   q?: string
+  /** Paired transfer legs (`transferId` not null): keep only them, or none of them. */
+  transfer?: MovementScope
+  /** Movements marked as not counted: keep only them, or none of them. */
+  excluded?: MovementScope
   page?: number
   pageSize?: number
 }
@@ -154,6 +166,9 @@ export function buildMovementsQuery(query: MovementQuery): string {
     add('categoryId', query.categoryId)
   }
   add('q', query.q?.trim())
+  // Absent unless asked for: without them the backend filters neither (feature 23).
+  add('excluded', query.excluded)
+  add('transfer', query.transfer)
   add('page', query.page)
   add('pageSize', query.pageSize)
 

@@ -316,6 +316,11 @@ feature #8; ver *Iconos (Lucide)*.
   confirmados contra `@lucide/vue` antes de usarlos.
 - **Feature #19:** ninguno nuevo. El extracto reutiliza `ChevronLeft` / `ChevronRight`
   (flechas de mes) y `TriangleAlert` (la nota fija sobre las sumas).
+- **Feature #23:** `Info`, y **sale** `TriangleAlert` del extracto: la nota de las
+  sumas deja de ser un aviso ámbar y pasa a nota gris informativa. No es dependencia
+  nueva (`@lucide/vue` ya está instalado y cada icono se importa por nombre); es el
+  único del paquete que significa «información», y el que se retira era justo la alarma
+  que la feature viene a quitar.
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,

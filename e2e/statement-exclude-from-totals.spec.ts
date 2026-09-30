@@ -7,6 +7,9 @@ import type { Page, Request } from '@playwright/test'
 // not foreseen, so no PATCH ever reaches the real backend on :3000 and no real movement
 // is taken out of anybody's figures by this suite.
 
+/** Feature 23: the note was rewritten whole and no longer carries a single digit. */
+const NOTE_START = 'These figures already leave out what does not count'
+
 const BANKINTER = {
   id: 1,
   iban: 'ES9820385778983000760236',
@@ -128,6 +131,11 @@ async function prepare(page: Page, options: Options = {}) {
   )
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
   await page.route('**/api/accounts', (route) => route.fulfill({ json: ACCOUNTS }))
+  // Feature 23: the permanent note asks for this once per session; without the route
+  // the safety net would abort it and Chromium would log the failure as an error.
+  await page.route('**/api/transfers/ambiguous', (route) =>
+    route.fulfill({ json: { ambiguousCount: 0, ambiguous: [] } }),
+  )
   await page.route('**/api/categories', (route) => route.fulfill({ json: CATEGORIES }))
 
   await page.route('**/api/movements*', (route) => {
@@ -273,7 +281,7 @@ test('marks three lines with one request and the figures come back changed', asy
   await expect(page.getByTestId('statement-row')).toHaveCount(24)
   await expect(page.getByTestId('statement-totals-count')).toHaveText('24 movements')
   await expect(page.getByTestId('statement-selected-count')).toHaveText('0 selected')
-  await expect(page.getByTestId('statement-totals-note')).toContainText('raw bank movements')
+  await expect(page.getByTestId('statement-totals-note')).toContainText(NOTE_START)
   const methods = [...new Set(watch.requests.map((request) => request.method()))].sort()
   expect(methods).toEqual(['GET', 'PATCH'])
   expect(watch.consoleErrors).toEqual([])

@@ -18,11 +18,21 @@
       @change="onFilters"
     />
 
+    <!-- Between the filters and the figures, on its own line: the tile of figures
+         talks about what DOES count and this line about what does not, so turning it on
+         does not make the tile grow or jump (design §6). -->
+    <NoiseSwitch
+      :model-value="store.hideNoise"
+      :hidden-count="store.hiddenCount"
+      @change="onToggleNoise"
+    />
+
     <MonthTotals
       v-if="store.result"
       :pagination="store.result.pagination"
       :totals="store.result.totals"
       :scope="scope"
+      :ambiguous-groups="store.ambiguousGroups"
     />
 
     <!-- Between the figures and the list, fixed: what the last write did, with its Undo
@@ -98,6 +108,7 @@
       :pagination="store.result.pagination"
       :shown="store.shown"
       :empty-state="emptyState"
+      :filtered="hasActiveFilters(store.filters)"
       :has-more="store.hasMore"
       :loading-more="store.isLoadingMore"
       :categories="store.categories"
@@ -107,6 +118,7 @@
       :selected-ids="store.selectedIds"
       @load-more="store.loadMore()"
       @clear="onFilters({ ...EMPTY_FILTERS })"
+      @show-everything="onToggleNoise(false)"
       @edit="store.openEditor"
       @categorize="(id, categoryId) => store.categorize(id, categoryId)"
       @create-rule="onCreateRule"
@@ -171,6 +183,7 @@ import { STATEMENT_BULK_THRESHOLD, findCategoryName } from '../actions'
 import ExcludeConfirmDialog from '../components/ExcludeConfirmDialog.vue'
 import MonthNav from '../components/MonthNav.vue'
 import MonthTotals from '../components/MonthTotals.vue'
+import NoiseSwitch from '../components/NoiseSwitch.vue'
 import StatementActionNotice from '../components/StatementActionNotice.vue'
 import StatementFilterBar from '../components/StatementFilterBar.vue'
 import StatementList from '../components/StatementList.vue'
@@ -194,8 +207,8 @@ const store = useStatementStore()
 const rules = useCategoryRulesStore()
 
 function syncFromRoute(): void {
-  const { month, filters } = fromRouteQuery(route.query)
-  void store.show(month, filters)
+  const { month, filters, hideNoise } = fromRouteQuery(route.query)
+  void store.show(month, filters, hideNoise)
 }
 
 onMounted(() => {
@@ -203,18 +216,30 @@ onMounted(() => {
   // One request each per session; a failure only switches its own select off (R14, R15).
   void store.loadAccounts()
   void store.loadCategories()
+  // The only live figure of the permanent note, also once per session (feature 23, R15).
+  void store.loadAmbiguous()
 })
 
 watch(() => route.query, syncFromRoute)
 
 /** A month change IS a step you want to come back from, so it is pushed (R12). */
 function onMonth(next: MonthKey): void {
-  void router.push({ query: toRouteQuery(next, store.filters) })
+  void router.push({ query: toRouteQuery(next, store.filters, store.hideNoise) })
 }
 
 /** Filters are replaced, not pushed: typing in the search box must not fill the history. */
 function onFilters(next: StatementFilters): void {
-  void router.replace({ query: toRouteQuery(store.month, next) })
+  void router.replace({ query: toRouteQuery(store.month, next, store.hideNoise) })
+}
+
+/**
+ * The switch lives in the address, next to the month and the filters, so it survives a
+ * month change, a reload, a back and a shared link without anything being stored in the
+ * browser (R4). Replaced, not pushed: it is a way of looking, not a step of the trip.
+ * The month and the four filter keys are written again exactly as they were.
+ */
+function onToggleNoise(next: boolean): void {
+  void router.replace({ query: toRouteQuery(store.month, store.filters, next) })
 }
 
 const failure = computed(() =>
@@ -267,9 +292,15 @@ async function onSaveRule(rule: NewRule): Promise<void> {
   }
 }
 
-const emptyState = computed<'month' | 'noMatches'>(() =>
-  hasActiveFilters(store.filters) ? 'noMatches' : 'month',
-)
+/**
+ * Nothing on screen has three different reasons, and the switch's one comes first: when
+ * it is on, what is missing may be the filters, may be what is hidden, and the sentence
+ * has to name both (R12).
+ */
+const emptyState = computed<'month' | 'noMatches' | 'nothingLeft'>(() => {
+  if (store.hideNoise) return 'nothingLeft'
+  return hasActiveFilters(store.filters) ? 'noMatches' : 'month'
+})
 
 // ─── Marking movements as not counted (feature 22: R5, R13, R14) ───────────
 

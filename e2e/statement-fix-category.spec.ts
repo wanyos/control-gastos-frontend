@@ -7,6 +7,9 @@ import type { Page, Request } from '@playwright/test'
 // not foreseen, so no PATCH ever reaches the real backend on :3000 and no category of a
 // real movement is touched by this suite.
 
+/** Feature 23: the note was rewritten whole and no longer carries a single digit. */
+const NOTE_START = 'These figures already leave out what does not count'
+
 const BANKINTER = {
   id: 1,
   iban: 'ES9820385778983000760236',
@@ -147,6 +150,11 @@ async function prepare(page: Page, options: Options = {}) {
   )
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
   await page.route('**/api/accounts', (route) => route.fulfill({ json: ACCOUNTS }))
+  // Feature 23: the permanent note asks for this once per session; without the route
+  // the safety net would abort it and Chromium would log the failure as an error.
+  await page.route('**/api/transfers/ambiguous', (route) =>
+    route.fulfill({ json: { ambiguousCount: 0, ambiguous: [] } }),
+  )
   await page.route('**/api/categories', (route) => route.fulfill({ json: CATEGORIES }))
 
   let written = 0
@@ -239,7 +247,7 @@ test('changes the category of a line and does not ask for the figures again', as
   expect(watch.writes).toEqual(['{"categoryId":3}'])
   expect(monthReads(watch)).toBe(1)
   await expect(page.getByTestId('statement-totals-out')).toContainText('59.096,42')
-  await expect(page.getByTestId('statement-totals-note')).toContainText('raw bank movements')
+  await expect(page.getByTestId('statement-totals-note')).toContainText(NOTE_START)
   expect(watch.pageErrors).toEqual([])
   expect(watch.consoleErrors).toEqual([])
 })

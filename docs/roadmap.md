@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-09-29.
+> **Última revisión:** 2026-09-30.
 
 ## Este documento frente a los otros
 
@@ -24,24 +24,24 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Ya hay aplicación, y ya escribe.** 22 features cerradas. Las pantallas que
+**Ya hay aplicación, y ya escribe.** 23 features cerradas. Las pantallas que
 existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
 acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
 y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14) y
 el **extracto mes a mes** en `/movements` con sus filtros, su búsqueda, la corrección de
-categoría desde la propia línea y el marcado en bloque de lo que no cuenta en las sumas
-(F19, F20, F21, F22).
+categoría desde la propia línea, el marcado en bloque de lo que no cuenta en las sumas y el
+interruptor que esconde ese ruido (F19, F20, F21, F22, F23).
 Etapas E0 a E6 cerradas; la E7 a medias.
 
-**El ruido de las sumas ya se está atacando, y se nota.** La **F22** (cerrada el
+**El ruido de las sumas está resuelto en el extracto.** La **F22** (cerrada el
 2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
 **los 29 apuntes de depósito ya están marcados**: el histórico pasa de 446.014 / 439.372 €
 a **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90 /
 4.096,05 €**. La parte 1 de `../docs/handoff-sumas-honestas.md` está servida por la
 **feature 49 del backend** (respuestas con `excludedFromTotals`, filtros
-`transfer=only|none` y `excluded=only|none`, y escritura de la marca). Lo que falta es
-**esconder** ese ruido, no apartarlo: hoy lo marcado sigue a la vista. **La E8, los
-dashboards, hereda estas cifras:** conviene rematar el interruptor antes de empezarla.
+`transfer=only|none` y `excluded=only|none`, y escritura de la marca). Y desde la **F23**
+(cerrada el 2026-09-30) ese ruido además se **esconde**: la lista y las cifras por fin
+cuentan lo mismo. **La E8, los dashboards, hereda estas cifras**, que ya son las buenas.
 
 ---
 
@@ -58,7 +58,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
-| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19, F20, F21, F22 |
+| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19, F20, F21, F22, F23 |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
@@ -213,9 +213,9 @@ texto: la vista del histórico completo, confirmados incluidos.
 > (285.000 €, el 58 % de la base) ya están marcados y no cuentan. La parte 1 de
 > `../docs/handoff-sumas-honestas.md` la sirvió la feature 49 del backend
 > (`excludedFromTotals`, filtros `transfer=only|none` y `excluded=only|none`, y la marca
-> escribible) y la F22 es la feature del frontend que la usa. Queda la nota fija de la
-> pantalla, que todavía dice que las cifras están infladas: la reescribe el interruptor
-> del ruido.
+> escribible) y la F22 es la feature del frontend que la usa. La nota fija de la pantalla,
+> que decía que las cifras estaban infladas, **la reescribió la F23** y ya no lleva
+> ninguna cifra clavada.
 >
 > **F20 cerrada el 2026-09-27** — segunda rodaja: dentro del mes hay una barra con cuatro
 > controles (buscador por un trozo del concepto, cuenta, categoría y una casilla
@@ -269,14 +269,33 @@ texto: la vista del histórico completo, confirmados incluidos.
 > **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90 /
 > 4.096,05 €**. Filtrar por cuenta ya no es la única forma de ver el gasto real.
 >
-> **Qué falta en esta etapa** (las dos ya redactadas en borrador y acordadas con el humano):
+> **F23 cerrada el 2026-09-30** — quinta rodaja, y la que hace que la lista y las cifras
+> cuenten lo mismo: encima de las tres cifras hay una casilla `Hide what does not count`
+> que esconde a la vez lo marcado en la F22 y las dos piernas de cada traspaso, pidiéndolo
+> al backend con `excluded=none&transfer=none` (los filtros del contrato que seguían sin
+> usar). A su lado, `Hiding N movements`, un número del backend —la resta de dos
+> recuentos suyos, con una sola lectura extra de una fila—; el **importe no se dice**,
+> porque cuando a la API se le pide solo lo apartado devuelve las sumas a cero y
+> calcularlo aquí sería aritmética inventada. **Las tres cifras no se mueven** al ponerla:
+> el backend nunca contó ni los traspasos ni lo marcado, lo que estaba roto era la lista.
+> El interruptor vive en la URL (`/movements?month=2026-07&hide=true`), empieza siempre
+> apagado, sobrevive al cambio de mes y a la recarga, y `Clear filters` no lo apaga.
+> Solo lectura: no escribe ni un campo. Además **reescribe entera la nota permanente de la
+> F19**, que ya no dice que las sumas estén infladas y **no lleva ninguna cifra clavada**:
+> la única cifra viva es el recuento de grupos que parecen traspasos y no se pudieron
+> emparejar solos, que se pide una vez por sesión y, si falla o vale cero, no se dice.
+> Comprobada contra el backend real con el humano delante: cinco vistas cuadrando, julio
+> pasando de **93 a 79 filas sin que cambien las sumas**, la nota sin un solo dígito y sin
+> botón de cerrar, y una sola petición de dudosos por sesión.
+> Spec en `specs/23-statement-noise-toggle/`.
 >
-> 1. **El interruptor del ruido** — esconder lo marcado y los traspasos, para que la lista
->    y las cifras cuenten lo mismo, con los filtros `excluded` y `transfer` del contrato
->    (hoy sin usar). Reescribe también la nota fija del mes.
-> 2. **Revisar las parejas de traspaso** — pantalla propia, contra `GET /api/transfers` y
+> **Qué falta en esta etapa** (la única que queda, ya redactada en borrador y acordada con
+> el humano):
+>
+> 1. **Revisar las parejas de traspaso** — pantalla propia, contra `GET /api/transfers` y
 >    `GET /api/transfers/ambiguous`, para confirmar o descartar los emparejamientos que el
->    backend no da por seguros.
+>    backend no da por seguros. Es también quien se llevará la lectura de los grupos
+>    dudosos, que hoy vive con el extracto porque solo él la usa.
 >
 > **La parte del backend del traspaso `../docs/handoff-sumas-honestas.md` está cerrada**
 > (features 49 y 50, commits `7711063` y `a6195be`). De ahí queda **sin usar en el

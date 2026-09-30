@@ -3,13 +3,20 @@
     <div
       v-if="isEmpty"
       class="flex flex-col items-center gap-3 py-8 text-center"
-      :data-test="isFiltered ? 'statement-no-matches' : 'statement-empty'"
+      :data-test="emptyTest"
     >
-      <p class="text-sm text-ink-body">
-        {{ isFiltered ? noMatchesLine(month) : emptyMonthLine(month) }}
-      </p>
+      <p class="text-sm text-ink-body" data-test="statement-empty-line">{{ emptyLine }}</p>
       <BaseButton
-        v-if="isFiltered"
+        v-if="emptyState === 'nothingLeft'"
+        variant="secondary"
+        size="sm"
+        data-test="statement-show-everything"
+        @click="emit('show-everything')"
+      >
+        Show everything
+      </BaseButton>
+      <BaseButton
+        v-else-if="isFiltered"
         variant="secondary"
         size="sm"
         data-test="statement-empty-clear"
@@ -83,7 +90,7 @@ import { computed } from 'vue'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
 
-import { noMatchesLine } from '../filters'
+import { noMatchesLine, nothingLeftLine } from '../filters'
 import { emptyMonthLine, showingLine } from '../months'
 import type { MonthKey } from '../months'
 import type { Category, DayGroup, Movement, Pagination } from '../types'
@@ -98,7 +105,9 @@ const props = withDefaults(
     /** Rows on screen right now, first page plus whatever `Load more` added. */
     shown: number
     /** Which empty sentence to paint when the API answered `total: 0`. */
-    emptyState?: 'month' | 'noMatches'
+    emptyState?: 'month' | 'noMatches' | 'nothingLeft'
+    /** Feature 23: the filters are on too, so the empty sentence can name both causes. */
+    filtered?: boolean
     hasMore?: boolean
     loadingMore?: boolean
     /** Feature 21: what the row editor needs, passed straight down. */
@@ -114,6 +123,7 @@ const props = withDefaults(
   }>(),
   {
     emptyState: 'month',
+    filtered: false,
     hasMore: false,
     loadingMore: false,
     categories: null,
@@ -127,6 +137,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   loadMore: []
   clear: []
+  'show-everything': []
   edit: [number]
   categorize: [number, number | null]
   'create-rule': [Movement]
@@ -138,4 +149,19 @@ const emit = defineEmits<{
 const isEmpty = computed(() => props.pagination.total === 0)
 
 const isFiltered = computed(() => props.emptyState === 'noMatches')
+
+/**
+ * Three ways of showing nothing, and they are NOT the same thing: an empty month, a
+ * filter with no matches (R13) and — since the F23 — a month whose every row is hidden
+ * by the switch, which names both possible causes and offers the switch back (R12).
+ */
+const emptyLine = computed(() => {
+  if (props.emptyState === 'nothingLeft') return nothingLeftLine(props.month, props.filtered)
+  return isFiltered.value ? noMatchesLine(props.month) : emptyMonthLine(props.month)
+})
+
+const emptyTest = computed(() => {
+  if (props.emptyState === 'nothingLeft') return 'statement-nothing-left'
+  return isFiltered.value ? 'statement-no-matches' : 'statement-empty'
+})
 </script>

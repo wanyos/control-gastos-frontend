@@ -22,7 +22,11 @@ import {
   changed,
   BIG_MONTH_PAGE_ONE,
   BIG_MONTH_PAGE_TWO,
+  COUNT_PAGE,
   EMPTY_MONTH_PAGE,
+  HIDDEN_MONTH_PAGE,
+  TRANSFER,
+  ambiguousGroups,
   MONTH_PAGE,
   OTHER_MONTH_PAGE,
   TOTALS,
@@ -1110,6 +1114,275 @@ describe('useStatementStore', () => {
       expect(store.lastExclusion).toBeNull()
       expect(store.lastAction?.movementId).toBe(11)
       expect(store.canUndo).toBe(true)
+    })
+  })
+  // ─── The noise switch (feature 23: R1 … R15) ──────────────────────────────
+  describe('the noise switch', () => {
+    const filters = (patch: Partial<StatementFilters>): StatementFilters => ({
+      ...EMPTY_FILTERS,
+      ...patch,
+    })
+
+    const select = (store: ReturnType<typeof useStatementStore>, ids: number[]): void => {
+      store.startSelecting()
+      for (const id of ids) store.toggleSelected(id)
+    }
+
+    it('starts off: no scope travels and no count is asked for (R1)', async () => {
+      const api = mockApi({ movements: json(MONTH_PAGE) })
+      const store = useStatementStore()
+
+      await store.show('2026-09')
+
+      expect(store.hideNoise).toBe(false)
+      expect(api.queries()).toEqual(['from=2026-09-01&to=2026-09-30&page=1&pageSize=200'])
+      expect(store.hiddenCount).toBeNull()
+    })
+
+    it('on, it asks the month with both scopes and then counts, in that order (R2, R7)', async () => {
+      const api = mockApi({
+        movements: (query) =>
+          (query.get('pageSize') === '1' ? json(COUNT_PAGE) : json(HIDDEN_MONTH_PAGE))(),
+      })
+      const store = useStatementStore()
+
+      await store.show('2026-09', EMPTY_FILTERS, true)
+
+      expect(api.queries()).toEqual([
+        'from=2026-09-01&to=2026-09-30&excluded=none&transfer=none&page=1&pageSize=200',
+        'from=2026-09-01&to=2026-09-30&page=1&pageSize=1',
+      ])
+      expect(api.methods()).toEqual(['GET'])
+      // 5 in the whole month, 4 on screen: one movement is being held back (R7).
+      expect(store.hiddenCount).toBe(1)
+      expect(store.result?.pagination.total).toBe(4)
+    })
+
+    it('carries the switch with the filters in ONE request, and neither wins (R10)', async () => {
+      const api = mockApi({
+        movements: (query) =>
+          (query.get('pageSize') === '1' ? json(COUNT_PAGE) : json(HIDDEN_MONTH_PAGE))(),
+      })
+      const store = useStatementStore()
+
+      await store.show('2026-09', filters({ accountId: 2, uncategorized: true }), true)
+
+      expect(api.queries()[0]).toBe(
+        'accountId=2&from=2026-09-01&to=2026-09-30&uncategorized=true&excluded=none&transfer=none&page=1&pageSize=200',
+      )
+      // The count is measured against the same filters, without the scopes (R7).
+      expect(api.queries()[1]).toBe(
+        'accountId=2&from=2026-09-01&to=2026-09-30&uncategorized=true&page=1&pageSize=1',
+      )
+    })
+
+    it('turning it off asks the same month and the same filters with no scope (R3)', async () => {
+      const api = mockApi({
+        movements: (query) =>
+          (query.get('pageSize') === '1' ? json(COUNT_PAGE) : json(MONTH_PAGE))(),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09', filters({ accountId: 2 }), true)
+
+      await store.show('2026-09', filters({ accountId: 2 }), false)
+
+      expect(api.queries().at(-1)).toBe(
+        'accountId=2&from=2026-09-01&to=2026-09-30&page=1&pageSize=200',
+      )
+      expect(store.hiddenCount).toBeNull()
+      expect(store.hideNoise).toBe(false)
+    })
+
+    it('the switch rides along to the next page of the month (R2)', async () => {
+      const api = mockApi({
+        movements: (query) =>
+          query.get('pageSize') === '1'
+            ? json(COUNT_PAGE)()
+            : json(query.get('page') === '2' ? BIG_MONTH_PAGE_TWO : BIG_MONTH_PAGE_ONE)(),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09', EMPTY_FILTERS, true)
+
+      await store.loadMore()
+
+      expect(api.queries().at(-1)).toBe(
+        'from=2026-09-01&to=2026-09-30&excluded=none&transfer=none&page=2&pageSize=200',
+      )
+    })
+
+    it('the figures are the ones of the answer, untouched (R6, C3)', async () => {
+      mockApi({
+        movements: (query) =>
+          (query.get('pageSize') === '1' ? json(COUNT_PAGE) : json(HIDDEN_MONTH_PAGE))(),
+      })
+      const store = useStatementStore()
+
+      await store.show('2026-09', EMPTY_FILTERS, true)
+
+      // The very same three figures the whole month answers with (design §1).
+      expect(store.result?.totals).toEqual(TOTALS)
+      expect(store.result?.totals).toEqual(MONTH_PAGE.totals)
+    })
+
+    it('a failed count leaves the month, the figures and the list intact (R9)', async () => {
+      mockApi({
+        movements: (query) =>
+          query.get('pageSize') === '1' ? networkDown() : json(HIDDEN_MONTH_PAGE)(),
+      })
+      const store = useStatementStore()
+
+      await store.show('2026-09', EMPTY_FILTERS, true)
+
+      expect(store.hiddenCount).toBeNull()
+      expect(store.error).toBeNull()
+      expect(store.result?.totals).toEqual(TOTALS)
+      expect(store.days).toHaveLength(3)
+      expect(store.isLoading).toBe(false)
+    })
+
+    it('a month that failed asks for no count at all', async () => {
+      const api = mockApi({ movements: networkDown })
+      const store = useStatementStore()
+
+      await store.show('2026-09', EMPTY_FILTERS, true)
+
+      expect(api.queries()).toHaveLength(1)
+      expect(store.hiddenCount).toBeNull()
+      expect(store.error).not.toBeNull()
+    })
+
+    it('drops the count of a month nobody is looking at any more (R15 of the F19)', async () => {
+      const late = deferred()
+      mockApi({
+        movements: (query) => {
+          if (query.get('pageSize') === '1') return late.answer()
+          return json(query.get('from') === '2026-07-01' ? HIDDEN_MONTH_PAGE : MONTH_PAGE)()
+        },
+      })
+      const store = useStatementStore()
+
+      const stale = store.show('2026-07', EMPTY_FILTERS, true)
+      await store.show('2026-09', EMPTY_FILTERS, false)
+      late.resolve(jsonResponse(COUNT_PAGE))
+      await stale
+
+      expect(store.month).toBe('2026-09')
+      expect(store.hiddenCount).toBeNull()
+    })
+
+    it('empties the selection and keeps the mode when the switch moves (R11)', async () => {
+      mockApi({
+        movements: (query) =>
+          (query.get('pageSize') === '1' ? json(COUNT_PAGE) : json(MONTH_PAGE))(),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11])
+
+      await store.show('2026-09', EMPTY_FILTERS, true)
+
+      expect(store.selectedIds).toEqual([])
+      expect(store.isSelecting).toBe(true)
+      expect(store.canUndo).toBe(false)
+      expect(store.actionNotice).toBeNull()
+    })
+
+    it('marking a row with the switch on takes it off the list, Undo included (R13)', async () => {
+      const month = fakeMonth()
+      mockApi({ movements: (query) => month.movements(query), bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09', EMPTY_FILTERS, true)
+      // The paired transfer is already out: four rows, and one held back.
+      expect(store.shownMovements.map((row) => row.id)).toEqual([10, 11, 12, 14])
+      expect(store.hiddenCount).toBe(1)
+      select(store, [10])
+
+      await store.setExcluded(true)
+
+      expect(store.shownMovements.map((row) => row.id)).toEqual([11, 12, 14])
+      expect(store.actionNotice).toBe('1 movement excluded from totals')
+      expect(store.canUndo).toBe(true)
+      expect(store.hiddenCount).toBe(2)
+
+      await store.undo()
+
+      expect(store.shownMovements.map((row) => row.id)).toEqual([10, 11, 12, 14])
+      expect(store.hiddenCount).toBe(1)
+    })
+
+    it('with the switch off a marked row stays exactly where it was (F22, R9)', async () => {
+      const month = fakeMonth()
+      mockApi({ movements: (query) => month.movements(query), bulkPatch: month.bulkPatch })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10])
+
+      await store.setExcluded(true)
+
+      expect(store.shownMovements.map((row) => row.id)).toEqual([10, 11, 12, 13, 14])
+    })
+
+    it('never writes anything: every request of the switch is a GET (C1)', async () => {
+      const api = mockApi({
+        movements: (query) =>
+          (query.get('pageSize') === '1' ? json(COUNT_PAGE) : json(HIDDEN_MONTH_PAGE))(),
+      })
+      const store = useStatementStore()
+
+      await store.show('2026-09', EMPTY_FILTERS, true)
+      await store.loadAmbiguous()
+      await store.show('2026-09', EMPTY_FILTERS, false)
+
+      expect(api.methods()).toEqual(['GET'])
+      expect(api.patches()).toHaveLength(0)
+      expect(TRANSFER.transferId).not.toBeNull()
+    })
+
+    describe('the live figure of the note (R15)', () => {
+      it('reads the groups once per session, whatever the month and the filters do', async () => {
+        const api = mockApi({ movements: json(MONTH_PAGE), ambiguous: json(ambiguousGroups(3)) })
+        const store = useStatementStore()
+
+        await store.loadAmbiguous()
+        await store.loadAmbiguous()
+        await store.show('2026-08')
+        await store.applyFilters(filters({ accountId: 2 }))
+        await store.loadAmbiguous()
+
+        expect(store.ambiguousGroups).toBe(3)
+        expect(api.calls.filter((call) => call.path === '/api/transfers/ambiguous')).toHaveLength(1)
+      })
+
+      it('zero groups is a plain answer, not a failure', async () => {
+        mockApi({ movements: json(MONTH_PAGE), ambiguous: json(ambiguousGroups(0)) })
+        const store = useStatementStore()
+
+        await store.loadAmbiguous()
+
+        expect(store.ambiguousGroups).toBe(0)
+      })
+
+      it('a failure leaves it unknown and paints no error anywhere', async () => {
+        mockApi({ movements: json(MONTH_PAGE), ambiguous: networkDown })
+        const store = useStatementStore()
+        await store.show('2026-09')
+
+        await store.loadAmbiguous()
+
+        expect(store.ambiguousGroups).toBeNull()
+        expect(store.error).toBeNull()
+        expect(store.actionMessage).toBeNull()
+        expect(store.result).not.toBeNull()
+      })
+
+      it('an answer that breaks the contract is a failure like any other', async () => {
+        mockApi({ movements: json(MONTH_PAGE), ambiguous: json({ ambiguousCount: '3' }) })
+        const store = useStatementStore()
+
+        await store.loadAmbiguous()
+
+        expect(store.ambiguousGroups).toBeNull()
+      })
     })
   })
 })

@@ -21,6 +21,14 @@ import type { MonthKey } from './months'
 import type { MovementQuery } from './types'
 
 /**
+ * The noise switch (feature 23): marked movements and paired transfer legs off the
+ * list. It is NOT one of the four filters of the bar — `Clear filters` does not touch
+ * it and `hasActiveFilters` does not look at it (C5) — so it travels apart, like the
+ * month does.
+ */
+export type HideNoise = boolean
+
+/**
  * The four controls of the bar, and nothing else: no type (the sign of the amount
  * already says it), no status (the statement shows pending and confirmed alike) and
  * no date range (the month rules) — decisions.md 🔴 1.
@@ -60,9 +68,17 @@ export function monthQuery(
   month: MonthKey,
   filters: StatementFilters = EMPTY_FILTERS,
   page = 1,
+  hideNoise: HideNoise = false,
 ): MovementQuery {
   const { from, to } = monthRange(month)
   const query: MovementQuery = { from, to, page, pageSize: STATEMENT_PAGE_SIZE }
+
+  // One switch, both parameters, in the same request as the filters: the two families
+  // are the same idea for the reader of the month (decisions.md 🔴 1, R2).
+  if (hideNoise) {
+    query.excluded = 'none'
+    query.transfer = 'none'
+  }
 
   if (filters.accountId !== null) query.accountId = filters.accountId
   if (filters.uncategorized) {
@@ -78,12 +94,29 @@ export function monthQuery(
 }
 
 /**
+ * The same month and the same filters WITHOUT hiding anything, asking for a single
+ * row: only `pagination.total` is read from the answer, and the difference with the
+ * one on screen is how many movements the switch is holding back (R7, design §4).
+ */
+export function hiddenCountQuery(month: MonthKey, filters: StatementFilters): MovementQuery {
+  return { ...monthQuery(month, filters, 1, false), pageSize: 1 }
+}
+
+/**
  * What travels to the URL: the month of the F19 untouched, plus the same keys the
  * review queue already uses, so two URLs of the same app read alike (R8). No page
- * key: the statement does not paginate, it has `Load more`.
+ * key: the statement does not paginate, it has `Load more`. The switch writes
+ * `hide=true` with the shape `uncategorized=true` already has, and nothing when it is
+ * off: an URL with no `hide` shows the whole month (R1, R4).
  */
-export function toRouteQuery(month: MonthKey, filters: StatementFilters): LocationQueryRaw {
+export function toRouteQuery(
+  month: MonthKey,
+  filters: StatementFilters,
+  hideNoise: HideNoise = false,
+): LocationQueryRaw {
   const query: LocationQueryRaw = { month }
+
+  if (hideNoise) query.hide = 'true'
 
   if (filters.accountId !== null) query.account = String(filters.accountId)
   if (filters.uncategorized) {
@@ -105,13 +138,16 @@ export function toRouteQuery(month: MonthKey, filters: StatementFilters): Locati
 export function fromRouteQuery(
   query: LocationQuery,
   now?: Date,
-): { month: MonthKey; filters: StatementFilters } {
+): { month: MonthKey; filters: StatementFilters; hideNoise: HideNoise } {
   const uncategorized = firstQueryValue(query.uncategorized) === 'true'
   const category = positiveIntegerQuery(query.category)
   const q = firstQueryValue(query.q) ?? ''
 
   return {
     month: monthFromRouteQuery(query, now),
+    // Only the literal `true` switches it on: `hide=1` and `hide=yes` show the whole
+    // month, like any other rubbish in the address (R5).
+    hideNoise: firstQueryValue(query.hide) === 'true',
     filters: {
       accountId: positiveIntegerQuery(query.account) ?? null,
       categoryId: uncategorized ? null : (category ?? null),
@@ -156,4 +192,27 @@ export function filterScopeLine(
 /** Nothing matched, which is not the same as an empty month (R13). */
 export function noMatchesLine(month: MonthKey): string {
   return `No movements match these filters in ${formatMonthLabel(month)}.`
+}
+
+/**
+ * How many movements the switch is holding back, in singular or plural (R7). It is a
+ * count and never an amount: with `excluded=only` or `transfer=only` the backend
+ * answers `"0.00"` on the three figures by construction, so the «how much» does not
+ * exist in any response — and adding it up here is the invented arithmetic this screen
+ * has spent five features avoiding (R8, C3).
+ */
+export function hiddenCountLine(hidden: number): string {
+  return hidden === 1 ? 'Hiding 1 movement' : `Hiding ${hidden} movements`
+}
+
+/**
+ * The month is not empty and the filters did match something: what is left is nothing
+ * because the switch took it away. The sentence names BOTH possible causes, because
+ * either one alone would point at the wrong gesture (R12).
+ */
+export function nothingLeftLine(month: MonthKey, hasFilters: boolean): string {
+  const label = formatMonthLabel(month)
+  return hasFilters
+    ? `Nothing left to show in ${label}: what these filters match is hidden.`
+    : `Nothing left to show in ${label}: everything in this month is hidden.`
 }

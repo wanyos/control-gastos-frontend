@@ -905,3 +905,47 @@ Plantilla para cada entrada nueva:
 - **Cierre:** feature 22 → **done**. De la E7 quedan dos: el interruptor del ruido y
   revisar las parejas de traspaso, las dos ya en borrador. Y queda sin usar en el
   frontend `GET /api/investments/deposits` (feature 50 del backend), que encaja en la E8.
+
+## 2026-09-30 — Feature 23: statement-noise-toggle
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author`, `implementer` y
+  `reviewer`. Flujo SDD. Quinta rodaja de la E7.
+- **Lo que de verdad hacía esta feature no era el interruptor, sino la nota.** La
+  pantalla llevaba desde la F19 diciendo que las sumas estaban infladas sin remedio, con
+  julio de 2026 como ejemplo (57.948/59.096 €). Tras la F22 eso era falso: julio lee
+  2.785,90/4.096,05 €.
+- **La nota y los números clavados.** El primer borrador del spec traía «17 traspasos sin
+  pareja», «2 parejas falsas» y «150 €». El leader lo objetó: son literales que caducan
+  igual que caducó la nota anterior. El humano pidió calcularlos, y entonces apareció el
+  matiz importante: **no todo es calculable**. El «17» salió de una búsqueda por
+  conceptos con falsos positivos posibles y el «2» de mirar dos multas entre el humano y
+  el agente; ninguno de los dos lo sabe el programa. Resultado aprobado: la nota lleva
+  **una sola cifra viva** (`ambiguousCount` de `GET /api/transfers/ambiguous`, una
+  petición por sesión) y dice **en palabras, sin cifrar**, lo que es juicio del humano.
+- **Spec:** `specs/23-statement-noise-toggle/`, 15 requisitos. Las otras decisiones: un
+  solo interruptor que manda `excluded=none` y `transfer=none`, empezando apagado y
+  viviendo en la URL; se dice cuántos movimientos esconde pero **nunca el importe**,
+  porque la API devuelve las sumas a cero cuando se le pide solo lo apartado; la nota
+  pasa de alarma ámbar a nota gris; interruptor y filtros se aplican los dos.
+- **Revisión: CAMBIOS PEDIDOS y luego APROBADO.** El reviewer encontró `pnpm lint` en
+  rojo (`no-underscore-dangle` por un `page_` en el e2e nuevo). **El hallazgo de fondo:
+  `./init.sh` no ejecuta oxlint**, solo type-check, tests y e2e, así que salió «Entorno
+  listo» con el lint roto — y el leader llevaba features reportando esa puerta como
+  completa sin serlo. Queda pendiente de decisión del humano si se añaden lint y formato
+  a `init.sh`.
+- **El implementer aplicó la corrección y se quedó colgado** justo después. El leader
+  verificó la puerta entera con el lint incluido y corrigió la tabla del informe, que
+  declaraba el lint en verde cuando se había medido en rojo.
+- **T20, comprobación con el humano delante** (solo lectura): cinco vistas contra la API
+  —julio y diciembre con y sin interruptor, agosto filtrado por n26— cuadrando en las
+  cinco. Al esconder el ruido **bajan las filas y no las sumas**, que es lo correcto:
+  julio de 93 a 79, diciembre de 49 a 36. La nota sale **sin un solo dígito** y sin botón
+  de cerrar. El recuento de dudosos es **una petición por sesión**, medido navegando tres
+  meses y accionando el interruptor. La pega anotada por el reviewer (un mes vacío
+  culpando al interruptor) no se reprodujo. Cero escrituras, cero errores.
+- **Se cierra con un punto del humano a medias, a la vista:** pidió saber cuántos
+  movimientos quedan fuera **y por cuánto**; el «cuántos» está, el «por cuánto» no puede
+  estar, y está explicado en su resumen.
+- **Verificación:** type-check, lint, 1.360 tests (86 ficheros), build, 39 e2e e
+  `./init.sh`, todo en verde y repetido por el leader.
+- **Cierre:** feature 23 → **done**. De la E7 queda una: revisar las parejas de traspaso.

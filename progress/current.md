@@ -3,550 +3,78 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 22 — statement-exclude-from-totals (implementación)
+- **Feature en curso:** 23 — statement-noise-toggle (implementación)
 - **Inicio:** 2026-09-29
 - **Agente:** leader (Claude Code) → implementer
 
 ## Plan
 
-Marcar movimientos como que no cuentan en las sumas (F22): las tasks **T0–T22** de
-`specs/22-statement-exclude-from-totals/tasks.md` en orden. La **T23 no es del
-implementer** (escribe en datos reales; necesita visto bueno explícito del humano).
-Es la **primera acción del extracto que mueve las cifras del mes**: tras cada
-escritura se pide el mes una vez en segundo plano (`refreshQuietly`) y las cifras
-nunca se calculan en el cliente. Un **único camino de escritura**
-(`statement/service.ts::setMovementsExcluded` → `PATCH /api/movements`) con un cuerpo
-de exactamente `{ ids, excludedFromTotals }`: ni `status` ni `categoryId` pueden
-viajar. Ninguna llamada real sale a `:3000` en los tests ni en el e2e (red de
-seguridad que aborta cualquier `/api` no prevista).
+El interruptor del ruido y la nota que ya no miente (F23): las tasks **T0–T19** de
+`specs/23-statement-noise-toggle/tasks.md` en orden. La **T20 no es del implementer**
+(comprobación con el humano delante, de solo lectura; la hace el leader con él).
+
+La feature es de **solo lectura**: el interruptor no escribe nada, solo añade
+`excluded=none` y `transfer=none` a la pregunta que ya se le hace a
+`GET /api/movements`. Las tres cifras siguen siendo las de `totals` del backend
+(no se calcula ni se ajusta ninguna aquí), lo escondido se dice **en número y nunca
+en importe** (resta de dos `pagination.total`), y la nota fija nueva no lleva
+**ninguna cifra**: la única cifra viva es `ambiguousCount` de
+`GET /api/transfers/ambiguous`, una petición por sesión, que si falla o vale 0 no
+pinta nada. Ninguna llamada real sale a `:3000` en tests ni en e2e (red de seguridad
+que aborta cualquier `/api` no prevista).
 
 ## Bitácora de la sesión
 
-- `./init.sh` de partida en **verde** (82 ficheros, 1212 tests, e2e chromium OK).
-- T0 comprobado: `asFlag` rechaza `"true"`, `0` y `null`; las fixtures de `review`,
-  `statement` y `category-rules` tienen un único constructor de movimiento cada una;
-  las parejas de color de `Not counted` (badge neutral, `--ink-body on
-  --surface-sunken`) y del importe atenuado (`--ink-muted on --surface-card` y `on
-  --surface-sunken`) ya están declaradas en `theme-dark.css`.
-- T1–T3: `excludedFromTotals` entra en `Movement` / `parseMovement` / `MovementChanges`
-  (obligatorio, `asFlag`) y el PATCH en bloque baja a `src/shared/movements.ts` con sus
-  tipos; `review` los re-exporta.
-- T4: suites de `review` y `category-rules` verdes; solo cambia **una línea** de
-  `review/__tests__/service.spec.ts` (igualdad exhaustiva del movimiento parseado).
-- T5–T8: `setMovementsExcluded` (único camino de escritura, cuerpo literal) y la lógica
-  pura (`STATEMENT_BULK_THRESHOLD`, `exclusionSummary`, `NOTHING_TO_CHANGE`, el gesto en
-  `writeErrorMessage`), con sus tests.
-- T9–T14: modo selección, `idsToChange`, `setExcluded` con refresco silencioso siempre,
-  `undoExclusion`, y el test de que las cifras nunca se calculan aquí.
-- T15–T20: `StatementRow` (casilla, `Not counted`, importe atenuado, badge no pulsable),
-  `StatementSelectionBar`, `ExcludeConfirmDialog`, `StatementList`, `StatementView`.
-  La nota permanente de la F19 queda **sin tocar** (verificado, T20).
-- T21: `e2e/statement-exclude-from-totals.spec.ts` con los 6 recorridos. Los cinco e2e
-  anteriores que fabrican movimientos ganan **una línea de fixture** cada uno
-  (`excludedFromTotals: false`): sin ella el parseo obligatorio deja sus listas vacías.
-  Ninguna aserción suya cambia.
-- T22: puerta completa en verde (type-check, lint, 1292 tests unitarios, build, e2e
-  chromium 34 tests, `./init.sh`). Informe en
-  `progress/implementation/statement-exclude-from-totals.md`.
-- **T23 no ejecutada**: escribe en datos reales, necesita visto bueno explícito del
-  humano.
-- Pendiente: veredicto del `reviewer`. La feature sigue en `in_progress`.
+- `./init.sh` de partida en **verde** (84 ficheros, 1292 tests, e2e chromium OK).
+- **T0** comprobado: (a) `buildMovementsQuery` admite parámetros nuevos sin mover el
+  orden que esperan los tests de `review` (solo viajan si se piden); (b) el icono
+  `Info` **no se usaba todavía** — se usa igualmente y se documenta: no es dependencia
+  nueva (`@lucide/vue` ya está y cada icono se importa por nombre) y ningún icono ya
+  importado significa «información»; el que sale, `TriangleAlert`, es la alarma que
+  esta feature viene a quitar; (c) el par `--ink-muted on --surface-card >= 4.5` ya
+  está declarado en `theme-dark.css`, así que la nota gris no necesita línea nueva.
+- **T1–T2**: `MovementScope` y los campos `transfer` / `excluded` entran por
+  `src/shared/movements.ts` de forma aditiva; `features/review` no cambia ni una línea.
+  Tests nuevos en `src/shared/__tests__/movements.spec.ts`.
+- **T3–T5**: `filters.ts` gana `HideNoise`, el 4º parámetro de `monthQuery`,
+  `hiddenCountQuery`, el `hide=true` de la URL en las dos direcciones,
+  `hiddenCountLine` y `nothingLeftLine`. Dos tests de la F20 pasan a incluir
+  `hideNoise: false` en sus comparaciones exhaustivas de `fromRouteQuery`.
+- **T6–T10**: el store lleva `hideNoise`, `hiddenCount` y `ambiguousGroups`;
+  `loadHiddenCount()` resta los dos `pagination.total` bajo el guardián `loadRun` y
+  falla en silencio; `adoptUpdated()` retira la fila que el interruptor esconde.
+  17 tests nuevos, incluido el de que **ninguna petición usa otro método que `GET`**.
+- **T11–T14**: `NoiseSwitch.vue` (nuevo), la vista lo pinta entre filtros y cifras y lo
+  escribe en la URL con `router.replace`, y `StatementList` gana el tercer vacío
+  `nothingLeft` con `Show everything`. `Clear filters` **no** apaga el interruptor.
+- **T15–T18**: la nota se reescribe entera (texto fijo sin una sola cifra, gris con
+  `Info`, sin cerrar) y `getAmbiguousCount()` trae la única cifra viva, una vez por
+  sesión. Hay un test que fija el **texto literal**, como lo tenía la F19.
+- Los **tres e2e del extracto** interceptan ahora `**/api/transfers/ambiguous` y apuntan
+  al texto nuevo de la nota; se añade `e2e/statement-noise-toggle.spec.ts` (5 casos, de
+  solo lectura, con la red de seguridad y `['GET']` como único método).
+- **T19 / puerta completa en verde**: `type-check`, `lint`, `test:unit`
+  (86 ficheros, **1360 tests**), `build`, e2e chromium (**39 tests**) y `./init.sh`.
+- Informe con la trazabilidad `R1…R15 → test`:
+  `progress/implementation/statement-noise-toggle.md`.
+- **Pendiente:** revisión (`reviewer`) y la **T20**, que es la comprobación de solo
+  lectura con el humano delante. La feature sigue en `in_progress`; sin commits.- 2026-09-30 — reviewer **pide cambios** en la F23: `pnpm lint` en rojo por un `page_`
+  en el e2e nuevo. **Hallazgo de fondo: `./init.sh` no ejecuta oxlint**, solo type-check,
+  tests y e2e; por eso salió «Entorno listo» con el lint roto, y por eso el leader había
+  estado reportando la puerta como completa sin serlo. Pendiente de decisión del humano
+  si se añaden lint y formato a `init.sh`.
+- 2026-09-30 — El implementer aplica la corrección y se queda colgado justo después. El
+  leader verifica la puerta entera **con lint incluido** (exit 0, 1.360 tests, 39 e2e,
+  build e init.sh) y el reviewer **aprueba**. Corregida la tabla «La puerta» del informe
+  del implementer, que declaraba el lint en verde cuando se midió en rojo.
+- 2026-09-30 — **T20 hecha** con el humano delante, solo lectura. Cinco vistas contra la
+  API (julio y diciembre con y sin interruptor, y agosto filtrado por n26): las cifras
+  coinciden en las cinco y **al esconder el ruido bajan los movimientos pero no las
+  sumas**, que es lo correcto. Julio pasa de 93 a 79 filas, diciembre de 49 a 36. La
+  nota nueva sale **sin un solo dígito** y sin botón de cerrar. El recuento de dudosos
+  es **una sola petición por sesión**, medido navegando tres meses y accionando el
+  interruptor. La pega que anotó el reviewer (mes vacío culpando al interruptor) **no se
+  reproduce**: mayo de 2023 con el interruptor puesto dice «No movements in May 2023.».
+  Cero escrituras y cero errores.
 
-## Plan anterior (F21, cerrada)
 
-Corregir la categoría desde el extracto (F21): las tasks T0–T21 de
-`specs/21-statement-fix-category/tasks.md`.
-
-## Plan anterior (F20, cerrada)
-
-Filtrar y buscar dentro del mes (F20): las tasks T0–T16 de
-`specs/20-statement-filters/tasks.md`.
-
-## Plan anterior (F19, cerrada)
-
-El extracto mes a mes (F19): las tasks T0–T17 de
-`specs/19-statement-by-month/tasks.md` en orden. La **T18 no es del implementer**
-(comprobación con el humano delante, de solo lectura). Pantalla de **solo lectura**:
-ninguna petición suya escribe, y ninguna llamada real sale a `:3000` en los tests.
-
-## Plan anterior (F18, implementada)
-
-Previsualización de una regla antes de guardarla (F18): las tasks T0–T17 de
-`specs/18-rule-match-preview/tasks.md`.
-
-## Plan anterior (F17, cerrada)
-
-Reglas de categorización (F17): crear una regla desde una fila de Review, verlas,
-cambiarlas y borrarlas en la pantalla nueva `Rules`, y pasarlas sobre lo pendiente
-con `POST /api/category-rules/apply` bajo confirmación. Las tasks T0–T21 de
-`specs/17-category-rules/tasks.md`; la T22 (backend real) queda para el humano.
-
-## Bitácora
-
-- 2026-09-20 — F15 cerrada tras superar la prueba contra el backend real. Roadmap
-  E6 a medias e historial al día. Se lanza el spec_author de la F16.
-- 2026-09-20 — Spec de la F16 escrito (`specs/16-review-actions/`, 14 requisitos y
-  6 decisiones 🔴); feature en `spec_ready`, a la espera de la puerta humana.
-
-- 2026-09-20 — Spec de la F16 aprobado por el humano tal cual (6 🔴: selección
-  por página que se suelta al cambiar de filtro, categorizar y confirmar como
-  gestos distintos, confirmación a partir de 20, la fila desaparece al
-  confirmar, Undo sin cuenta atrás, y filtrado previo de los no elegibles).
-  F16 pasa a `in_progress`.
-- 2026-09-20 — Acordado con el humano: **después de la F16 se redacta una feature
-  de reglas de categorización** (crear regla desde un movimiento, listarlas,
-  borrarlas y aplicarlas con `POST /api/category-rules/apply`). Motivo:
-  categorizar un movimiento no enseña nada al sistema; lo que se hereda entre
-  importaciones son las reglas. El backend ya tiene los endpoints.
-
-- 2026-09-20 — implementer arranca la F16. Plan: las tasks T0..T21 de
-  `specs/16-review-actions/tasks.md`. T0 cerrado sin sorpresas: iconos `Check`,
-  `Undo2` y `Tag` existen en `@lucide/vue` 1.45.0, y `--brand on --surface-sunken`
-  mide 7,44:1 (umbral 3), así que no hace falta el plan B del borde izquierdo.
-
-- 2026-09-20 — F16 implementada: T0.1–T20 de `tasks.md` en `[x]`, 14 requisitos
-  con test, +102 tests unitarios (793 en total) y 4 escenarios e2e nuevos con
-  todas las llamadas interceptadas. Puerta completa en verde (`type-check`,
-  `lint`, `test:unit`, `build`, `./init.sh`, e2e chromium). **T21 pendiente**:
-  la comprobación contra el backend real de `:3000` necesita el visto bueno del
-  humano y no se hizo (ningún `PATCH` salió de los mocks). Informe en
-  `progress/implementation/review-actions.md`. Falta el reviewer.
-
-- 2026-09-22 — reviewer aprueba la F16 sin cambios (793 tests, 12 e2e, build e
-  init.sh verificados por él; las 6 🔴 tal cual; la repetición del selector de
-  categoría aceptada como maquetado, no lógica).
-- 2026-09-22 — **T21 hecha** con el visto bueno del humano, contra el backend real
-  y pulsando en la interfaz (Playwright sin interceptar), sobre un solo movimiento:
-  42368 (IBERDROLA, 96,29 €, pendiente, Suministros). Categorizar a Vivienda → Undo
-  → vuelve a Suministros; Confirm → la fila sale y la cola baja de 1607 a 1606 →
-  Undo → vuelve a pendiente y a 1607. Antes/después idénticos salvo `updatedAt`.
-  4 PATCH, solo `categoryId`/`status`/`ids`; cero errores de consola.
-- 2026-09-22 — F16 en `done` (implementer; init.sh verde). F15 y F16 en un solo
-  commit (f427175): la F16 amplió los mismos archivos que creó la F15 sin
-  commitear, así que partirlo no daba dos estados reales. Feature de reglas: a la
-  espera del `intent` del humano (se le pasó un borrador).
-- 2026-09-22 — Spec de la F17 escrito (`specs/17-category-rules/`, 14 requisitos y
-  6 decisiones 🔴: pantalla `Rules` propia, texto propuesto = primera palabra con
-  sentido, aplicar como gesto aparte, confirmación siempre, la regla no categoriza su
-  movimiento, todos los conflictos a la vista); feature en `spec_ready`, a la espera
-  de la puerta humana.
-- 2026-09-22 — El humano aprueba el spec de la F17 tal cual, las 6 🔴 incluidas
-  (pantalla propia Rules, texto propuesto por palabra con sentido, aplicar aparte
-  y con confirmación, no categorizar el movimiento de origen, todos los
-  conflictos). F17 pasa a `in_progress`.
-
-- 2026-09-22 — implementer arranca la F17. Plan: las tasks T0..T21 de
-  `specs/17-category-rules/tasks.md` (la T22, contra el backend real, queda fuera:
-  necesita el visto bueno del humano). T0 cerrado sin sorpresas: `http.ts` manda un
-  `POST` con `init = { method: 'POST' }` sin `Content-Type` y devuelve `undefined`
-  en un 204; un `watch` de un store de Pinia sobre un ref de otro se dispara en los
-  tests (no hace falta `$onAction`); la normalización copia la del backend (`Café` →
-  `cafe`, espacios interiores intactos); y las parejas de color de §9 ya tienen su
-  línea `contrast:` (no se toca `theme-dark.css`).
-- 2026-09-22 — T1: las categorías (`Category`, `CategoryKind`, `parseCategories`,
-  `getCategories`, `CATEGORIES_PATH`) se mueven a `src/shared/categories.ts`;
-  `review/types.ts` y `review/service.ts` las re-exportan y la suite de `review`
-  pasa sin tocarla (229 tests).
-
-- 2026-09-22 — F17 implementada: T0–T21 de `tasks.md` en `[x]`, 14 requisitos con
-  test, +108 tests unitarios (901 en total) y 4 escenarios e2e nuevos con todas las
-  llamadas interceptadas y red de seguridad. Pantalla `Rules` en `/rules`, botón
-  `Create rule` en la fila de Review, aviso con `Apply rules now` y diálogo de
-  aplicar con confirmación siempre. Las categorías viven ahora en
-  `src/shared/categories.ts` (las usan `review` y `category-rules`); el sentido de
-  dependencia es único, `review` → `category-rules`. Puerta completa en verde
-  (`type-check`, `lint`, `test:unit`, `build`, e2e chromium, `./init.sh`).
-  **Una desviación documentada**: `isMatchTextTooShort('á b')` es `false`, no `true`
-  como decía la nota de verificación de R4 — el backend cuenta los espacios
-  interiores del texto normalizado y lo acepta; se eligió la paridad con el contrato
-  (detalle en el informe). **T22 pendiente**: la prueba contra el backend real de
-  `:3000` necesita el visto bueno del humano y no se hizo (ninguna petición salió de
-  los mocks). Informe en `progress/implementation/category-rules.md`. Falta el reviewer.
-- 2026-09-22 — reviewer aprueba la F17 sin cambios (901 tests, 16 e2e, puerta
-  repetida por él). Corregido el ejemplo de la nota de R4 en requirements.md.
-- 2026-09-22 — **T22 hecha** con el visto bueno del humano («aplicar y dejar lo que
-  salga»). Regla `tulotero` → Ocio creada desde la fila de Review y aplicada desde
-  el aviso: la pantalla dijo «5 movements categorized · 1372 still without a
-  matching rule · 1 conflict» y la API confirma exactamente esos 5 (TULOTERO,
-  ids 21750, 33099, 33260, 33371 y 42521). Cero errores de consola; solo dos
-  escrituras: POST /api/category-rules y POST /api/category-rules/apply sin body.
-  Antes, probando, se creó la regla `mega` (propuesta por defecto), se corrigió a
-  `mega deportes` desde Rules (PATCH) y una llamada directa a apply categorizó el
-  movimiento 42520 como Salud y deporte. Estado final: 63 reglas, 1.373 pendientes
-  sin categoría.
-- 2026-09-22 — Dos cosas para decidir: (1) el texto propuesto puede quedar
-  demasiado corto (`mega` casaba también con ACADEMIA OMEGA); (2) `data-test` no
-  llega a BaseDialog (raíz Teleport, Vue avisa) y el test que comprueba
-  `rule-dialog` en RulesView.spec.ts:96 pasa siempre.
-- 2026-09-22 — Las dos corregidas (encargo acotado, sin reabrir la feature ni tocar
-  las 6 🔴): (1) `proposeMatchText` alarga la propuesta con las palabras siguientes
-  del concepto, cortando verbatim, mientras no llegue a `MIN_PROPOSAL_LENGTH = 6`
-  («MEGA DEPORTES» → `mega deportes`, `iberdrola` igual que antes); R2 y design §6
-  actualizados con la nota de T22. (2) `BaseDialog` pasa a `inheritAttrs: false` y
-  lleva los atributos al panel `role="dialog"`: el aviso de Vue desaparece y el
-  `data-test` del llamante llega al DOM; `RulesView.spec.ts` prueba ahora las dos
-  caras (abierto y cerrado) y `RuleDialog.spec.ts` + el e2e del 409 nombran el
-  diálogo concreto. Puerta completa verde: 905 tests, 16 e2e, build e `init.sh`.
-- 2026-09-22 — Correcciones hechas y puerta repetida por el leader (init.sh:
-  «Entorno listo»). F17 en `done`, E6 cerrada, entrada de historial escrita.
-- 2026-09-23 — Higiene (sin feature, sin dependencias): (1) `pnpm format` pasa de
-  cubrir solo `src/` a una lista explícita de rutas de código (`src/`, `e2e/`,
-  configs de raíz, `index.html`, `tsconfig*.json`, `.oxlintrc.json`); reformateó
-  `e2e/category-rules.spec.ts`, `index.html`, `playwright.config.ts`,
-  `tsconfig.node.json` y `vite.config.ts`. Se deja fuera a propósito el estado del
-  harness (`feature_list.json`, `progress/`, `specs/`, `docs/`). (2) `e2e/app-boot.spec.ts`
-  estrena la red de seguridad `page.route('**/api/**', route => route.abort())`
-  como el resto de specs: **no apareció ninguna llamada nueva**, sus tres rutas ya
-  cubrían todo. Comprobado que la red no es decorativa: quitando `**/api/movements*`
-  el smoke se pone rojo por la llamada abortada, no por el 502 del proxy. `docs/stack.md`
-  gana una sección *Formato (Prettier)* y la convención de red de seguridad en e2e.
-  Puerta completa verde: type-check, lint, 905 tests, build, 16 e2e chromium e `init.sh`.
-
-- 2026-09-24 — Spec de la F18 escrito (`specs/18-rule-match-preview/`, 15 requisitos y
-  5 decisiones 🔴: aviso de «demasiado amplio» por encima de 50 movimientos sin
-  bloquear el guardado, 5 ejemplos —los más recientes— dentro del diálogo, 350 ms
-  desde la última tecla reutilizando la espera de Review, propuesta de texto que crece
-  mientras la última palabra sea genérica (`servicios selecta`, `juan jose romero`,
-  `amazon`) sin tocar `iberdrola`/`mercadona`/`mega deportes`/`tulotero`, y consulta
-  fallida que avisa sin impedir guardar). Feature en `spec_ready`, a la espera de la
-  puerta humana.
-
-- 2026-09-24 — El humano aprueba el spec de la F18 tal cual, las 5 🔴 incluidas
-  (aviso a partir de 50, 5 ejemplos recientes en el diálogo, 350 ms de espera,
-  propuesta que crece ante palabras genéricas y de canal, y fallo del recuento que
-  no bloquea el guardado). F18 pasa a `in_progress`.
-
-- 2026-09-24 — implementer arranca la F18. T0 cerrado sin sorpresas: las parejas de
-  color ya tienen su linea `contrast:` en `theme-dark.css` (no se toca el tema),
-  `buildMovementsQuery` admite `type` y `uncategorized=true` juntos, y el temporizador
-  de `ReviewFilterBar` se reproduce en `RuleDialog` con `vi.useFakeTimers()`.
-- 2026-09-24 — T1/T2: la mitad de **solo lectura** de los movimientos (tipos,
-  `buildMovementsQuery`, `parseMovementPage`, `getMovements`, `SEARCH_DEBOUNCE_MS`) se
-  mueve a `src/shared/movements.ts`; `review/{types,service,filters}.ts` la re-exportan
-  y la suite de `review` pasa sin tocarla (236 tests). Los dos `PATCH` se quedan en
-  `review/service.ts`.
-- 2026-09-24 — F18 implementada: **T0-T17 en `[x]`**, 15 requisitos con test,
-  +68 tests unitarios (973 en total) y un escenario e2e nuevo (17 en chromium) con
-  todas las llamadas interceptadas y la red de seguridad. Las 5 🔴 tal cual: aviso a
-  partir de 50 sin bloquear el guardado, 5 ejemplos recientes dentro del dialogo,
-  350 ms reutilizando la espera de Review, propuesta que crece ante palabras genericas
-  y de canal (`servicios selecta`, `juan jose romero`, `amazon`; `iberdrola`,
-  `mercadona`, `mega deportes` y `tulotero` fijados como regresion), y fallo del
-  recuento que avisa sin impedir guardar. Puerta completa verde (`type-check`, `lint`,
-  973 tests, `build`, e2e chromium e `./init.sh`). **Una desviacion documentada**: en
-  `RulesView.spec.ts` la asercion «cambiar una regla no toca ningun movimiento» pasa de
-  medir la ruta a medir el metodo (`wroteMovements()`), porque ahora el dialogo **lee**
-  `GET /api/movements` para contar; ningun otro test de F15/F16/F17 cambio.
-  **T18 pendiente**: es la comprobacion con el humano delante, de solo lectura.
-  Informe en `progress/implementation/rule-match-preview.md`. Falta el reviewer.
-
-- 2026-09-24 — reviewer aprueba la F18 sin cambios (973 tests, 17 e2e, puerta
-  repetida por él).
-- 2026-09-24 — **T18 hecha** con el humano delante, solo lectura: 14 conceptos
-  reales en el diálogo, cero escrituras y cero errores de consola. Lo que dice la
-  pantalla coincide con la API en los 14 (el filtro por tipo explica que «juan jose
-  romero» dé 40 como ingreso y 8 como gasto). El aviso salta donde debía:
-  `servicios selecta` → 355. Los ceros (`tulotero`, `mega deportes`, `iberdrola`)
-  son correctos: ya están categorizados.
-- 2026-09-24 — **Deuda anotada, el humano la deja para más adelante:** la propuesta
-  arrastra papeleo y puntuación en «ANUL. /VivaGym» → `anul. /vivagym` (debería ser
-  `vivagym`, con `anul` en la lista de papeleo), y sigue floja con nombres de canal
-  («TRANS INM/ N26» → `trans inm`, que pesca también Openbank; «TPV VIRTUAL» →
-  `tpv virtual`). Ninguna rompe nada: el texto es editable y el recuento avisa.
-
-- 2026-09-24 — F18 en `done`, entrada de historial escrita y puerta repetida por el
-  leader (init.sh: «Entorno listo»).
-
-- 2026-09-26 — Spec de la F19 escrito (`specs/19-statement-by-month/`, 15 requisitos y
-  6 decisiones 🔴: mes con flechas + selector y mes vacío con frase, sumas del backend
-  con etiquetas neutras y nota fija no cerrable sobre lo infladas que están por los
-  depósitos, lista continua con cabecera por día, un mes en una petición de 200 con
-  `Load more` de red de seguridad, marca `Transfer` en los apuntes que no cuentan en las
-  sumas, y el mes vivo solo en la URL). Es la **primera rodaja de la E7**: sin filtros,
-  sin búsqueda y sin interruptor del ruido. Feature en `spec_ready`, a la espera de la
-  puerta humana.
-
-- 2026-09-26 — Investigado el ruido de las sumas (dos exploraciones de solo lectura,
-  `progress/exploration/ruido-traspasos-*.md`). Hallazgos: los totales del backend ya
-  excluyen los traspasos emparejados, pero los 29 apuntes de depósito de myinvestor
-  (285.000 €, 58 % de la base) no tienen arreglo desde el frontend, y 2 de las 40
-  parejas detectadas son falsas (multas casadas con Bizums de otra persona). Encargo
-  al backend escrito en `../docs/handoff-sumas-honestas.md`.
-- 2026-09-26 — Arranca la E7. F19 `statement-by-month` dada de alta con la intención
-  del humano (borrador `docs/intent-e7-draft.md`, aprobado) y su spec escrito.
-- 2026-09-26 — El humano aprueba el spec de la F19 tal cual, las 6 🔴 incluidas
-  (flechas + selector de mes, sumas con etiquetas neutras y nota permanente sobre el
-  ruido, lista con cabecera por día, un mes en una petición de 200, marca `Transfer`
-  y el mes solo en la URL). F19 pasa a `in_progress`.
-
-- 2026-09-26 — implementer arranca la F19. Plan: las tasks T0..T17 de
-  `specs/19-statement-by-month/tasks.md`. **T0 cerrado**: (a) el par
-  `--warning on --surface-card` y también `--warning on --warning-subtle` ya
-  tienen su línea `contrast:` en `theme-dark.css` (F18), así que el tema no se
-  toca; (c) `buildMovementsQuery` omite los valores `undefined`, así que una
-  query con solo `from`/`to`/`page`/`pageSize` **no** lleva `status`. El punto (b)
-  (que `<input type="month">` se lea bien con los tokens) se comprueba en el
-  navegador dentro del e2e de la T13, cuando la pantalla ya existe.
-
-- 2026-09-26 — **F19 implementada**: T0–T17 de `tasks.md` en `[x]` (la T18, la
-  comprobación con el humano delante contra el backend real, sigue pendiente y no
-  bloquea). `/movements` deja de ser placeholder: mes en curso al entrar, tres cifras
-  del backend con la nota fija no cerrable, lista con cabecera por día, marca
-  `Transfer`, `Load more`, mes vacío, error con reintentar y el mes solo en la URL.
-  Los 15 requisitos con test: **+7 ficheros y +87 tests unitarios (74 / 1060)** y 4
-  escenarios e2e nuevos (21 en chromium), con todas las llamadas interceptadas y la
-  red de seguridad; **ninguna petición distinta de `GET` en toda la pantalla**.
-  Puerta completa en verde (`type-check`, `lint`, `test:unit`, `build`, e2e chromium,
-  `./init.sh`). Sin dependencias nuevas y sin tocar `theme-dark.css`. Informe en
-  `progress/implementation/statement-by-month.md`. Falta el reviewer.
-
-- 2026-09-26 — reviewer aprueba la F19 sin cambios (1.060 tests, 21 e2e, puerta
-  repetida por él; las 7 desviaciones declaradas aceptadas una a una).
-- 2026-09-26 — **T18 hecha** con el humano delante, solo lectura. Seis meses
-  comprobados contra la API (2026-09, 2026-07, 2026-03, 2025-12, 2024-01 y 2023-05,
-  este último vacío): las tres cifras y el número de movimientos coinciden **al
-  céntimo** en los seis. La nota permanente sale en todos los meses, el mes vacío dice
-  «No movements in May 2023.», `Next` está apagado en el mes en curso, un mes inválido
-  (2026-13) cae en el mes en curso, y la marca `Transfer` sale en 11 filas de
-  diciembre de 2025, las mismas 11 que la API da con `transferId`. Cero escrituras y
-  cero errores de consola.
-
-- 2026-09-26 — F19 en `done`, E7 a 🟡 en el roadmap (con la sección «Dónde estás
-  ahora mismo» reescrita: llevaba seis features desfasada), historial escrito y
-  puerta repetida por el leader (init.sh: «Entorno listo»).
-
-- 2026-09-27 — Spec de la F20 escrito (`specs/20-statement-filters/`, 15 requisitos y
-  5 decisiones 🔴: la barra de la cola se parte en dos —cerebro compartido, cara
-  copiada— con solo cuatro controles y sin tipo/estado/fechas; línea de alcance con
-  recuento del filtro sin pedir el mes sin filtrar; mes y filtros en la URL con las
-  claves de la cola y la combinación imposible corregida en el cliente antes de pedir;
-  desplegables completos con `GET /api/accounts` (5) y `GET /api/categories` (16); y
-  «sin categoría» apagado al entrar). Segunda rodaja de la E7. La nota permanente de
-  la F19 no cambia ni una palabra. Feature en `spec_ready`, a la espera de la puerta
-  humana.
-
-- 2026-09-27 — El humano elige que **los filtros afinen el mes** (no entra rango libre
-  de fechas) y aprueba el spec de la F20 tal cual, las 5 🔴 incluidas: barra partida
-  (lógica a `shared/`, componente copiado con cuatro controles), línea de alcance con
-  el recuento del filtro, mes y filtros en la URL con corrección en cliente de la
-  combinación inválida, desplegables completos con `GET /api/accounts` y
-  `GET /api/categories`, y «sin categoría» apagado al entrar. F20 a `in_progress`.
-
-- 2026-09-27 — implementer arranca la F20. **T0 cerrado sin sorpresas**: (a)
-  `buildMovementsQuery` de `shared/movements.ts` ya descarta `categoryId` cuando
-  viaja `uncategorized: true` (tercera barrera); (b) las parejas de color de la
-  barra (`--ink-muted`/`--ink-body` sobre `--surface-app` y `--surface-card`,
-  `--border-default on --surface-card` de los inputs, `--negative on --surface-card`
-  del aviso de longitud) **ya tienen** su línea `contrast:` en `theme-dark.css`, así
-  que el tema no se toca; (c) `GET http://localhost:3000/api/accounts` devuelve las
-  **5 cuentas** reales (myinvestor, n26, openbank, bankinter, revolut) con `id`,
-  `iban`, `bank`, `alias` y `type` tal como dice el contrato (lectura, sin escribir).
-
-- 2026-09-27 — T1-T4: lo común de los filtros (`SEARCH_MIN/MAX/TOO_LONG`, `searchTerm`,
-  `firstQueryValue`, `positiveIntegerQuery`) se muda a `src/shared/movement-filters.ts` y
-  `review/filters.ts` lo re-exporta: la suite de `review` pasa **sin tocar ni un test**
-  (240). Nuevo `src/shared/accounts.ts` (solo los 5 campos del desplegable, saldos
-  ignorados) con sus tests.
-- 2026-09-27 — T5-T9: `statement/filters.ts` con los cuatro filtros, `monthQuery` mudada
-  de `months.ts` y ampliada, URL en los dos sentidos con la corrección silenciosa de la
-  combinación imposible, y las dos frases nuevas; `statementErrorMessage` pasa a
-  `{ message, action }`; el store gana `filters`, las dos listas y `applyFilters`.
-- 2026-09-27 — T10-T16: barra propia con **cuatro** controles (sin tipo, estado ni
-  fechas), copia del selector de categoría, línea de alcance en `MonthTotals` **fuera** de
-  la nota permanente, `StatementList` con las dos frases de vacío, y la vista con la URL
-  como única escritora de mes + filtros (`replace` al filtrar, `push` al cambiar de mes).
-- 2026-09-27 — **F20 implementada**: T0–T16 en `[x]` (la T17, con el humano delante contra
-  el backend real, sigue pendiente y no bloquea). 15 requisitos con test: **+4 ficheros y
-  +75 tests unitarios (1.135 en total)** y **2 escenarios e2e nuevos (23 en chromium)**,
-  con todas las llamadas interceptadas y la red de seguridad; **ninguna petición distinta
-  de `GET`** y ni un import de `@/features/review` en el extracto. La nota permanente de la
-  F19 no cambió ni una palabra y sigue visible con filtros. Puerta completa verde
-  (`type-check`, `lint`, 1.135 tests, `build`, e2e chromium, `./init.sh`). Sin
-  dependencias nuevas y sin tocar `theme-dark.css`; hubo que instalar los binarios de
-  Playwright (`pnpm exec playwright install chromium`), que faltaban en la máquina.
-  **Cinco desviaciones declaradas** en el informe (las dos que tocan tests de la F19:
-  las aserciones de `statementErrorMessage` en `months.spec.ts` por el cambio de firma de
-  la T6, y el test de solo-lectura de `StatementView.spec.ts`, que ahora mide los tres
-  paths de lectura). Informe en `progress/implementation/statement-filters.md`.
-  Falta el reviewer.
-
-- 2026-09-27 — reviewer aprueba la F20 sin cambios. Verificó con `git diff` que
-  ningún test de las F15-F18 cambió, que la mudanza de la lógica a `shared/` es
-  idéntica carácter a carácter, y que las dos desviaciones sobre tests existentes
-  refuerzan en vez de debilitar.
-- 2026-09-27 — **T17 hecha** con el humano delante, solo lectura: 8 combinaciones de
-  filtros contra la API real (mes entero, una cuenta, la de inversión, una categoría,
-  sin categoría, búsqueda, cuenta + sin categoría, y búsqueda sin resultados). Las
-  cifras coinciden en las 8. La línea de alcance dice «56 movements match these
-  filters in July 2026 · Account n26 ···4136». La URL imposible (categoría + sin
-  categoría) manda una sola petición con `uncategorized=true` y sin `categoryId`, sin
-  error visible, con la nota permanente presente. Cero escrituras y cero errores.
-- 2026-09-27 — Hallazgo de la prueba, útil para el humano: julio de 2026 en n26 son
-  221,45 € de entrada y 1.038,07 € de salida, mientras el mes entero lee 57.948 € y
-  59.096 €. Filtrando por myinvestor salen 55.169 € y 55.357 €: el depósito rodando.
-  Filtrar por cuenta es, hasta que llegue la marca del backend, la única forma de ver
-  el gasto real.
-
-- 2026-09-27 — F20 en `done`, E7 al día en el roadmap, historial escrito y puerta
-  repetida por el leader (init.sh: «Entorno listo»).
-
-- 2026-09-27 — spec_author redacta el spec de la **F21 `statement-fix-category`** (tercera rodaja de la E7, la primera vez que el extracto escribe): 17 requisitos, 22 tasks, entradas reales leídas (`PATCH /api/movements/:id` y `POST /api/category-rules` del contrato, y el código de las F16-F20). Feature a `spec_ready`; esperando la puerta de aprobación humana sobre `specs/21-statement-fix-category/decisions.md`.
-
-- 2026-09-27 — Con el backend trabajando en su parte del handoff, aquí se arranca la
-  F21 `statement-fix-category`: la única rodaja de la E7 que no depende de él.
-  Intención del humano a partir del borrador `docs/intent-f21-draft.md`, con sus
-  cuatro respuestas: solo la categoría, de uno en uno, sí crear reglas desde el
-  extracto, y la línea desaparece al momento si deja de encajar con el filtro.
-- 2026-09-27 — El humano aprueba el spec de la F21 tal cual, las 5 🔴 incluidas:
-  selector escondido (la etiqueta de categoría se vuelve editor en su sitio),
-  `Create rule` colgando de ese editor y sin categorizar el movimiento de origen,
-  la línea desaparece también filtrando por una categoría concreta, deshacer sin
-  cuenta atrás, y las cifras solo se repiden si hay filtro de categoría puesto.
-  F21 pasa a `in_progress`.
-
-- 2026-09-27 — implementer arranca la F21. **T0 cerrado sin sorpresas**: (a) el contrato
-  dice que `PATCH /api/movements/:id` devuelve **el movimiento completo, con la misma
-  forma que un elemento de la lista**, así que `parseMovement` de `shared/movements.ts`
-  vale tal cual; (b) las parejas de color de la insignia pulsable (`--brand on
-  --brand-subtle`, `--ink-body on --surface-sunken`, `--brand on --surface-app` del
-  foco) y del aviso (`--positive` / `--negative on --surface-app`) **ya tienen** su línea
-  `contrast:` en `theme-dark.css`, así que el tema no se toca; (c) `category-rules` no
-  importa nada de ninguna otra feature (`grep` de `@/features` en su carpeta: vacío), así
-  que montar `RuleDialog` desde el extracto no arrastra nada de `review`.
-- 2026-09-27 — T1–T3: la mitad de escritura de **un** movimiento (`MovementChanges`,
-  `changesBody`, `patch`, `parseUpdatedMovement`, `updateMovement`) y `needsReload` bajan a
-  `src/shared/movements.ts`; `review/{service,actions,types}.ts` las re-exportan y las
-  suites de `review` y `category-rules` pasan **sin tocar ni un test** (517 con `shared`).
-  El `PATCH` en bloque se queda en `review`.
-- 2026-09-27 — T4–T12: `statement/service.ts` con `setMovementCategory` (el cuerpo
-  `{ categoryId }` se escribe ahí dentro y hay test que lo lee letra por letra, con campos
-  de contrabando incluidos), `statement/actions.ts` con el filtro de categoría y los textos
-  en singular, y el store con editor único, carril único, `adoptUpdated`, refresco **solo**
-  con filtro de categoría y deshacer de una sola petición.
-- 2026-09-27 — T13–T18: `RowCategoryEditor` y `StatementActionNotice` (copias de la F16,
-  no imports), la insignia de `StatementRow` convertida en botón que se vuelve editor en su
-  sitio, `StatementList` de puro cableado, la vista con el aviso entre las cifras y la lista
-  y el `RuleDialog` de la F17 con la previsualización de la F18. La nota permanente de la
-  F19 **intacta** y su test verde sin tocarlo.
-- 2026-09-27 — **F21 implementada**: T0–T21 en `[x]` (la T22, que **escribe en datos
-  reales**, sigue pendiente del visto bueno explícito del humano y no se ejecutó). 17
-  requisitos con test: **+4 ficheros y +77 tests unitarios (82 / 1.212)** y **5 escenarios
-  e2e nuevos (28 en chromium)**, con todas las llamadas interceptadas, la red de seguridad
-  y, en la ruta del `PATCH`, un abort de cualquier método que no sea `PATCH`. Las 5 🔴 tal
-  cual. Puerta completa verde (`type-check`, `lint`, 1.212 tests, `build`, e2e chromium e
-  `./init.sh`). Sin dependencias nuevas y sin tocar `theme-dark.css`. `docs/architecture.md`
-  al día: el extracto deja de ser de solo lectura y gana la dependencia
-  `statement → category-rules` (mismo sentido que `review → category-rules`, sin ciclos).
-  **Seis desviaciones declaradas** en el informe; las que importan: `MovementChanges` se
-  mudó también a `shared/` (la usa la firma de `updateMovement`); **dos aserciones de
-  tests de la F19/F20** («esta fila no tiene ningún control») pasan a decir «ningún control
-  salvo la insignia de categoría», porque la feature las deroga; la T3 pedía **mover** los
-  casos del `PATCH` a `shared/__tests__/movements.spec.ts` y **no se movieron** (choca con
-  «sin tocar ni un test» y ese fichero no existe); y un `ref` nuevo, `actionNotice`, para
-  que puedan convivir la frase `Change undone` y «no se rehace nada». Informe en
-  `progress/implementation/statement-fix-category.md`. Falta el reviewer.
-
-- 2026-09-27 — reviewer aprueba la F21 sin cambios. Verificó las dos barreras del
-  cuerpo del PATCH, que el e2e lo ejercita sobre un movimiento confirmado, y que el
-  origen de jsdom coincide con el backend real (por eso importa que todo esté
-  mockeado). Las 6 desviaciones aceptadas, incluida la T3 no hecha.
-- 2026-09-27 — **T22 hecha** con visto bueno explícito del humano («cambiar y
-  deshacer»), sobre un solo movimiento: 32428 (RECIB /IBERDROLA, 53,18 €, 24 de marzo,
-  Suministros). Editor escondido abierto desde la etiqueta, 14 categorías ofrecidas y
-  solo de gasto; cambio a Vivienda y deshacer devuelve Suministros. Dos PATCH, los dos
-  con **solo** `categoryId`. Antes y después idénticos salvo `updatedAt`. Cero errores.
-- 2026-09-27 — **Hallazgo durante la prueba: el backend ya ha entregado su feature 49.**
-  Las respuestas traen `excludedFromTotals` y el contrato documenta ya los filtros
-  `transfer=only|none` y `excluded=only|none`, más la escritura de esa marca en los dos
-  PATCH. O sea: la parte 2 de `../docs/handoff-sumas-honestas.md` (el interruptor del
-  ruido) **está desbloqueada**. Sin commitear en su repo todavía.
-
-- 2026-09-27 — F21 en `done`, E7 al día en el roadmap, corregidas dos mentiras de la
-  documentación que señaló el reviewer (`docs/stack.md` decía seis specs e2e y el
-  comentario de `statement/types.ts` decía que la pantalla solo lee), nota inline en la
-  T3 y puerta repetida por el leader (init.sh: «Entorno listo»).
-
-- 2026-09-29 — Spec de la F22 escrito (`specs/22-statement-exclude-from-totals/`,
-  16 requisitos y 5 decisiones 🔴: modo de selección que se enciende a propósito y
-  aparta el editor de categoría de la F21, etiqueta gris `Not counted` con el importe
-  atenuado, confirmación a partir de 20 como en la F16, `Undo` sin cuenta atrás además
-  de volver a pulsar, y un único camino de escritura por `PATCH /api/movements`).
-  Redactado contra el contrato del backend del 2026-09-27 (feature 49): cuerpo
-  `{ ids, excludedFromTotals }` con booleano literal, y un refresco del mes en segundo
-  plano tras cada acción porque aquí las sumas **sí** se mueven. Feature en
-  `spec_ready`, a la espera de la puerta humana.
-
-- 2026-09-29 — El backend cierra su parte del handoff: features 49 (7711063) y 50
-  (a6195be). Existen `excludedFromTotals` (uno a uno y en bloque), los filtros
-  `excluded` y `transfer`, `GET /api/transfers`, `GET /api/transfers/ambiguous` y
-  `GET /api/investments/deposits`. Desbloqueadas las partes 2 y 3.
-- 2026-09-29 — Tres borradores repasados con el humano (`docs/intent-ruido-drafts.md`):
-  A marcar «no cuenta», B el interruptor del ruido, C revisar las parejas. Sus
-  respuestas: A en bloque, sin ayudas para encontrar depósitos (filtrando por
-  myinvestor basta) y solo en el extracto; B entra mostrándolo todo y el número de
-  interruptores lo decide el agente; C pantalla propia, verlas todas, y emparejar
-  dudosos dentro si cabe. **Acordado además: nada de marcar automáticamente por
-  regla** — la marca la escribe siempre el humano.
-- 2026-09-29 — El humano aprueba el spec de la F22 tal cual, las 5 🔴 incluidas: modo
-  `Select movements` (las casillas solo cuando se piden, y entonces la etiqueta de
-  categoría deja de ser pulsable), marcado con etiqueta gris `Not counted` e importe
-  atenuado, confirmación a partir de 20, `Undo` sin cuenta atrás, y **un único camino
-  de escritura** por `PATCH /api/movements` aunque sea un solo movimiento (esto
-  contradice a propósito el acceptance que había derivado el leader, y se aceptó por
-  ser un solo sitio donde algo puede colarse). F22 pasa a `in_progress`.
-
-- 2026-09-29 — reviewer aprueba la F22 sin cambios. Verificó que un valor no booleano
-  no sale del frontend, las tres capas contra el tope de 200 y los repetidos, y que
-  `MonthTotals` no tiene diff (con git). Dejó tres correcciones de documentación, ya
-  hechas por el leader: `architecture.md` (el extracto ya escribe en bloque y el PATCH
-  en bloque bajó a `shared/`), `stack.md` (son ocho specs e2e) y `verification.md`
-  (recomendaba `pnpm test:unit run`, que con `vitest run` como script sale en error).
-- 2026-09-29 — **Los 29 apuntes de depósito ya estaban marcados**: los marcó la sesión
-  del backend al probar su feature 49 contra datos reales. Efecto: el histórico pasa de
-  446.014/439.372 € a **170.512/154.522 €**, y julio de 2026 de 57.948/59.096 € a
-  **2.785,90/4.096,05 €**. Avisado el humano de que otra sesión escribió en sus datos.
-- 2026-09-29 — **T23 hecha** con visto bueno explícito del humano («marcar y
-  desmarcar»), sobre un movimiento sin marcar: 42373 (TRANS INM/ EMILIA BENITEZ,
-  350 €, 31 de agosto). Al marcarlo la entrada del mes baja de 2.590,26 € a 2.240,26 €
-  —exactamente 350— y al deshacer vuelve. Con el modo selección encendido la categoría
-  deja de ser pulsable; la fila marcada se distingue. Dos PATCH en bloque con solo
-  `ids` y `excludedFromTotals`. Antes y después idénticos salvo `updatedAt`. Cero
-  errores.
-
-- 2026-09-29 — F22 en `done`, E7 al día en el roadmap, historial escrito y puerta
-  repetida por el leader (init.sh: «Entorno listo»).
-
-- 2026-09-29 — **F23 `statement-noise-toggle` con spec redactado** (spec_author):
-  `specs/23-statement-noise-toggle/{decisions,requirements,design,tasks}.md`, 14
-  requisitos + 8 restricciones, feature a `spec_ready`. Solo lectura: un interruptor
-  `Hide what does not count` (`excluded=none&transfer=none`) y la reescritura de la
-  nota permanente de la F19. Pendiente: **puerta de aprobación humana** sobre
-  `specs/23-statement-noise-toggle/decisions.md` (5 puntos 🔴).
-
-- 2026-09-29 — **F23: segunda vuelta del spec antes de aprobarlo** (spec_author).
-  La nota pierde los literales «17», «2» y «150 €»: el texto fijo queda **sin ninguna
-  cifra** (R14) y la única viva es `ambiguousCount` de `GET /api/transfers/ambiguous`,
-  **una lectura por sesión** (R15). Descartados a propósito `GET /api/transfers` →
-  `pairs.length` (habla de toda la historia y trae las 40 parejas completas) y el
-  recuento de marcados del mes (1 petición por mes y por filtro). 15 requisitos; la
-  feature sigue en `spec_ready` esperando la puerta sobre los 🔴 2 y 3.
-
-- 2026-09-29 — El leader objeta la 🔴 2 de la F23: la nota propuesta clavaba «17
-  traspasos», «2 parejas falsas» y «150 €», que es la misma enfermedad que la feature
-  viene a curar. El humano elige **calcularlo**. Aviso previo: el «17» salió de una
-  búsqueda por conceptos con falsos positivos posibles y el «2» de mirar dos multas
-  entre los dos; ninguno de esos dos es calculable. Se pide rehacer la nota con lo
-  calculable en vivo y lo que es juicio del humano dicho sin cifra.
-- 2026-09-29 — Nota rehecha y **F23 aprobada por el humano**: texto fijo sin cifras,
-  más una frase viva solo si hay grupos dudosos (`ambiguousCount` de
-  `GET /api/transfers/ambiguous`, **una petición por sesión**; con 0 o si falla, no
-  sale y no se pinta error). Descartadas por coste `pairs.length` y el recuento de
-  marcados del mes. El resto de 🔴 tal cual: un solo interruptor, nota gris en vez de
-  ámbar, sin importe (la API lo da a cero por definición) y interruptor y filtros
-  aplicándose los dos. F23 pasa a `in_progress`.
-
-## Próximo paso
-
-Implementar la F23 y pasarla por el reviewer; su comprobación final es de solo
-lectura. Después, la última de la E7: revisar las parejas de traspaso (pantalla
-propia), ya revisada en borrador con el humano.
