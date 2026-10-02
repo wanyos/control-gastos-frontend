@@ -4,6 +4,7 @@ import {
   ArrowLeftRight,
   ChartLine,
   LayoutDashboard,
+  Link2,
   ListChecks,
   Wallet,
   WandSparkles,
@@ -14,6 +15,7 @@ import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
 import RulesView from '@/features/category-rules/views/RulesView.vue'
 import ReviewView from '@/features/review/views/ReviewView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
+import TransfersView from '@/features/transfers/views/TransfersView.vue'
 import PlaceholderView from '@/shared/components/PlaceholderView.vue'
 
 declare module 'vue-router' {
@@ -59,6 +61,12 @@ export const routes: RouteRecordRaw[] = [
     name: 'rules',
     component: RulesView,
     meta: { label: 'Rules', icon: WandSparkles },
+  },
+  {
+    path: '/transfers',
+    name: 'transfers',
+    component: TransfersView,
+    meta: { label: 'Transfers', icon: Link2 },
   },
   {
     path: '/overview',

@@ -1047,7 +1047,7 @@
         "./init.sh termina en verde, con lint y formato incluidos"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     }
   ]
 }

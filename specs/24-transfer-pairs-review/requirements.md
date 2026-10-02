@@ -126,8 +126,15 @@ porque el usuario la marcó como que no cuenta; con `Cancel` con el foco.
 ## R6
 CUANDO el usuario confirma el diálogo de R5 y `DELETE /api/transfers/:transferId`
 responde 204, el sistema DEBE volver a pedir las dos listas (parejas y dudosos) y
-mostrar en la línea de aviso *«Pair unlinked. Its two movements count in your totals
-again.»* con un botón `Undo`.
+mostrar en la línea de aviso, con un botón `Undo`, la frase que corresponda a las marcas
+de la pareja (**enmienda del 2026-10-02**, tras la revisión: la frase única era falsa
+cuando alguna pata estaba marcada como que no cuenta):
+
+- ninguna marcada → *«Pair unlinked. Its two movements count in your totals again.»*
+- una marcada → *«Pair unlinked. One movement counts in your totals again; the other
+  stays out because you marked it as not counted.»*
+- las dos marcadas → *«Pair unlinked. Neither counts in your totals: you marked both as
+  not counted.»*
 
 ## R7
 CUANDO el usuario pulsa el `Undo` de R6, el sistema DEBE enviar

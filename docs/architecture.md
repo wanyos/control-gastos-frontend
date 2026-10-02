@@ -112,6 +112,18 @@ src/
                           # excludedFromTotals (#22); getAmbiguousCount: GET
                           # /api/transfers/ambiguous, solo lectura, una vez por sesión (#23)
       types.ts            # re-export de los tipos de shared/movements + DayGroup
+    transfers/            # feature #24: revisar las parejas de traspaso; la ÚNICA pantalla
+                          # que escribe `transferId`
+      components/         # TransferPairList, TransferPairRow, AmbiguousGroupList,
+                          # AmbiguousGroupCard, UnlinkConfirmDialog, TransfersActionNotice
+      views/              # TransfersView (ruta /transfers, justo debajo de Rules)
+      store.ts            # useTransfersStore: las dos listas (cada una con su estado),
+                          # la elección de cada grupo, el diálogo, el aviso y el deshacer
+      service.ts          # GET /api/transfers, GET /api/transfers/ambiguous,
+                          # POST /api/transfers (solo `movementIds`), DELETE /:transferId
+      pairs.ts            # lo puro: la señal Bizum, la validación previa a enlazar y
+                          # todos los textos, incluidos los de error
+      types.ts            # TransferPair, AmbiguousGroup, LinkChoice, Notice, Undo
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
@@ -130,6 +142,8 @@ src/
                           # última tecla (#18); y la escritura de uno solo —changesBody,
                           # patch, parseUpdatedMovement, updateMovement, MovementChanges y
                           # needsReload— desde la #21, y el PATCH en bloque desde la #22
+    transfers.ts          # las dos rutas de la API de traspasos (feature #24): las leen
+                          # el extracto (recuento de dudosos, #23) y la pantalla Transfers
   services/
     http.ts               # cliente HTTP base: createHttp(config) + http (feature #2)
 ```
@@ -138,6 +152,18 @@ src/
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
 
+> **La pantalla que escribe `transferId` (feature #24).** `features/transfers/` es el
+> único sitio de la app que enlaza y desenlaza parejas de traspaso, y **no escribe nada
+> más**: `POST /api/transfers` con un cuerpo cuyo único campo es `movementIds`
+> (`linkMovements` recibe dos números y escribe el literal) y
+> `DELETE /api/transfers/:transferId`. Ningún `PATCH`: ni importes, ni categorías, ni
+> `status`, ni `excludedFromTotals`. Tras cada escritura se vuelven a pedir las dos
+> listas en vez de parchearlas, porque los grupos dudosos los calcula el backend en cada
+> petición. No importa de ninguna otra feature ni ninguna importa de ella: el aviso con
+> `Undo` y el diálogo de confirmación están **copiados** del extracto, y lo único
+> compartido son las dos rutas de `shared/transfers.ts`, que `statement/service.ts`
+> re-exporta con el nombre que ya tenía.
+>
 > **El interruptor del ruido no escribe (feature #23).** Es de **solo lectura**: cambia
 > la pregunta que se le hace a `GET /api/movements` —`excluded=none` y `transfer=none`
 > juntos, un solo interruptor— y nada más. Esconder se hace en el servidor, nunca

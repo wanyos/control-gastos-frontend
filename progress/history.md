@@ -895,7 +895,7 @@ Plantilla para cada entrada nueva:
   57.948/59.096 € a **2.785,90/4.096,05 €**. Se avisó al humano de que otra sesión había
   escrito en sus datos.
 - **T23, prueba con visto bueno explícito** («marcar y desmarcar»), sobre un movimiento
-  sin marcar: 42373 (TRANS INM/ EMILIA BENITEZ, 350 €, 31 de agosto). Al marcarlo la
+  sin marcar: 42373 (TRANS INM/ <persona>, 350 €, 31 de agosto). Al marcarlo la
   entrada del mes baja de 2.590,26 € a 2.240,26 € —exactamente 350— y al deshacer vuelve.
   Con el modo selección encendido la categoría deja de ser pulsable y la fila marcada se
   distingue. Dos PATCH con solo `ids` y `excludedFromTotals`. Antes y después idénticos
@@ -949,3 +949,52 @@ Plantilla para cada entrada nueva:
 - **Verificación:** type-check, lint, 1.360 tests (86 ficheros), build, 39 e2e e
   `./init.sh`, todo en verde y repetido por el leader.
 - **Cierre:** feature 23 → **done**. De la E7 queda una: revisar las parejas de traspaso.
+
+## 2026-10-02 — Feature 24: transfer-pairs-review (y cierre de la E7)
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author`, `implementer` y
+  `reviewer`. Flujo SDD. Última feature de la E7.
+- **Antes, higiene de la puerta** (`f0a1661`): `init.sh` no ejecutaba el lint ni
+  comprobaba el formato, y por eso se había colado un lint rojo en la F23. Ahora son
+  nueve pasos, con variantes de solo comprobación (`lint:oxlint:check`, `format:check`).
+- **Intención del humano** del tercer borrador revisado con él: pantalla propia junto a
+  Rules, ver todas las parejas para juzgarlas, y emparejar dudosos dentro.
+- **Spec:** `specs/24-transfer-pairs-review/`, 15 requisitos. Pantalla `Transfers` en
+  `/transfers`: arriba los grupos dudosos en dos columnas (`Money out` / `Money in`),
+  eligiendo uno de cada; debajo las parejas enlazadas. Deshacer pide confirmación y deja
+  un `Undo` que vuelve a enlazar. Etiqueta `Bizum` donde alguna pata lo mencione: dice
+  un hecho, no una sospecha, y no esconde ni reordena.
+- **Lo que el leader verificó contra el backend real antes de implementar** (solo
+  lectura): las dos multas mal casadas **ya estaban deshechas** desde el 2026-09-28, por
+  la sesión del backend; hay 38 parejas y 0 grupos dudosos. Y **corrigió el spec**, que
+  llamaba «duplicados por una reimportación» a tres parejas iguales del 2026-07-24: cada
+  lado entró en una sola importación con `daySequence` distinto y lo traen dos bancos por
+  separado, así que lo más probable son tres transferencias reales.
+- **Fallo del backend encontrado de paso, y encargado** en
+  `../docs/handoff-paginacion-estable.md`: `GET /api/movements` con `pageSize=100`
+  devuelve **1.605 movimientos distintos de 1.607**. Dos no aparecen nunca (uno es un
+  vencimiento de depósito de 25.000 €) y dos salen dos veces, siempre en una frontera de
+  página. El orden empata entre cuentas distintas con la misma fecha y el mismo
+  `daySequence`, sin desempate único. Es determinista. **Afecta a la cola de revisión**,
+  que pagina de 100 en 100; el extracto no, porque pide el mes de una vez.
+- **Revisión: CAMBIOS PEDIDOS y luego APROBADO.** Tres arreglos: nombres de terceros en
+  las fixtures; el aviso tras deshacer salía de una constante y era falso con una pata
+  marcada como que no cuenta (**defecto del spec**, enmendado en R6 con tres frases); y
+  una aserción del e2e que miraba el puerto 3000 y no podía fallar nunca.
+- **Nombres de terceros en el repositorio.** Los había introducido el propio leader al
+  copiar conceptos reales en un handoff y en el análisis de datos. Se anonimizaron
+  documentos, spec, fixtures y e2e. La primera pasada del leader fue incompleta —buscó
+  tres nombres y había más— y el reviewer lo señaló; se cerró con un barrido amplio.
+  **El humano decidió dejar el historial como está**: los nombres siguen en dos commits
+  antiguos, sin subir todavía.
+- **T22, prueba con visto bueno explícito.** El spec proponía volver a enlazar la multa
+  de 100 € para deshacerla; el leader lo objetó (recrear un error ya arreglado) y el
+  humano eligió deshacer y rehacer una **pareja buena**: 42369/42519, 1.000 € de
+  bankinter a n26, 9 de septiembre. Al deshacer, septiembre pasa de 161,82/966,84 € a
+  1.161,82/1.966,84 € y quedan 37 parejas; al pulsar `Undo` vuelve a 161,82/966,84 € y a
+  38. Solo cambian `transferId` (uno nuevo) y `updatedAt`. Dos escrituras. Cero errores.
+- **Lo que la prueba no cubre:** emparejar dudosos solo está probado con datos
+  fabricados, porque no hay ninguno real.
+- **Verificación:** `./init.sh` de nueve pasos en verde: 1.452 tests (94 ficheros), e2e
+  chromium, lint y formato; `pnpm build` en verde.
+- **Cierre:** feature 24 → **done**. **E7 cerrada** (F19 a F24).

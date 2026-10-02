@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
+import { Link2 } from '@lucide/vue'
 
 import StatementView from '@/features/statement/views/StatementView.vue'
+import TransfersView from '@/features/transfers/views/TransfersView.vue'
 import PlaceholderView from '@/shared/components/PlaceholderView.vue'
 
 import { HOME_ROUTE_NAME, REVIEW_ROUTE_NAME, navEntries, routes } from '../index'
@@ -19,14 +21,16 @@ const DESIGN_SYSTEM_LABELS = [
 const newRouter = () => createRouter({ history: createMemoryHistory(), routes })
 
 describe('router', () => {
-  // The list grew with /rules in feature 17; Rules sits right below Review.
-  it('declares the six navigable routes with English paths', () => {
+  // The list grew with /rules in feature 17 (right below Review) and with /transfers in
+  // feature 24 (right below Rules).
+  it('declares the seven navigable routes with English paths', () => {
     const paths = routes.filter((route) => route.name).map((route) => route.path)
 
     expect(paths).toEqual([
       '/net-worth',
       '/review',
       '/rules',
+      '/transfers',
       '/overview',
       '/movements',
       '/investments',
@@ -43,15 +47,25 @@ describe('router', () => {
     expect(router.currentRoute.value.path).toBe('/net-worth')
   })
 
-  it.each(['/net-worth', '/review', '/rules', '/overview', '/movements', '/investments'])(
-    'resolves %s to a component',
-    (path) => {
-      const matched = newRouter().resolve(path).matched
+  it.each([
+    '/net-worth',
+    '/review',
+    '/rules',
+    '/transfers',
+    '/overview',
+    '/movements',
+    '/investments',
+  ])('resolves %s to a component', (path) => {
+    const matched = newRouter().resolve(path).matched
 
-      expect(matched).toHaveLength(1)
-      expect(matched[0]?.components?.default).toBeTruthy()
-    },
-  )
+    expect(matched).toHaveLength(1)
+    expect(matched[0]?.components?.default).toBeTruthy()
+  })
+
+  it('mounts the transfers screen on /transfers, with the Link2 icon (feature 24)', () => {
+    expect(newRouter().resolve('/transfers').matched[0]?.components?.default).toBe(TransfersView)
+    expect(navEntries.find((entry) => entry.name === 'transfers')?.icon).toBe(Link2)
+  })
 
   it('no longer resolves /import: importing lives in the topbar (feature 13)', () => {
     expect(newRouter().resolve('/import').matched).toEqual([])
@@ -79,6 +93,7 @@ describe('router', () => {
       HOME_ROUTE_NAME,
       REVIEW_ROUTE_NAME,
       'rules',
+      'transfers',
       'overview',
       'movements',
       'investments',
@@ -87,6 +102,7 @@ describe('router', () => {
       'Net Worth',
       'Review',
       'Rules',
+      'Transfers',
       'Overview',
       'Movements',
       'Investments',

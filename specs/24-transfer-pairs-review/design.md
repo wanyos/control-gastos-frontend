@@ -38,7 +38,7 @@
 | `components/AmbiguousGroupList.vue`, `AmbiguousGroupCard.vue` | Grupos dudosos: dos columnas con radios, frase de R11, `Link these two`. |
 | `components/UnlinkConfirmDialog.vue` | Copia adaptada de `statement/components/ExcludeConfirmDialog.vue` sobre `BaseDialog`; `Cancel` con `data-autofocus`. |
 | `components/TransfersActionNotice.vue` | Copia de `statement/components/StatementActionNotice.vue` (C5). |
-| `__tests__/*.spec.ts` + `__tests__/fixtures.ts` | Ver `tasks.md`. Las fixtures incluyen **las dos multas reales** (ids, conceptos y fechas tal cual) y **tres parejas buenas reales**, y grupos dudosos **fabricados** de 2, 3 y 4 movimientos. |
+| `__tests__/*.spec.ts` + `__tests__/fixtures.ts` | Ver `tasks.md`. Las fixtures incluyen **las dos multas reales** (ids y fechas tal cual; **los conceptos, sin el nombre de nadie**: `BIZUM DE <persona> CONCEPTO multa` — corrección del 2026-10-02, los nombres de terceros no van al repositorio) y **tres parejas buenas reales**, y grupos dudosos **fabricados** de 2, 3 y 4 movimientos. |
 | `e2e/transfer-pairs-review.spec.ts` | Con `/api/transfers*` interceptado y la red de seguridad que aborta cualquier otro `/api`. |
 
 ### Nuevo — `src/shared/transfers.ts`
@@ -126,7 +126,7 @@ TransferPair | null` (abre el diálogo), `busy: boolean`, y el aviso
 | Una marcada | *{Out/In} leg will count in your totals again. The {other} stays out because you marked it as not counted.* (se concreta en T3; el test fija el literal) |
 | Las dos marcadas | *Neither will count in your totals: you marked both as not counted.* |
 | Memoria (R5, segunda línea) | *The next import won't pair these two again.* |
-| Aviso R6 / R7 / R12 | ver `requirements.md` |
+| Aviso R6 / R7 / R12 | ver `requirements.md`. **El de R6 depende de las marcas de la pareja**, igual que el texto del diálogo (`unlinkConsequence`): no puede decir que «las dos vuelven a contar» si alguna está marcada como que no cuenta |
 | 404 al deshacer | *That pair was already unlinked. Reloading.* |
 | 409 al enlazar | *One of those movements is already in a pair. Nothing changed. Reloading.* |
 | 404 al enlazar | *One of those movements no longer exists. Nothing changed. Reloading.* |

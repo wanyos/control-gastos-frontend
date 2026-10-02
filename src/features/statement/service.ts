@@ -15,6 +15,7 @@
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
 import { updateMovement, updateMovements } from '@/shared/movements'
+import { AMBIGUOUS_TRANSFERS_PATH } from '@/shared/transfers'
 import { createValidators } from '@/shared/validation'
 
 import type { BulkResult, Movement } from './types'
@@ -50,7 +51,9 @@ export function setMovementsExcluded(
 // walked. Read only by contract: it links nothing and writes nothing, even when the
 // calculation finds something pairable (C1).
 
-export const AMBIGUOUS_TRANSFERS_PATH = '/api/transfers/ambiguous'
+// Since feature 24 a second feature reads it, so the path lives in `shared/`; it is
+// re-exported under the same name so nothing that imported it from here changes.
+export { AMBIGUOUS_TRANSFERS_PATH }
 
 const ambiguousChecks = createValidators(`GET ${AMBIGUOUS_TRANSFERS_PATH}`)
 

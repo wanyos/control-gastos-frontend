@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-09-30.
+> **Última revisión:** 2026-10-02.
 
 ## Este documento frente a los otros
 
@@ -24,14 +24,16 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Ya hay aplicación, y ya escribe.** 23 features cerradas. Las pantallas que
+**Ya hay aplicación, y ya escribe.** 24 features cerradas. Las pantallas que
 existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
 acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
-y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14) y
+y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14),
 el **extracto mes a mes** en `/movements` con sus filtros, su búsqueda, la corrección de
 categoría desde la propia línea, el marcado en bloque de lo que no cuenta en las sumas y el
-interruptor que esconde ese ruido (F19, F20, F21, F22, F23).
-Etapas E0 a E6 cerradas; la E7 a medias.
+interruptor que esconde ese ruido (F19, F20, F21, F22, F23) y, nueva, **Transfers** en
+`/transfers`, para revisar las parejas de traspaso, deshacer las falsas y emparejar las
+dudosas (F24).
+Etapas E0 a E7 cerradas; la siguiente es la E8.
 
 **El ruido de las sumas está resuelto en el extracto.** La **F22** (cerrada el
 2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
@@ -41,7 +43,17 @@ a **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90
 **feature 49 del backend** (respuestas con `excludedFromTotals`, filtros
 `transfer=only|none` y `excluded=only|none`, y escritura de la marca). Y desde la **F23**
 (cerrada el 2026-09-30) ese ruido además se **esconde**: la lista y las cifras por fin
-cuentan lo mismo. **La E8, los dashboards, hereda estas cifras**, que ya son las buenas.
+cuentan lo mismo. **La E8, los dashboards, hereda estas cifras**, que ya son las buenas:
+**ya no está bloqueada por las sumas**, se resolvió con las F22 y F23.
+
+**Lo que queda abierto fuera de la E7:**
+
+- ⚠️ **La cola de revisión esconde dos movimientos.** `GET /api/movements` con
+  `pageSize=100` devuelve 1.605 movimientos distintos de 1.607. Es un fallo de paginación
+  del backend, encargado en `../docs/handoff-paginacion-estable.md`; hasta que lo arregle,
+  sigue así (cabo 7).
+- `GET /api/investments/deposits` (feature 50 del backend) está servido y **sin usar**:
+  encaja en la E8.
 
 ---
 
@@ -58,7 +70,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E4 | **Vista de Patrimonio** — la primera pantalla, contra GET /api/net-worth | ✅ | F9 |
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
-| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | 🟡 | F19, F20, F21, F22, F23 |
+| E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | ✅ | F19, F20, F21, F22, F23, F24 |
 | E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
@@ -183,7 +195,7 @@ existe (feature 37 del backend).
 > Con la F17 la E6 quedó cerrada y la F18 la remata. Emparejar traspasos ambiguos y
 > resolver los conflictos de reglas desde la web siguen fuera: son features posteriores.
 
-### E7 — El extracto 🟡
+### E7 — El extracto ✅
 
 La tabla tipo extracto con búsqueda y filtros por fecha, cuenta, categoría y
 texto: la vista del histórico completo, confirmados incluidos.
@@ -289,18 +301,42 @@ texto: la vista del histórico completo, confirmados incluidos.
 > botón de cerrar, y una sola petición de dudosos por sesión.
 > Spec en `specs/23-statement-noise-toggle/`.
 >
-> **Qué falta en esta etapa** (la única que queda, ya redactada en borrador y acordada con
-> el humano):
+> **F24 cerrada el 2026-10-02** — sexta rodaja, la que cierra la etapa, y la primera
+> pantalla que **corrige la detección de traspasos**: `Transfers` (`/transfers`, en la
+> barra lateral justo debajo de `Rules`) lista todas las parejas enlazadas con sus dos
+> patas (fecha, cuenta, concepto e importe) y una etiqueta `Bizum` en las que llevan uno,
+> sin reordenar ni esconder nada. `Unlink` pregunta antes y manda
+> `DELETE /api/transfers/:transferId`; encima van los grupos dudosos en dos columnas,
+> `Money out` y `Money in`, y `Link these two` manda `POST /api/transfers` con **solo
+> `movementIds`**. Las dos acciones dejan un `Undo`. Al abrir solo lee:
+> `GET /api/transfers` y `GET /api/transfers/ambiguous`, cuyas rutas viven ahora en
+> `src/shared/transfers.ts`, compartidas con el extracto. No toca importes, fechas,
+> categorías, estado ni la marca de no contar.
+> Comprobada contra el backend real con el visto bueno del humano, **con una variante
+> distinta de la del spec** (no se volvió a enlazar la multa de 100 €): se deshizo y se
+> rehízo una pareja buena, la 42369/42519 (1.000 € de bankinter a n26, 9 de septiembre de
+> 2026). Al deshacer, septiembre pasó de 161,82 / 966,84 € a **1.161,82 / 1.966,84 €**
+> —exactamente 1.000 por lado— y de 38 parejas a 37; con `Undo` volvió a 161,82 /
+> 966,84 € y a 38. Solo cambiaron `transferId` y `updatedAt`; dos escrituras, cero errores.
+> Spec en `specs/24-transfer-pairs-review/`.
 >
-> 1. **Revisar las parejas de traspaso** — pantalla propia, contra `GET /api/transfers` y
->    `GET /api/transfers/ambiguous`, para confirmar o descartar los emparejamientos que el
->    backend no da por seguros. Es también quien se llevará la lectura de los grupos
->    dudosos, que hoy vive con el extracto porque solo él la usa.
+> ⚠️ **Lo que esa prueba no cubre:** **emparejar dudosos solo está probado con datos
+> fabricados**, porque en los datos reales hay 0 grupos dudosos. Y las dos multas que
+> motivaron la feature **ya estaban deshechas antes** (las deshizo la sesión del backend
+> el 2026-09-28): la pantalla queda para la próxima vez que la detección se equivoque.
+>
+> **Con la F24 la E7 queda cerrada.** No falta nada en esta etapa.
 >
 > **La parte del backend del traspaso `../docs/handoff-sumas-honestas.md` está cerrada**
 > (features 49 y 50, commits `7711063` y `a6195be`). De ahí queda **sin usar en el
 > frontend** la feature 50: `GET /api/investments/deposits`, lo que ganó cada depósito,
-> que no encaja aquí sino en la **vista de Patrimonio (E8)**.
+> que no encaja aquí sino en la **E8**.
+>
+> ⚠️ **Abierto fuera de la etapa: la paginación del backend.** `GET /api/movements` con
+> `pageSize=100` devuelve 1.605 movimientos distintos de 1.607 (dos no salen nunca y otros
+> dos salen repetidos). **La cola de revisión, que pagina de 100 en 100, esconde dos
+> movimientos** hasta que el backend lo arregle. Encargo en
+> `../docs/handoff-paginacion-estable.md`.
 
 ### E8 — Los dashboards ⬜
 
@@ -311,6 +347,9 @@ agregados: `GET /api/overview`, `GET /api/investments/overview`,
 
 > Aquí encaja también `GET /api/investments/deposits` (feature 50 del backend, commit
 > `a6195be`): lo que ganó cada depósito. Está servido y **sin usar en el frontend**.
+>
+> **Esta etapa ya no está bloqueada por las sumas**: el ruido de depósitos y traspasos se
+> resolvió con las F22 y F23, así que las cifras que hereda son las buenas.
 
 ### E9 — Que esto se vea desde algún sitio ⬜
 
@@ -331,8 +370,9 @@ datos bancarios reales. No es urgente; es que no estaba.
 | 4 | La ficha de Patrimonio no puede decir «desde cuándo hay dato»: `GET /api/net-worth` no trae la fecha del primer dato por producto | backend, luego **E4** |
 | 5 | El ejemplo JSON de `GET /api/net-worth` en el contrato del backend no cuadra (`investments.total`) — defecto de documentación, no de datos | backend |
 | ~~6~~ | ~~`GET /api/ingestion/pending` cuenta también los archivos sin parser, así que el aviso «N new files» no bajaría a 0~~ | ✅ **retirado el 2026-09-15**: el humano confirma que todos los bancos tienen parser (Revolut incluido) y en Drive no hay PDFs, así que todo lo pendiente es importable |
+| 7 | `GET /api/movements` con `pageSize=100` devuelve 1.605 movimientos distintos de 1.607: la cola de revisión esconde dos (`../docs/handoff-paginacion-estable.md`) | backend, luego **E6** se corrige sola |
 
-> Los cabos 3, 4 y 5 **no son tuyos**: son del backend. Está aquí porque bloquea bloques
+> Los cabos 3, 4, 5 y 7 **no son tuyos**: son del backend. Está aquí porque bloquea bloques
 > de la vista de Patrimonio y la regla de oro del workspace dice que el backend
 > va primero. Si aparece aquí antes de estar resuelto allí, la feature nace mal.
 

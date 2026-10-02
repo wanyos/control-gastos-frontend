@@ -321,6 +321,8 @@ feature #8; ver *Iconos (Lucide)*.
   nueva (`@lucide/vue` ya está instalado y cada icono se importa por nombre); es el
   único del paquete que significa «información», y el que se retira era justo la alarma
   que la feature viene a quitar.
+- **Feature #24:** `Link2`, la entrada `Transfers` de la barra lateral (no se usaba con
+  otro significado). El aviso de la pantalla reutiliza `Undo2`.
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,
@@ -522,6 +524,18 @@ cuenta): también **escribe**, y en bloque. Intercepta `PATCH **/api/movements` 
 del listado, así que distingue por método), lee el cuerpo para comprobar que solo lleva
 `ids` y `excludedFromTotals`, y afirma que los únicos métodos de toda la sesión son
 `GET` y `PATCH`.
+
+El décimo es `e2e/transfer-pairs-review.spec.ts` (feature #24, la pantalla `Transfers`) y
+es el primero que manda un `POST` y un `DELETE` sobre parejas de traspaso: intercepta
+`**/api/transfers**` con una imitación con estado (el `DELETE` quita la pareja de verdad
+y el `POST` la crea), lee el cuerpo del `POST` letra por letra
+(`{"movementIds":[33339,24377]}`) y afirma que los únicos métodos de la sesión son `GET`,
+`POST` y `DELETE`, que las escrituras solo van a `/api/transfers*` y que **la red de
+seguridad no tuvo que parar ninguna llamada** (cada `abort()` de este spec apunta método y
+ruta en una lista que debe acabar vacía: una llamada no prevista pone el test en rojo). Lo que impide que algo llegue a `:3000` es
+la red de seguridad, no una aserción: el navegador siempre habla con el dev server y el
+salto lo daría el proxy, así que mirar el puerto de la petición no prueba nada. (El noveno, `e2e/statement-noise-toggle.spec.ts`, es de la
+feature #23 y de solo lectura.)
 
 Desde la feature #15 la **barra lateral** pide `GET /api/movements` (el recuento de
 pendientes, `pageSize=1`) también al montar y en todas las rutas, así que el smoke

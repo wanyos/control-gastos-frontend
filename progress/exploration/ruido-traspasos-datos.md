@@ -98,7 +98,7 @@ Notas de lectura:
 
 - Desde 2025-08 (primer mes con datos de myinvestor) **cada mes lleva 20.000 a
   30.000 € de ruido por lado** solo por los depósitos.
-- 2024-03 tiene un ingreso de 50.000 € (`TRANSF O /EMILIA BENITEZ LOPEZ`) que
+- 2024-03 tiene un ingreso de 50.000 € (`TRANSF O /<persona>`) que
   **no es ruido** según ningún criterio: es un ingreso real de un tercero. Domina
   el año 2024 y conviene no confundirlo con un traspaso.
 - 2024-08 tiene 16.990 € de gasto (compra de coche, Clicars) y 16.300 € de
@@ -136,8 +136,8 @@ El emparejador del backend juntó importe + fecha pero no es un traspaso propio:
 
 | Fecha | Importe | Gasto | Ingreso |
 |---|---|---|---|
-| 2024-09-14 / 17 | 50,00 | n26 `DGT SANCIONES INTERNET` | openbank `BIZUM DE Cristina Romero Benitez CONCEPTO multa` |
-| 2025-06-30 / 06-27 | 100,00 | n26 `AYTO MADRID PAGO INTER` | openbank `BIZUM DE ALBERTO R R CONCEPTO multa` |
+| 2024-09-14 / 17 | 50,00 | n26 `DGT SANCIONES INTERNET` | openbank `BIZUM DE <persona> CONCEPTO multa` |
+| 2025-06-30 / 06-27 | 100,00 | n26 `AYTO MADRID PAGO INTER` | openbank `BIZUM DE <persona> CONCEPTO multa` |
 
 Son una multa pagada y su reembolso vía Bizum de otra persona. Se están ocultando
 150 € de gasto real y 150 € de ingreso real. Precisión de `transferId`:
@@ -200,9 +200,9 @@ movimientos, de los que **179 no tienen `transferId`** y la mayoría **no son
 traspasos propios**:
 
 - 48 `TRANSF NOMI /EMPRESA MUNICIPAL` → **es la nómina** (≈2.100 €/mes de ingreso real).
-- ~100 `TRANSFERENCIA A FAVOR DE Cristina / Tamara Romero Benitez` → gasto real a terceros.
+- ~100 `TRANSFERENCIA A FAVOR DE <persona>` (dos destinatarias) → gasto real a terceros.
 - `TRANSFERENCIA A FAVOR DE Clicars Spain S.L.U` (16.990 €) → compra de coche.
-- `TRANSF O /EMILIA BENITEZ LOPEZ` (50.000 €) → ingreso real.
+- `TRANSF O /<persona>` (50.000 €) → ingreso real.
 - `TRANSFERENCIA DE AMAZON PAYMENTS` → devoluciones.
 
 El patrón laxo destruiría 162.101,65 € de ingreso legítimo. **No usarlo.**
@@ -269,8 +269,8 @@ Comparativa honesta, señal a señal:
 | **La cuenta (excluir myinvestor entera)** | 85 movs, 289 k€ por lado | Altos: se lleva los 13 `PERIODO` de remuneración, la `Remuneración premium`, las suscripciones premium (gasto real de 7,99 €/mes) y los ~900 € de intereses | Demasiado bruto. Borra una cuenta del mapa |
 | **`transferId` no nulo** | 80 movs, 48.550 € por lado | 2 de 40 grupos (multa DGT + Bizum de un tercero): 150 € por lado | Muy buena precisión (95 %) pero cobertura bajísima: deja fuera el 100 % de los depósitos y 17 traspasos |
 | **Concepto (patrón estricto)** | 71 movs | 0 detectados en la revisión manual de los 71 | Preciso, pero solo si el patrón exige banco propio o titular. Fragilísimo al formato de cada banco: `TRANS INM/`, `TRANSF OTRAS ENTID /`, `TRANSF OTR /V.M.Día-`, `TRANSF /Juan_Jose_Romero_Ramos`, `JUAN JOSE ROMERO RAMOS - INGRESO`… cinco plantillas para lo mismo |
-| **Concepto (patrón laxo "contiene TRANSF")** | 251 movs | Catastróficos: 48 nóminas, ~100 transferencias a Cristina/Tamara, la compra del coche, los 50.000 € de Emilia | Descartar |
-| **Importe redondo (≥500 y múltiplo de 500)** | 119 movs | 14 de 119 no son ruido (11,8 %): 50.000 € de Emilia, 16.990 € de Clicars, 1.500 € a Tamara, 2.500–3.000 € a Trade Republic/Criptan… | Como señal única, no. Como refuerzo de una sospecha, sí |
+| **Concepto (patrón laxo "contiene TRANSF")** | 251 movs | Catastróficos: 48 nóminas, ~100 transferencias a dos personas, la compra del coche, los 50.000 € de un tercero | Descartar |
+| **Importe redondo (≥500 y múltiplo de 500)** | 119 movs | 14 de 119 no son ruido (11,8 %): 50.000 € de un tercero, 16.990 € de Clicars, 1.500 € a otra persona, 2.500–3.000 € a Trade Republic/Criptan… | Como señal única, no. Como refuerzo de una sospecha, sí |
 | **Espejo en otra cuenta (±3 días, signo contrario)** | 1 de 17 candidatos | El emparejador se cae cuando dos cuentas tienen periodos importados distintos | Inútil como señal principal en estos datos |
 
 ### El criterio recomendado
@@ -310,9 +310,9 @@ cualquier regla:
 - `TRANSF NOMI /EMPRESA MUNICIPAL`: 48 apuntes, ≈105.000 € de ingreso. Es la
   nómina. Cualquier patrón que empiece por "TRANSF" la atrapa. Hay que excluirla
   a mano.
-- `TRANSFERENCIA A FAVOR DE Cristina` / `Tamara Romero Benitez`: ~100 apuntes de
+- `TRANSFERENCIA A FAVOR DE <persona>` (dos destinatarias): ~100 apuntes de
   gasto real. El concepto suele ser `CONCEPTO: ingreso`, que engaña doblemente.
-- `TRANSF O /EMILIA BENITEZ LOPEZ` 50.000 €: importe redondísimo e ingreso enorme,
+- `TRANSF O /<persona>` 50.000 €: importe redondísimo e ingreso enorme,
   y es dinero real que entra. La regla de importe redondo lo mataría.
 - `TRANSFERENCIA A FAVOR DE Clicars Spain S.L.U` 16.990 €: gasto real grande.
 - `Pago de JUAN JOSE ROMERO RAMOS` (revolut): mismo titular, y **sí** es traspaso
