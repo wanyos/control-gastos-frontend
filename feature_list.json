@@ -1083,13 +1083,14 @@
           "«Mes normal» se compara con la media de los doce meses anteriores.",
           "El mes y el año son una sola pantalla: el mes arriba y, en una feature posterior, la tira del año debajo.",
           "Patrimonio sigue siendo la pantalla de inicio.",
-          "El reparto por categoría se deja para cuando haya más categorizado."
+          "El reparto por categoría se deja para cuando haya más categorizado.",
+          "Tras ver que la media estaba arrastrada por meses con traspasos a cuentas propias sin marcar, la comparación pasa a hacerse con la mediana de los doce meses anteriores (2026-10-02). La mediana tampoco arregla del todo el caso, y el humano decide seguir con ella: se corregirá sola cuando marque esos traspasos."
         ]
       },
       "acceptance": [
         "Una pantalla nueva con entrada en la barra lateral enseña un mes: una frase interpretada, y las cifras de entrada, salida, ahorro y tasa de ahorro",
         "Las cifras del mes salen del backend (totals de GET /api/movements o period.totals de GET /api/overview), con lo apartado y los traspasos ya fuera",
-        "La comparación con la media de los doce meses anteriores usa las cifras del backend de cada uno de esos meses; lo único que se calcula en el cliente es esa media, y queda dicho así",
+        "La comparación con la mediana de los doce meses anteriores usa las cifras del backend de cada uno de esos meses; lo único que se calcula en el cliente es esa mediana, y queda dicho así",
         "Se enseña qué parte del gasto del mes no tiene categoría, con una cifra que viene del backend (el gasto filtrado por uncategorized)",
         "Un mes incompleto se señala como tal y no enseña una tasa de ahorro engañosa",
         "Cuando no hay doce meses anteriores con datos, la comparación se hace con los que haya y se dice con cuántos",
@@ -1101,7 +1102,7 @@
         "./init.sh termina en verde, con lint y formato incluidos"
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     }
   ]
 }

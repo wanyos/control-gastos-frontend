@@ -24,16 +24,22 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Ya hay aplicación, y ya escribe.** 24 features cerradas. Las pantallas que
+**Ya hay aplicación, y ya escribe.** 25 features cerradas. Las pantallas que
 existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
 acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
 y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14),
 el **extracto mes a mes** en `/movements` con sus filtros, su búsqueda, la corrección de
 categoría desde la propia línea, el marcado en bloque de lo que no cuenta en las sumas y el
-interruptor que esconde ese ruido (F19, F20, F21, F22, F23) y, nueva, **Transfers** en
+interruptor que esconde ese ruido (F19, F20, F21, F22, F23), **Transfers** en
 `/transfers`, para revisar las parejas de traspaso, deshacer las falsas y emparejar las
-dudosas (F24).
-Etapas E0 a E7 cerradas; la siguiente es la E8.
+dudosas (F24) y, nueva, **Overview** en `/overview`, que deja de ser un placeholder y
+enseña el mes de un vistazo: una frase interpretada, lo que entró, lo que salió, el ahorro
+y si fue un mes habitual (F25).
+Etapas E0 a E7 cerradas; **la E8 está a medias**, con su primera feature cerrada.
+
+**Lo siguiente en la E8** (plan aprobado por el humano el 2026-10-02): **la tira del año**
+en la misma pantalla `Overview`, y **lo que ganó cada depósito** en Patrimonio. Detalle en
+la sección de la E8.
 
 **El ruido de las sumas está resuelto en el extracto.** La **F22** (cerrada el
 2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
@@ -46,14 +52,19 @@ a **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90
 cuentan lo mismo. **La E8, los dashboards, hereda estas cifras**, que ya son las buenas:
 **ya no está bloqueada por las sumas**, se resolvió con las F22 y F23.
 
-**Lo que queda abierto fuera de la E7:**
+**Lo que queda abierto:**
+
+- ⚠️ **La comparación «mes habitual» de `Overview` tiene un límite conocido.** Enero de
+  2026 sale «53,5 % menos de lo habitual» porque siete de los doce meses anteriores están
+  inflados por traspasos a cuentas propias de inversión sin marcar. Se corrige marcándolos
+  desde el extracto, no con código (detalle en la E8).
 
 - ⚠️ **La cola de revisión esconde dos movimientos.** `GET /api/movements` con
   `pageSize=100` devuelve 1.605 movimientos distintos de 1.607. Es un fallo de paginación
   del backend, encargado en `../docs/handoff-paginacion-estable.md`; hasta que lo arregle,
   sigue así (cabo 7).
 - `GET /api/investments/deposits` (feature 50 del backend) está servido y **sin usar**:
-  encaja en la E8.
+  es una de las dos features siguientes de la E8, en Patrimonio.
 
 ---
 
@@ -71,7 +82,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
 | E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | ✅ | F19, F20, F21, F22, F23, F24 |
-| E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | ⬜ | *sin features* |
+| E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | 🟡 | F25 |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
 ### E0 — Cimientos ✅
@@ -338,18 +349,50 @@ texto: la vista del histórico completo, confirmados incluidos.
 > movimientos** hasta que el backend lo arregle. Encargo en
 > `../docs/handoff-paginacion-estable.md`.
 
-### E8 — Los dashboards ⬜
+### E8 — Los dashboards 🟡
 
 Ingresos vs gastos del mes, saldo por cuenta, patrimonio total y su evolución,
 reparto por categoría, comparativa entre meses. El backend ya expone los
 agregados: `GET /api/overview`, `GET /api/investments/overview`,
 `GET /api/net-worth`.
 
-> Aquí encaja también `GET /api/investments/deposits` (feature 50 del backend, commit
-> `a6195be`): lo que ganó cada depósito. Está servido y **sin usar en el frontend**.
->
 > **Esta etapa ya no está bloqueada por las sumas**: el ruido de depósitos y traspasos se
 > resolvió con las F22 y F23, así que las cifras que hereda son las buenas.
+>
+> **Plan de la etapa, aprobado por el humano el 2026-10-02:**
+>
+> 1. ✅ **El mes de un vistazo** — F25, cerrada.
+> 2. ⬜ **La tira del año**, en esta misma pantalla `Overview`, debajo del mes (el mes y el
+>    año son una sola pantalla). Es lo siguiente.
+> 3. ⬜ **Lo que ganó cada depósito**, en Patrimonio, con `GET /api/investments/deposits`
+>    (feature 50 del backend, commit `a6195be`), servido y todavía **sin usar en el
+>    frontend**. También es lo siguiente.
+> 4. ⏸️ **Recurrentes**: espera al backend, a la parte 1 de
+>    `../docs/handoff-recurrentes.md`. No se calcula en el navegador.
+> 5. ⏸️ **El reparto por categoría**: aplazado hasta que haya más categorizado. Hoy solo
+>    el 6,9 % del gasto tiene categoría y sería un gráfico que finge saber.
+>
+> **F25 cerrada el 2026-10-02** — primera rodaja: `/overview` deja de ser placeholder y
+> enseña un mes. Lo primero es una frase ya interpretada; debajo, lo que entró, lo que
+> salió, el ahorro y la tasa de ahorro, tal como los calcula el backend; una etiqueta que
+> dice si la entrada y la salida fueron lo habitual, comparando con la **mediana** de los
+> doce meses anteriores (margen del 25 %, decidido sobre el porcentaje a la décima); y qué
+> parte del gasto no tiene categoría. La mediana es **lo único que calcula el cliente**. Un
+> mes incompleto lo dice y no enseña tasa ni comparación. El mes vive solo en la URL
+> (`/overview?month=2026-08`), con las flechas y el selector del extracto. Solo lectura:
+> tres lecturas `GET /api/movements`, ninguna escritura. Patrimonio sigue siendo la
+> pantalla de inicio. Comprobada con el humano delante contra el backend real: siete meses
+> con las cifras, la mediana y el gasto sin categoría coincidiendo en los siete; agosto de
+> 2026 lee «In August 2026, 2.590 € came in and 4.004 € went out: you spent 1.414 € more
+> than came in», con la salida `More than usual` (34,9 % sobre 2.967,58 €); septiembre sale
+> como incompleto; y las tres cifras de agosto son las mismas que enseña el extracto.
+> Spec en `specs/25-month-at-a-glance/`.
+>
+> ⚠️ **El límite conocido de la comparación:** con la mediana, enero de 2026 sigue
+> saliendo «53,5 % menos de lo habitual», porque entre octubre de 2024 y septiembre de 2025
+> **siete de doce meses pasan de 5.000 € de gasto** por traspasos a cuentas propias de
+> inversión sin marcar. La mediana resiste excepciones, no limpia datos. Se corrige cuando
+> el humano los marque como que no cuentan desde el extracto (F22), **no con código**.
 
 ### E9 — Que esto se vea desde algún sitio ⬜
 

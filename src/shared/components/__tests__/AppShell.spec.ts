@@ -54,11 +54,12 @@ describe('AppShell', () => {
     expect(wrapper.get('[data-test="topbar-title"]').text()).toBe('Investments')
   })
 
+  // /investments since feature 25: /overview stopped being a placeholder.
   it('renders the routed view inside the shell', async () => {
-    const { wrapper } = await mountShell('/overview')
+    const { wrapper } = await mountShell('/investments')
 
     const view = wrapper.get('[data-test="placeholder"]')
-    expect(view.text()).toContain('Overview')
+    expect(view.text()).toContain('Investments')
     expect(wrapper.get('main').element.contains(view.element)).toBe(true)
   })
 

@@ -998,3 +998,46 @@ Plantilla para cada entrada nueva:
 - **Verificación:** `./init.sh` de nueve pasos en verde: 1.452 tests (94 ficheros), e2e
   chromium, lint y formato; `pnpm build` en verde.
 - **Cierre:** feature 24 → **done**. **E7 cerrada** (F19 a F24).
+
+## 2026-10-02 — Feature 25: month-at-a-glance (arranca la E8)
+
+- **Agente:** `leader` (Claude Code) orquestando `spec_author`, `implementer` y
+  `reviewer`. Flujo SDD. Primera feature de la E8, los dashboards.
+- **Plan de la etapa, aprobado por el humano** a partir de un borrador razonado con sus
+  datos (`docs/intent-e8-draft.md`) y de lo que él mismo dejó decidido en `ideas.md` el
+  2026-08-22: A el mes de un vistazo, B la tira del año, C recurrentes, D por categoría,
+  y una pequeña con lo que ganó cada depósito. Sus respuestas: «mes normal» contra los
+  doce anteriores, mes y año en una sola pantalla, y Patrimonio sigue siendo el inicio.
+- **Lo que decidieron los datos:** solo el **6,9 %** de su gasto tiene categoría (10.625
+  de 154.523 €), así que **D se aplaza**: un reparto por categoría sería hoy un gráfico
+  que finge saber. Y los recurrentes existen sin categorías —24 conceptos que se repiten
+  en seis meses o más—, pero **se le piden al backend** (`../docs/handoff-recurrentes.md`)
+  en vez de calcularlos en el navegador.
+- **Spec:** `specs/25-month-at-a-glance/`, 15 requisitos. La entrada `Overview` deja de
+  ser un placeholder: una frase interpretada, las cuatro cifras, si fue un mes normal, y
+  la línea de honestidad con el gasto sin categoría. Un mes está incompleto si el
+  movimiento más reciente de la base es anterior a su último día, sin mirar el reloj.
+- **Media → mediana, con un diagnóstico equivocado del leader.** El spec encontró que la
+  media de doce meses estaba inflada. El leader propuso la mediana creyendo que eran
+  picos sueltos y el humano la aprobó. Medido, **no arregla el caso que la motivó**:
+  enero de 2026 sigue saliendo «53,5 % menos de lo habitual», porque entre octubre de
+  2024 y septiembre de 2025 siete de doce meses pasan de 5.000 € de gasto por traspasos a
+  cuentas propias de inversión sin marcar. La mediana resiste excepciones, no limpia
+  datos. Se le enseñó la tabla y decidió seguir: es mejor que la media, y la comparación
+  se corregirá sola cuando marque esos traspasos. **No se ajustó la fórmula** para que
+  las etiquetas salieran bien sobre datos sucios.
+- **Revisión:** APROBADO sin cambios de código. El reviewer verificó la mediana a mano,
+  que es la única cifra que calcula el cliente, los textos carácter a carácter, y que las
+  fixtures solo llevan totales y recuentos, sin conceptos ni nombres. El leader cerró tres
+  cabos de texto: el borde del 25 % (el spec decía «un céntimo más» y el diseño y el
+  código lo deciden a la décima), `feature_list.json` (seguía diciendo «media») y un paso
+  de la T19 con un texto distinto del de R11.
+- **T19, comprobación con el humano delante** (solo lectura): siete meses contra la API,
+  con las cifras, la mediana y el gasto sin categoría coincidiendo en los siete. Agosto
+  de 2026 lee «In August 2026, 2.590 € came in and 4.004 € went out: you spent 1.414 €
+  more than came in», con la salida `More than usual` (34,9 % sobre 2.967,58 €).
+  Septiembre sale como incompleto, sin tasa ni comparación. Las tres cifras de agosto son
+  las del extracto. Patrimonio sigue siendo el inicio. Cero escrituras.
+- **Verificación:** `./init.sh` de nueve pasos en verde: 1.575 tests (99 ficheros), e2e
+  chromium, lint y formato; `pnpm build` en verde.
+- **Cierre:** feature 25 → **done**. E8 a medias.

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { Link2 } from '@lucide/vue'
+import { LayoutDashboard, Link2 } from '@lucide/vue'
 
+import OverviewView from '@/features/overview/views/OverviewView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
 import TransfersView from '@/features/transfers/views/TransfersView.vue'
 import PlaceholderView from '@/shared/components/PlaceholderView.vue'
@@ -65,6 +66,20 @@ describe('router', () => {
   it('mounts the transfers screen on /transfers, with the Link2 icon (feature 24)', () => {
     expect(newRouter().resolve('/transfers').matched[0]?.components?.default).toBe(TransfersView)
     expect(navEntries.find((entry) => entry.name === 'transfers')?.icon).toBe(Link2)
+  })
+
+  // Feature 25 retired the placeholder of /overview. Same entry, same icon, same place;
+  // the home is still the net worth.
+  it('mounts the month at a glance on /overview, not the placeholder (feature 25)', () => {
+    const overview = newRouter().resolve('/overview').matched[0]?.components?.default
+
+    expect(overview).toBe(OverviewView)
+    expect(overview).not.toBe(PlaceholderView)
+    expect(navEntries.find((entry) => entry.name === 'overview')).toMatchObject({
+      label: 'Overview',
+      icon: LayoutDashboard,
+    })
+    expect(HOME_ROUTE_NAME).toBe('net-worth')
   })
 
   it('no longer resolves /import: importing lives in the topbar (feature 13)', () => {

@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import { useNetWorthStore } from '@/features/net-worth/store'
+import { useOverviewStore } from '@/features/overview/store'
 import { useReviewStore } from '@/features/review/store'
 import type { HttpClient } from '@/services/http'
 import { ValidationError, toAppError } from '@/shared/errors'
@@ -80,6 +81,8 @@ export const useImportStore = defineStore('import', () => {
       if (netWorthStore.netWorth !== null) {
         void netWorthStore.load(client)
       }
+      // The month at a glance drops what it read, if it had read anything (feature 25).
+      void useOverviewStore().refreshIfLoaded(client)
     }
   }
 

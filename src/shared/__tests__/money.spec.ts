@@ -5,6 +5,7 @@ import { ValidationError } from '@/shared/errors'
 import {
   formatDate,
   formatMoney,
+  formatMoneyWhole,
   formatPercent,
   fromCents,
   sharePermille,
@@ -112,5 +113,30 @@ describe('formatDate', () => {
 
   it('rejects a malformed date', () => {
     expect(() => formatDate('12/09/2026')).toThrow(ValidationError)
+  })
+})
+
+describe('formatMoneyWhole (feature 25)', () => {
+  it('rounds to whole euros from the exact string, with the no-break space', () => {
+    expect(formatMoneyWhole('4003.89')).toBe(`4.004${NBSP}€`)
+    expect(formatMoneyWhole('161.82')).toBe(`162${NBSP}€`)
+    expect(formatMoneyWhole('0.00')).toBe(`0${NBSP}€`)
+    expect(formatMoneyWhole('1413.63')).toBe(`1.414${NBSP}€`)
+  })
+
+  it('groups 4-digit amounts, which es-ES does not do by default', () => {
+    expect(formatMoneyWhole('1234.00')).toBe(`1.234${NBSP}€`)
+    expect(formatMoneyWhole('2590.26')).toBe(`2.590${NBSP}€`)
+  })
+
+  it('keeps the sign and never goes through a float', () => {
+    expect(formatMoneyWhole('-805.02')).toBe(`-805${NBSP}€`)
+    // 9007199254740993 cents > 2^53: a float would lose the last euro.
+    expect(formatMoneyWhole('90071992547409.93')).toBe(`90.071.992.547.410${NBSP}€`)
+  })
+
+  it('rejects anything that is not a two-decimal string', () => {
+    expect(() => formatMoneyWhole('12')).toThrow(ValidationError)
+    expect(() => formatMoneyWhole('abc')).toThrow(ValidationError)
   })
 })

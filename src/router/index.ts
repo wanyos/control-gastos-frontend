@@ -13,6 +13,7 @@ import type { LucideIcon } from '@lucide/vue'
 
 import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
 import RulesView from '@/features/category-rules/views/RulesView.vue'
+import OverviewView from '@/features/overview/views/OverviewView.vue'
 import ReviewView from '@/features/review/views/ReviewView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
 import TransfersView from '@/features/transfers/views/TransfersView.vue'
@@ -40,7 +41,8 @@ export const REVIEW_ROUTE_NAME = 'review'
  * Array order is sidebar order. The routes without a view yet render the shared
  * placeholder: the shell is navigable end to end before the views exist. `/movements`
  * is the statement since feature 19 — the whole history month by month, a different
- * screen from `/review`, which is the queue of what is still pending.
+ * screen from `/review`, which is the queue of what is still pending. `/overview` is the
+ * month at a glance since feature 25; the home is still the net worth.
  */
 export const routes: RouteRecordRaw[] = [
   { path: '/', redirect: { name: HOME_ROUTE_NAME } },
@@ -71,7 +73,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/overview',
     name: 'overview',
-    component: PlaceholderView,
+    component: OverviewView,
     meta: { label: 'Overview', icon: LayoutDashboard },
   },
   {

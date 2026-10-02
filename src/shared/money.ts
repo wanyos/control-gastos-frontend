@@ -18,6 +18,13 @@ const MONEY_FORMAT = new Intl.NumberFormat('es-ES', {
   currency: 'EUR',
   useGrouping: 'always',
 })
+// Whole euros, only for an interpreted sentence (feature 25); the cents stay in the cards.
+const MONEY_WHOLE_FORMAT = new Intl.NumberFormat('es-ES', {
+  style: 'currency',
+  currency: 'EUR',
+  useGrouping: 'always',
+  maximumFractionDigits: 0,
+})
 const PERCENT_FORMAT = new Intl.NumberFormat('es-ES', {
   style: 'percent',
   minimumFractionDigits: 1,
@@ -84,6 +91,15 @@ export function formatMoney(amount: DecimalString): string {
     throw new ValidationError(`${JSON.stringify(amount)} is not a decimal string`)
   }
   return MONEY_FORMAT.format(amount)
+}
+
+/** `"4003.89"` → `4.004 €`: whole euros, rounded by Intl from the exact string. */
+export function formatMoneyWhole(amount: DecimalString): string {
+  toCents(amount)
+  if (!isNumericLiteral(amount)) {
+    throw new ValidationError(`${JSON.stringify(amount)} is not a decimal string`)
+  }
+  return MONEY_WHOLE_FORMAT.format(amount)
 }
 
 /** `383` → `38,3 %` (the space before `%` is U+00A0). */

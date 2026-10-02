@@ -4,6 +4,7 @@ import { flushPromises } from '@vue/test-utils'
 
 import { coherentNetWorth } from '@/features/net-worth/__tests__/fixtures'
 import { useNetWorthStore } from '@/features/net-worth/store'
+import { useOverviewStore } from '@/features/overview/store'
 import { useReviewStore } from '@/features/review/store'
 import { ApiError, ValidationError } from '@/shared/errors'
 
@@ -24,6 +25,13 @@ import {
   mockApi,
   networkDown,
 } from './fixtures'
+
+/** `GET /api/movements` over a base with nothing in it (feature 25). */
+const EMPTY_MOVEMENTS_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
 
 /** Opens the dialog on 2 pending files and leaves it at the confirmation. */
 async function atConfirm(store: ReturnType<typeof useImportStore>) {
@@ -328,6 +336,52 @@ describe('useImportStore', () => {
 
       expect(api.count(GET_MOVEMENTS)).toBe(1)
       expect(useReviewStore().pendingCount).toBe(41)
+    })
+
+    it.each([
+      ['a 200', json(FULL_REPORT)],
+      ['a 503', json(DRIVE_ERROR_BODY, 503)],
+    ])(
+      'reloads a month at a glance already loaded after %s (feature 25, C3)',
+      async (_n, answer) => {
+        // An empty base: the overview reads its month and the date of the last data, 2 GET.
+        const api = mockApi({
+          pending: json(PENDING_TWO),
+          import: answer,
+          movements: json(EMPTY_MOVEMENTS_PAGE),
+        })
+        const overview = useOverviewStore()
+        await overview.show('2026-08')
+        expect(overview.core).toBe('ready')
+        expect(api.count(GET_MOVEMENTS)).toBe(2)
+        const store = useImportStore()
+        await atConfirm(store)
+
+        await store.start()
+        await flushPromises()
+
+        // The 2 of before, 1 of the review count and the 2 the overview reads again.
+        expect(api.count(GET_MOVEMENTS)).toBe(5)
+        expect(overview.core).toBe('ready')
+        expect(overview.month).toBe('2026-08')
+      },
+    )
+
+    it('does not read the month at a glance when it was never loaded (feature 25, C3)', async () => {
+      const api = mockApi({
+        pending: json(PENDING_TWO),
+        import: json(FULL_REPORT),
+        movements: json(EMPTY_MOVEMENTS_PAGE),
+      })
+      const store = useImportStore()
+      await atConfirm(store)
+
+      await store.start()
+      await flushPromises()
+
+      // Only the review count.
+      expect(api.count(GET_MOVEMENTS)).toBe(1)
+      expect(useOverviewStore().core).toBe('idle')
     })
 
     it('does not request the net worth when it was never loaded', async () => {

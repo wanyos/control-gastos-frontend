@@ -3,13 +3,16 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 25 — month-at-a-glance (implementación). Primera de la E8.
+- **Feature en curso:** 25 — month-at-a-glance (implementada; pendiente de reviewer y de
+  la T19 con el humano). Primera de la E8.
+- **Plan:** las tasks T0..T18 de `specs/25-month-at-a-glance/tasks.md` (hechas). La T19 no
+  es del implementer.
 - **Última sesión:** 2026-09-22 → 2026-10-02 (features 16 a 24). Todo su detalle está
   en `progress/history.md`.
 
 ## Estado
 
-24 features cerradas, etapas E0 a E7 completas. `./init.sh` ejecuta nueve pasos, con
+25 features cerradas, etapas E0 a E7 completas y la E8 empezada. `./init.sh` ejecuta nueve pasos, con
 lint y formato incluidos.
 
 ## Cabos sueltos que no son de ninguna feature en curso
@@ -43,6 +46,24 @@ lint y formato incluidos.
   month» y «the middle value of the previous 12 months». El umbral se queda en ±25 %:
   con 15, 25 o 33 % salen las mismas etiquetas en los once meses completos.
 
+- **2026-10-02 — F25 implementada (T0–T18).** Carpeta nueva `src/features/overview/`
+  (service, reading, store, vista y cuatro componentes), `formatMoneyWhole` en
+  `shared/money.ts`, una llamada en `import/store.ts`, la ruta `/overview` y
+  `e2e/overview.spec.ts`. Solo lectura: tres `GET /api/movements`. `./init.sh` en verde
+  (nueve pasos, 99 archivos y 1.575 tests unitarios, e2e chromium), `pnpm type-check` y
+  `pnpm build` en verde. Informe: `progress/implementation/month-at-a-glance.md`.
+  Sin commits; la feature sigue `in_progress`.
+  - Fixtures con las cifras reales: leídas del backend local con 33 `GET` de solo lectura
+    (solo `totals` y recuentos; ningún concepto ni nombre entra en el repo).
+  - **Un test de una feature anterior cambia de contenido:** `AppShell.spec.ts` usaba
+    `/overview` como ejemplo de placeholder; ahora usa `/investments`.
+  - **Desviación del diseño:** el enlace al extracto no lleva la utilidad de color en un
+    hijo, porque esa clase es un «contaminante» vigilado por `tailwind-sources.spec.ts`;
+    `base.css` ya le da el color de enlace.
+  - **Incoherencia del spec:** la T19 (paso 6) espera `1 previous month with data` para
+    febrero de 2024; R11 fija `Your usual month is the only previous month with data.`,
+    que es lo implementado.
+
 ## Decisiones de esta feature que no están en el spec
 
 - 2026-10-02 — **Arranca la E8** con un borrador razonado (`docs/intent-e8-draft.md`) que
@@ -64,7 +85,29 @@ lint y formato incluidos.
   bien sobre datos sucios.
 - 2026-10-02 — El humano aprueba el spec de la F25. Pasa a `in_progress`.
 
+- 2026-10-02 — reviewer **aprueba** la F25 sin cambios de código. Verificó la mediana a
+  mano (centrales 2.819,35 y 3.115,81 → 2.967,58), que es la única cifra calculada en el
+  cliente, los textos carácter a carácter, que «average» no aparece, y que las fixtures
+  solo llevan totales y recuentos, sin conceptos ni nombres. El leader cerró tres cabos:
+  el spec decía «un céntimo más» para el borde del 25 % cuando el diseño y el código lo
+  deciden a la décima; `feature_list.json` seguía diciendo «media»; y un paso de la T19
+  esperaba un texto distinto del de R11.
+- 2026-10-02 — **T19 hecha** con el humano delante, solo lectura. Siete meses contra la API:
+  las cifras, la mediana (calculada aparte por el leader) y el gasto sin categoría
+  coinciden en los siete. Agosto de 2026: «In August 2026, 2.590 € came in and 4.004 €
+  went out: you spent 1.414 € more than came in», entrada `About usual` y salida `More
+  than usual` (34,9 % sobre 2.967,58 €). Septiembre sale como incompleto, sin tasa ni
+  comparación, y entra con 5 peticiones en vez de 17. Febrero de 2024 compara con su
+  único mes previo; enero de 2024 dice que no hay meses anteriores; mayo de 2023, «No
+  movements». Las tres cifras de agosto son las mismas que enseña el extracto. La pantalla
+  de inicio sigue siendo Patrimonio. Cero escrituras y cero errores. El leader arrancó
+  `pnpm dev` para la prueba y lo paró al terminar.
+
 ## Próximo paso
 
-Implementar la F25 y pasarla por el reviewer; su comprobación final es de solo
-lectura. Después, la tira del año (misma pantalla) y lo que ganó cada depósito.
+La tira del año, debajo del mes en la misma pantalla `Overview`; y lo que ganó cada
+depósito, en Patrimonio. Recurrentes espera a la parte 1 de
+`../docs/handoff-recurrentes.md`; el reparto por categoría, a que haya más categorizado.
+
+Para que la comparación de «mes normal» diga la verdad, el humano tiene que marcar como
+que no cuentan los traspasos a sus cuentas de inversión, en bloque desde el extracto.

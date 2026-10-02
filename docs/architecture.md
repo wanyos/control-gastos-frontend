@@ -124,6 +124,16 @@ src/
       pairs.ts            # lo puro: la señal Bizum, la validación previa a enlazar y
                           # todos los textos, incluidos los de error
       types.ts            # TransferPair, AmbiguousGroup, LinkChoice, Notice, Undo
+    overview/             # feature #25: el mes de un vistazo (ruta /overview); SOLO LECTURA
+      components/         # MonthSentence, MonthFiguresGrid, UsualLine, UncategorizedLine
+      views/              # OverviewView (la URL es la única que escribe el mes)
+      store.ts            # useOverviewStore: el mes, lo leído en esta visita (por mes), la
+                          # fecha del último dato y un estado de carga por grupo de lecturas
+      service.ts          # tres lecturas, las tres `GET /api/movements` con `pageSize=1`:
+                          # las cifras del mes, el gasto sin categoría y la fecha del último dato
+      reading.ts          # lo puro: los doce meses anteriores, si el mes está incompleto,
+                          # la mediana, la tasa, el veredicto y TODOS los textos
+      types.ts            # MonthFigures, Uncategorized, MonthState, Verdict, Comparison, LoadState
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
@@ -135,7 +145,8 @@ src/
     errors.ts             # AppError y subtipos (ApiError.apiCode desde la #13), toAppError, formatError…
     validation.ts         # createValidators(context): guardas de respuestas de la API (feature #13)
     banks.ts              # bankLabel(slug): nombre legible de banco, lista abierta (feature #13)
-    money.ts              # importes exactos y formato es-ES / en-GB (feature #9)
+    money.ts              # importes exactos y formato es-ES / en-GB (feature #9);
+                          # `formatMoneyWhole`, euros enteros para una frase (feature #25)
     categories.ts         # árbol de categorías: tipos, parseo y GET /api/categories (feature #17)
     movements.ts          # movimientos: tipos (con `MovementScope` y los parámetros
                           # `transfer` / `excluded` de la #23), parseo, GET /api/movements y la espera tras la
@@ -152,6 +163,23 @@ src/
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
 
+> **El mes de un vistazo solo lee, y calcula una única cifra (feature #25).**
+> `features/overview/` no manda ni un `POST`, `PATCH` o `DELETE`: sus tres lecturas son
+> `GET /api/movements` (`service.ts` no acepta método ni cuerpo). Las cifras del mes salen
+> de **la misma petición que hace el extracto** (`from`, `to`, sin filtros), así que
+> cuadran con `/movements` por construcción. **La mediana de los meses anteriores es la
+> única cifra que calcula el cliente** (`medianAmount` en `reading.ts`, en céntimos
+> `bigint`): no hay endpoint que la dé. Lo demás sale de dos cifras del backend (la tasa,
+> el porcentaje sin categoría, la diferencia con la mediana); nunca se suman movimientos.
+> «Incompleto» se decide sin reloj: el movimiento más reciente de toda la base es anterior
+> al último día del mes. Lo leído vive en el store durante una visita (`figuresByMonth`) y
+> se tira al entrar en la pantalla y al terminar una importación.
+> Dependencias, las dos en un solo sentido: `overview` → `statement` (monta `MonthNav` y
+> usa las funciones del mes de `months.ts`, sin tocar ni un archivo suyo; `statement` no
+> conoce `overview`) e `import` → `overview` (una llamada a `refreshIfLoaded` tras cada
+> importación, igual que `import` → `net-worth`). `shared/money.ts` gana
+> `formatMoneyWhole` (euros enteros, solo para la frase).
+>
 > **La pantalla que escribe `transferId` (feature #24).** `features/transfers/` es el
 > único sitio de la app que enlaza y desenlaza parejas de traspaso, y **no escribe nada
 > más**: `POST /api/transfers` con un cuerpo cuyo único campo es `movementIds`
