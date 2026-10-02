@@ -1,25 +1,38 @@
 {
-  "$schema_comment": "Hooks que automatizan la verificación. El harness los ejecuta, no el agente, así que no se pueden saltar. init.sh detecta el stack automáticamente y corre los tests apropiados.",
+  "$schema_comment": "Hooks que automatizan la verificación. El harness los ejecuta, no el agente, así que no se pueden saltar. init.sh detecta el stack automáticamente y corre los tests apropiados. Regla de diseño: rápido donde el ciclo es apretado (tras editar), completo donde se toman decisiones (al cerrar el trabajo de un implementer).",
+  "agent": "leader",
   "hooks": {
-    "PostToolUse": [
+    "PreToolUse": [
       {
-        "matcher": "Edit|Write",
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [
           {
             "type": "command",
-            "command": "./init.sh > /tmp/harness_post_edit.log 2>&1 && tail -5 /tmp/harness_post_edit.log || (echo '[harness] verificación FALLÓ tras edición — revisa /tmp/harness_post_edit.log' && tail -20 /tmp/harness_post_edit.log)",
-            "description": "Tras editar o escribir archivos, ejecuta init.sh y muestra un resumen. Mantiene el feedback loop apretado."
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-motor.sh\"",
+            "description": "Impide que un agente edite en un proyecto los archivos del motor del harness (los de .harness-manifest): el update los sobrescribe y lo escrito se perdería. Responde a qué archivo va el cambio. No afecta al humano ni al repositorio harness-template."
           }
         ]
       }
     ],
-    "Stop": [
+    "PostToolBatch": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "./init.sh > /tmp/harness_init.log 2>&1 && echo '[harness] init.sh OK' || (echo '[harness] init.sh FALLÓ — revisa /tmp/harness_init.log antes de cerrar' && cat /tmp/harness_init.log | tail -20)",
-            "description": "Antes de cerrar la sesión, fuerza una verificación completa."
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/verify-changed.sh\"",
+            "description": "Tras cada lote de herramientas, verifica SOLO si se ha tocado código fuente, y en modo --fast (estado + tipos, sin suite). Los archivos del harness (.md, progress/, specs/, docs/, feature_list.json) no disparan nada."
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "implementer",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/verify-full.sh\"",
+            "description": "Verificación COMPLETA (tipos + suite entera) cuando el implementer termina. Si falla sale con 2: Claude Code no le deja pararse y le pasa el motivo. Una sola vez por parada, para no entrar en bucle."
           }
         ]
       }
@@ -28,6 +41,9 @@
   "permissions": {
     "allow": [
       "Bash(./init.sh)",
+      "Bash(./init.sh --fast)",
+      "Bash(./init.sh --state)",
+      "Bash(./init.sh --checks*)",
       "Bash(npm test*)",
       "Bash(pnpm test*)",
       "Bash(yarn test*)",
@@ -42,7 +58,10 @@
       "Bash(cargo test*)",
       "Bash(go test*)",
       "Bash(mvn test*)",
-      "Bash(gradle test*)"
+      "Bash(gradle test*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)"
     ]
   }
 }

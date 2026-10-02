@@ -4,7 +4,7 @@
 >
 > Es el punto de partida de toda feature. Aquí describes QUÉ quieres y POR QUÉ,
 > en tu propio idioma, sin jerga técnica y sin decidir el cómo. El agente
-> (leader / spec_author) parte de esta intención para producir lo técnico
+> (leader / spec-author) parte de esta intención para producir lo técnico
 > (`acceptance`, requirements, diseño), pero NO puede inventarse el QUÉ: su
 > trabajo es traducir tu intención, no sustituirla.
 >
@@ -37,6 +37,9 @@
   "cuando pasa X, el sistema hace Y (algo que yo vería)". Recorre los casos
   uno a uno: aquí es donde saltan los huecos que en caliente no se te ocurren
   (el caso raro, el error, el vacío).
+  Cada frase de aquí se convierte, cuando se puede, en un comando que se
+  ejecuta al cerrar la feature (los `checks`, ver `docs/specs.md §checks`).
+  Tú no escribes comandos: escribe frases concretas y los agentes los derivan.
 - **Qué NO quiero / límites** — lo que queda fuera de scope y lo que no se
   debe tocar. Acota para que el agente no se expanda de más.
 - **Lo que NO sé y delego en el agente** — dudas técnicas que no puedes

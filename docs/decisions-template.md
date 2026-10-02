@@ -48,6 +48,16 @@
 
 - **<Decisión>.** <Una línea. Para que no la re-litigue.>
 
+## 🧪 Cómo se comprobará que está hecho
+
+> Los `checks` de `feature_list.json`: se ejecutan al cerrar y, si uno falla, la
+> feature no se cierra. Si falta un caso, es aquí donde se pide.
+
+| Tu frase de «cómo sé que está bien» | Se comprueba ejecutando |
+|---|---|
+| <frase del intent> | <qué hace el comando, en cristiano: «el test que crea un gasto sin importe y espera el error»> |
+| <frase sin comando posible> | — lo revisa el reviewer a mano: <por qué no hay comando> |
+
 ## ⚙️ Técnicas — decididas, no necesitan tu visto bueno (<n>)
 
 1. **<Titular de la decisión>.** <Una línea de por qué.>
@@ -61,6 +71,13 @@
 ## ⚠️ Incoherencias conocidas que se heredan
 
 - <Algo que queda mal a propósito y dónde se resolverá. Omitir el bloque si no hay.>
+
+## 🔄 Cambios desde tu última lectura (YYYY-MM-DD)
+
+> Solo aparece si pediste cambios. Máximo cinco líneas. Es lo primero que miras
+> al volver: te dice qué se movió sin que tengas que releer la hoja entera.
+
+- <qué cambió> — <archivo>:<sección/id> — <por qué>
 ```
 
 ---

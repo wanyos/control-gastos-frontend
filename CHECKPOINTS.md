@@ -35,14 +35,37 @@
       y todos pasan.
 - [ ] Los tests cubren al menos un camino feliz y un camino de error donde
       aplique.
+- [ ] Si la feature tiene `checks` en `feature_list.json`,
+      `./init.sh --checks` termina en verde y cada check muestra que ejecutó
+      algo (ver `docs/specs.md §checks`).
+
+## C4 bis — Una pasada con datos reales, si la feature lee datos de fuera
+
+> No sustituye a los tests: los complementa. Los tests usan datos inventados, a
+> menudo por el mismo agente que escribe el código; esta pasada comprueba lo que
+> llega de verdad.
+
+- [ ] Si la feature añade o cambia la lectura de algo que no escribe el propio
+      código (un archivo que sube o descarga el humano, la respuesta de una API
+      externa, una importación), antes de cerrarla se ha pasado **un dato real**
+      por el código nuevo.
+- [ ] El resultado está en el informe del implementer, sección `## Prueba real`,
+      con **recuentos y forma, nunca contenido**.
+- [ ] Si no se pudo hacer, el informe dice por qué y el leader lo ha apuntado
+      como deber del humano en `docs/roadmap.md`. Saltarla sin decirlo es
+      `CHANGES_REQUESTED`.
 
 ## C5 — La sesión se cerró bien
 
 - [ ] No hay archivos sin trackear sospechosos (temporales, builds, caches
       fuera del `.gitignore` del proyecto o del `.git/info/exclude`).
-- [ ] `progress/history.md` tiene una entrada por la última sesión.
+- [ ] `progress/history.md` tiene **una línea** por la última feature cerrada,
+      con enlace a su `summaries/<name>.md`. No una copia del informe.
 - [ ] La última feature trabajada está reflejada en su estado correcto en
       `feature_list.json`.
+- [ ] Al cerrar la feature, `progress/current.md` queda vacío: cada cosa que
+      seguía viva se ha **movido** a su sitio según la tabla de su cabecera, no
+      copiado.
 
 ## C6 — Coherencia con proyectos hermanos (si aplica)
 
@@ -77,7 +100,9 @@
 - [ ] Toda feature que se cierra como `done` tiene su
       `progress/summaries/<name>.md` escrito en lenguaje humano
       (ver `docs/summary-template.md`).
-- [ ] El resumen indica archivo y línea concretos de cada pieza de código.
+- [ ] El resumen mapea **todo** el código de la feature, agrupado por tema:
+      enlace al archivo sin línea + símbolo, y enlace con línea solo en los
+      puntos de entrada (3-6).
 - [ ] El resumen cierra el círculo con el `intent`: cada punto de
       `como_se_que_esta_bien` aparece marcado como cumplido y con su test.
 

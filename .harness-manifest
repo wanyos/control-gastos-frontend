@@ -1,0 +1,25 @@
+# Huellas del motor del harness tal como lo instaló el script.
+# Lo escriben apply-harness.sh y upgrade-harness.sh: no se edita a mano.
+# Si un archivo no coincide con su huella, se ha cambiado en el proyecto
+# y el siguiente update se para antes de sobrescribirlo.
+version 3.2.0
+3dc0987598c626b9b76b422577c6ecbefff7b8bc40d209dedb67f0640f40996f  AGENTS.md
+6fb366fa8d286b0177574e42d4f1701305b6ce6838c129f5064859369b583913  CHECKPOINTS.md
+81103ae5c3ad9d5ced83cd5f210ebec680925dadcf997e7beb0d7b4a57fcb14a  CLAUDE.md
+65919caac3d7ef6c2d2311d35be8488e68ecbeca4477d311351233296430e269  init.sh
+33bdaf9e2d6bcbde2e4e613e865e403f8fe21fc621078d34c30b0bdc7f68d903  VERSION
+d84f55025d0b46400ce5e9b9ce2afb9803d812abd54ba27631f7e5d38ca97332  .claude/agents/leader.md
+546456e5fe99fdd1b3370dcfd827ca09407bdb68d0c490b18d064a7475caf094  .claude/agents/spec-author.md
+db91143c10b39d0ed338862d088ec590c38c178b3f4014960a23553c721b4d29  .claude/agents/implementer.md
+a2435de3c2f011e8253d527bc61ce4c3fe8f24cff0215926b60e63010a6d7d5c  .claude/agents/reviewer.md
+76bd638ed9f1f882af6d454e3a2420292bb1f932b71f939108559f4209cdb2d9  .claude/commands/project-status.md
+80d424e167e63e1c3387241e73921c56b125794969475e3eddc3ef16aeff970a  .claude/commands/lessons.md
+f9af62fa34bdd422c3a7841c92f798b8e04c5785e4c3f55e3d1737aeede234ab  .claude/hooks/verify-changed.sh
+946568199804533232c325eafca2b18b60a5566bc4af229081769515a1e4c99b  .claude/hooks/verify-full.sh
+62c25494aebf25d4b1ff6eac65ab7cc55376574b06952346f3bb89e42bd63742  .claude/hooks/protect-motor.sh
+e9a635844b3eaef7800b8823c7c00d0e9c9ab272ca79708d75f5adbfac6e3a9d  .claude/settings.json
+e5966f6aa0225b873b150bfebe07b1f4f451cf967f451a064c94ad3a1a66a036  docs/specs.md
+c7b316dd17888ce957c80ef960da9e86e6636bc9e520625ceb6c1d973ce06c0d  docs/intent-template.md
+39ff8ccddd66ef02758739e9a75a5d9c2d99f4969511d07eb05457f45bed3552  docs/decisions-template.md
+37857b8f9eda45e0201800b0ec2f1c2263fb47daabc5a08c8472c117dcf16264  docs/summary-template.md
+691c6064c093f5d94c7c47d1364de7846e4a1ad73a1657600f9459584eb153a7  specs/README.md
