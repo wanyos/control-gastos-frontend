@@ -1048,6 +1048,60 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 25,
+      "name": "month-at-a-glance",
+      "title": "El mes de un vistazo: una frase, tres cifras y si fue un mes normal",
+      "intent": {
+        "que_quiero": "Quiero una pantalla que me diga cómo fue un mes sin tener que interpretar nada: una frase —«En agosto entraron 2.590 € y salieron 4.004 €: gastaste 1.414 € más de lo que ingresaste»— y debajo lo que entró, lo que salió, el ahorro y la tasa de ahorro. Quiero saber si fue un mes normal, comparándolo con la media de los doce meses anteriores. Y quiero que la pantalla me diga de qué se fía: cuánto del gasto de ese mes todavía no tiene categoría, y si el mes está incompleto.",
+        "por_que": "Porque ahora que las sumas son de fiar, lo que quiero es leer un mes de un vistazo y saber si me fue bien o mal, sin sumar yo ni comparar a ojo con otros meses. Es la segunda vista que decidí en agosto, la que responde a la tasa de ahorro y a si el mes fue normal.",
+        "como_se_que_esta_bien": [
+          "Abro la pantalla y lo primero que leo es una frase que ya está interpretada, no un gráfico.",
+          "Veo lo que entró, lo que salió, el ahorro y la tasa de ahorro del mes.",
+          "Me dice si gasté más o menos que de costumbre, comparado con la media de los doce meses anteriores.",
+          "Me dice qué parte del gasto de ese mes no tiene categoría todavía.",
+          "Si el mes está incompleto, me lo dice en vez de enseñarme una tasa de ahorro disparatada.",
+          "Puedo cambiar de mes y volver, y recargar sin perder el mes que miraba.",
+          "Las cifras cuadran con las del extracto del mismo mes."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero un reparto por categoría todavía: solo el 6,9 % de mi gasto tiene categoría y sería un gráfico que finge saber.",
+          "No quiero que esta pantalla sustituya a Patrimonio como pantalla de inicio.",
+          "No quiero que escriba nada: solo mira.",
+          "No quiero cifras inventadas en la pantalla: si algo no se sabe, que lo diga."
+        ],
+        "delego_en_agente": [
+          "Cómo se redacta la frase en cada caso: mes con ahorro, mes con déficit, mes sin ingresos, mes incompleto.",
+          "Cómo se decide que un mes está incompleto.",
+          "Cómo se enseña la comparación con la media sin llenar la pantalla de números.",
+          "Qué se hace cuando no hay doce meses anteriores con datos para comparar.",
+          "Dónde va en el menú y cómo se llama."
+        ],
+        "respuestas_del_humano": [
+          "«Mes normal» se compara con la media de los doce meses anteriores.",
+          "El mes y el año son una sola pantalla: el mes arriba y, en una feature posterior, la tira del año debajo.",
+          "Patrimonio sigue siendo la pantalla de inicio.",
+          "El reparto por categoría se deja para cuando haya más categorizado."
+        ]
+      },
+      "acceptance": [
+        "Una pantalla nueva con entrada en la barra lateral enseña un mes: una frase interpretada, y las cifras de entrada, salida, ahorro y tasa de ahorro",
+        "Las cifras del mes salen del backend (totals de GET /api/movements o period.totals de GET /api/overview), con lo apartado y los traspasos ya fuera",
+        "La comparación con la media de los doce meses anteriores usa las cifras del backend de cada uno de esos meses; lo único que se calcula en el cliente es esa media, y queda dicho así",
+        "Se enseña qué parte del gasto del mes no tiene categoría, con una cifra que viene del backend (el gasto filtrado por uncategorized)",
+        "Un mes incompleto se señala como tal y no enseña una tasa de ahorro engañosa",
+        "Cuando no hay doce meses anteriores con datos, la comparación se hace con los que haya y se dice con cuántos",
+        "El mes vive en la URL: recargar y volver atrás lo conservan",
+        "Solo lectura: ni un POST, PATCH ni DELETE",
+        "Las cifras coinciden con las del extracto del mismo mes sin filtros",
+        "No cambia la pantalla de inicio ni nada de las features anteriores",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "./init.sh termina en verde, con lint y formato incluidos"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }

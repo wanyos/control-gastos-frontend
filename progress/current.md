@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** ninguna. La E7 quedó cerrada el 2026-10-02 con la F24.
+- **Feature en curso:** 25 — month-at-a-glance (implementación). Primera de la E8.
 - **Última sesión:** 2026-09-22 → 2026-10-02 (features 16 a 24). Todo su detalle está
   en `progress/history.md`.
 
@@ -31,7 +31,40 @@ lint y formato incluidos.
 - **17 traspasos propios sin pareja** siguen contando en las sumas; los marca el humano
   desde el extracto cuando quiera.
 
+## Bitácora
+
+- **2026-10-02 — F25 `month-at-a-glance` en `spec_ready`** (primera de la E8). Spec en
+  `specs/25-month-at-a-glance/`; espera la aprobación del humano sobre `decisions.md`.
+  Solo lectura; 15 requisitos. Dato medido al redactar: la media de doce meses está
+  arrastrada por julio y agosto de 2025 (11.527 € y 10.942 € de gasto).
+
+- **2026-10-02 — F25: el humano aprueba con un cambio, mediana en vez de media.**
+  Aplicado en los cuatro archivos del spec (sigue en `spec_ready`). Textos: «your usual
+  month» y «the middle value of the previous 12 months». El umbral se queda en ±25 %:
+  con 15, 25 o 33 % salen las mismas etiquetas en los once meses completos.
+
+## Decisiones de esta feature que no están en el spec
+
+- 2026-10-02 — **Arranca la E8** con un borrador razonado (`docs/intent-e8-draft.md`) que
+  el humano aprueba entero: A el mes, B la tira del año, C recurrentes y D por categoría,
+  más una pequeña con lo que ganó cada depósito. Sus respuestas: «mes normal» contra los
+  doce anteriores, mes y año en **una sola pantalla**, y Patrimonio sigue siendo el
+  inicio. **D se aplaza** hasta que haya más categorizado (hoy el 6,9 % del gasto).
+- 2026-10-02 — **Recurrentes se le pide al backend**, no se calcula en el navegador:
+  encargo en `../docs/handoff-recurrentes.md`, con las siete trampas vistas en los datos.
+- 2026-10-02 — **Media → mediana, y un diagnóstico equivocado del leader.** Al ver que la
+  media de doce meses estaba inflada, el leader propuso la mediana creyendo que el
+  problema eran picos sueltos (un coche, una moto). El humano la aprobó. Al medirlo, **no
+  arregla el caso que la motivó**: enero de 2026 sigue saliendo «53 % menos de lo
+  habitual», porque de octubre de 2024 a septiembre de 2025 siete de doce meses pasan de
+  5.000 € de gasto por los traspasos a cuentas de inversión propias sin marcar. La
+  mediana resiste excepciones, no limpia datos. Se le enseñó la tabla al humano y decidió
+  **seguir con la mediana**: es mejor que la media, y la comparación se corregirá sola
+  cuando marque esos traspasos. No se ajusta la fórmula para que las etiquetas salgan
+  bien sobre datos sucios.
+- 2026-10-02 — El humano aprueba el spec de la F25. Pasa a `in_progress`.
+
 ## Próximo paso
 
-La E8, los dashboards. Ya no está bloqueada por las sumas (features 22 y 23). Empieza,
-como siempre, por que el humano escriba qué quiere ver.
+Implementar la F25 y pasarla por el reviewer; su comprobación final es de solo
+lectura. Después, la tira del año (misma pantalla) y lo que ganó cada depósito.
