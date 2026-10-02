@@ -92,3 +92,35 @@ que aborta cualquier `/api` no prevista).
   Actualizados `docs/verification.md` (tabla «Qué comprueba la puerta» y las dos
   parejas arregla/comprueba) y `docs/stack.md`. Sin dependencias nuevas, sin
   tocar el backend, sin commits.
+- 2026-09-30 — **F24 `transfer-pairs-review` → `spec_ready`.** spec_author escribe
+  `specs/24-transfer-pairs-review/` (15 requirements + 8 restricciones, 5 puntos 🔴).
+  Lectura real (solo `GET`): **38 parejas, no 40** — las dos multas ya están deshechas
+  desde el 2026-09-28 16:46 — y 0 grupos dudosos. La prueba final (T22) escribe y
+  necesita visto bueno: re-enlazar con `curl` solo la multa de 100 € y deshacerla desde
+  la pantalla. Espera aprobación del humano sobre `decisions.md`.- 2026-10-02 — Higiene cerrada (f0a1661): `init.sh` comprueba ya lint y formato.
+- 2026-10-02 — F24 `transfer-pairs-review` dada de alta con el tercer borrador del
+  humano (pantalla propia, verlas todas, emparejar dudosos dentro) y su spec escrito.
+  **El humano aprueba el spec.** F24 pasa a `in_progress`.
+- 2026-10-02 — Verificado por el leader contra el backend real, solo lectura: **las dos
+  multas ya están deshechas** (`transferId: null`, modificadas el 2026-09-28 16:46 por
+  la sesión del backend), hay **38 parejas** y **0 grupos dudosos**. El problema que
+  motivó la feature ya no está en los datos; la feature sigue teniendo sentido para
+  cuando la detección vuelva a equivocarse.
+- 2026-10-02 — **Corregido el spec**: afirmaba que las tres parejas iguales del
+  2026-07-24 eran «duplicados por una reimportación». No hay base: cada lado entró en
+  una sola importación con `daySequence` distinto (1-2-3 y 2-3-4) y lo traen dos bancos
+  por separado. Lo más probable son tres transferencias reales; lo sabe el humano.
+- 2026-10-02 — **Fallo del backend encontrado: la paginación de `GET /api/movements`
+  pierde y repite filas.** Con `pageSize=100` salen 1.605 distintos de 1.607: dos
+  movimientos no aparecen nunca (21728, un vencimiento de depósito de 25.000 €, y
+  24276) y otros dos salen dos veces, siempre en una frontera de página. Causa casi
+  segura: el orden empata entre cuentas distintas con la misma fecha y el mismo
+  `daySequence`, sin desempate único. Con `pageSize=200` no se nota por casualidad.
+  **Afecta a la cola de revisión**, que pagina de 100 en 100. Encargo escrito en
+  `../docs/handoff-paginacion-estable.md`.
+- 2026-10-02 — Pendiente de decidir con el humano **cómo se prueba la F24 en real**: el
+  spec propone volver a enlazar la multa de 100 € con `curl` para luego deshacerla
+  desde la pantalla; el leader prefiere deshacer y rehacer una pareja buena y no tocar
+  las multas. Se pregunta al llegar a la prueba, que exige visto bueno explícito.
+
+

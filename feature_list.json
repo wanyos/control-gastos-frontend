@@ -1003,6 +1003,51 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 24,
+      "name": "transfer-pairs-review",
+      "title": "Revisar las parejas de traspaso: deshacer las falsas y emparejar las dudosas",
+      "intent": {
+        "que_quiero": "Quiero poder ver las parejas de traspaso que el programa ha detectado y deshacer las que están mal. Ahora mismo hay dos multas que pagué y que otra persona me devolvió por Bizum, casadas como si fueran traspasos míos: están fuera de mis sumas y no deberían. Y quiero ver los traspasos dudosos, los que el programa no supo emparejar, y poder emparejarlos yo cuando esté claro.",
+        "por_que": "Porque la detección acierta casi siempre, pero cuando se equivoca hoy no tengo forma de corregirla desde la web, y el error se queda ahí falseando mis cuentas para siempre.",
+        "como_se_que_esta_bien": [
+          "Veo la lista de parejas, con las dos patas de cada una: fecha, cuenta, concepto e importe.",
+          "Reconozco de un vistazo las que no cuadran, como las dos multas.",
+          "Deshago una pareja y sus dos movimientos vuelven a contar en las sumas.",
+          "Veo los dudosos y, cuando dos son claramente el mismo dinero, los emparejo.",
+          "Si me equivoco emparejando, puedo deshacerlo.",
+          "Nada de esto cambia importes ni fechas."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero que se empareje nada solo desde esta pantalla: solo lo que yo diga.",
+          "No quiero editar movimientos desde aquí, más allá de enlazar y desenlazar."
+        ],
+        "delego_en_agente": [
+          "Cómo se enseña un grupo dudoso de tres o más movimientos, donde hay que elegir dos.",
+          "Cómo se ayuda a reconocer una pareja sospechosa sin esconder las demás.",
+          "Qué se enseña cuando no hay ningún grupo dudoso, que hoy es el caso."
+        ],
+        "respuestas_del_humano": [
+          "Pantalla propia, una entrada más en el menú junto a Rules.",
+          "Ver todas las parejas, para poder juzgar si se emparejaron bien.",
+          "Emparejar dudosos entra en esta feature."
+        ]
+      },
+      "acceptance": [
+        "Una pantalla nueva con su entrada en la barra lateral lista todas las parejas de GET /api/transfers, con las dos patas de cada una (fecha, cuenta, concepto e importe)",
+        "Se puede deshacer una pareja con DELETE /api/transfers/:transferId, pidiendo confirmación, y después sus dos movimientos vuelven a contar en las sumas",
+        "Se listan los grupos dudosos de GET /api/transfers/ambiguous, y cuando no hay ninguno la pantalla lo dice en vez de enseñar un hueco",
+        "Desde un grupo dudoso se pueden elegir dos movimientos y enlazarlos con POST /api/transfers, cumpliendo lo que el contrato exige (un gasto y un ingreso, cuentas distintas, mismo importe) antes de mandar nada",
+        "Un emparejamiento hecho a mano se puede deshacer",
+        "No se escribe nada fuera de enlazar y desenlazar: ni importes, ni fechas, ni categorías, ni estado, ni la marca de no contar",
+        "Los errores se explican en inglés sin pintar el mensaje del backend, y ante un fallo que pudiera haber escrito se recarga en vez de afirmar que no pasó nada",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "./init.sh termina en verde, con lint y formato incluidos"
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }
