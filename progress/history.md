@@ -1047,3 +1047,5 @@ Plantilla para cada entrada nueva:
 - 2026-10-04 — **Higiene: `init.local.sh` falla si un `tasks.md` declara dos rutas que solo se distinguen en mayúsculas**, en sus cabeceras `Archivos:`. Sale del incidente de la F26. → [`summaries/init-local-rutas-mayusculas.md`](summaries/init-local-rutas-mayusculas.md)
 
 - 2026-10-04 — **Mantenimiento: dependencias al día.** Once subidas menores y de parche (`vue` 3.5.43, `vite` 8.3.2, `vitest` 5.0.3, `jsdom` 30.1.1, `oxlint` 1.86.0, `prettier` 3.9.9 y otras cinco). TypeScript 7 probada con `vue-tsc` 3.3.12 y sigue sin poder entrar; se queda en 6.0.3. → [`summaries/dependency-upgrade-2026-10.md`](summaries/dependency-upgrade-2026-10.md)
+
+- 2026-10-04 — **Higiene: `./init.sh` ejecuta `pnpm type-check`** desde `init.local.sh`. El paso 4 de `init.sh` (`npx tsc --noEmit --incremental`) no comprueba ningún archivo en este proyecto: `tsconfig.json` tiene `"files": []`. `./init.sh --fast` sigue sin comprobar tipos. → [`summaries/init-local-type-check.md`](summaries/init-local-type-check.md)

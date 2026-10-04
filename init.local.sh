@@ -69,6 +69,37 @@ EOF_PAIRS
   fi
 }
 
+# Comprobación de tipos con el script del proyecto: `pnpm type-check`
+# (`vue-tsc --build`), que sí mira los archivos .vue y los tres tsconfig
+# referenciados desde tsconfig.json.
+# WHY (higiene 2026-10-04): el paso 4 de init.sh ejecuta
+# `npx tsc --noEmit --incremental`, que no mira los .vue (ni ningún otro archivo:
+# tsconfig.json tiene `files: []` y solo `references`; `--listFiles` da 0
+# líneas). Dos casos en que salió con 0 mientras `pnpm type-check` fallaba: en
+# la feature 26, un `toSorted` que no existe con la `lib` del proyecto
+# (`pnpm type-check` exit 2); y en la actualización de dependencias del
+# 2026-10-04, con TypeScript 7 instalado en una copia del repositorio
+# (`pnpm type-check` exit 1).
+#
+# No hay en init.sh una variable para sustituir su paso 4, así que va en
+# local_steps: solo se ejecuta en `./init.sh` completo, no en --fast, --state ni
+# --checks. Si el script falta en package.json, pnpm sale distinto de 0 y la
+# pasada queda en rojo.
+run_pnpm_type_check() {
+  local cmd="$PKG type-check"
+  info "Ejecutando: $cmd"
+  local out status
+  out="$($cmd 2>&1)"
+  status=$?
+  if [ "$status" -eq 0 ]; then
+    ok "OK: $cmd (vue-tsc --build, incluye los .vue)"
+  else
+    fail "Fallido: $cmd (exit $status):"
+    echo "$out"
+    EXIT_CODE=1
+  fi
+}
+
 # E2E smoke (chromium) — feature 6: e2e-smoke.
 # Solo chromium para que la pasada siga siendo rápida; los tres navegadores
 # siguen disponibles con `pnpm test:e2e`. Si faltan los navegadores de
@@ -76,6 +107,7 @@ EOF_PAIRS
 local_steps() {
   # Antes del e2e, que es lo lento.
   check_case_only_paths specs/*/tasks.md
+  run_pnpm_type_check
 
   if ! grep -q '"test:e2e"' package.json 2>/dev/null; then
     warn "No hay script test:e2e en package.json; se omite el e2e"

@@ -636,14 +636,17 @@ mezclar 20 paquetes hace imposible saber cuál fue. El orden que funciona es:
    `pnpm add` paquete a paquete, conservando el tipo de rango que tenía cada uno; con
    `ncu -u --target minor` sale lo mismo.
 3. Cada **major uno a uno**, verificando entre medias.
-4. Cierre: `pnpm type-check`, `pnpm build` (lo demás lo cubre ya la puerta).
+4. Cierre: `pnpm build` (lo demás lo cubre ya `./init.sh`, incluido
+   `pnpm type-check` desde el 2026-10-04).
 
-Desde la higiene del **2026-09-30**, `./init.sh` cubre type-check (tsc), **lint
-sin `--fix`**, **formato (`prettier --check`)**, la suite unitaria y el e2e smoke
-en chromium. Lo que sigue **sin** cubrir es `pnpm type-check` (vue-tsc, que mira
-los `.vue`) y `pnpm build`: en una actualización de dependencias hay que
-lanzarlos a mano. Ver la tabla completa en `docs/verification.md` → *Qué
-comprueba la puerta*.
+Desde la higiene del **2026-09-30**, `./init.sh` cubre **lint sin `--fix`**,
+**formato (`prettier --check`)**, la suite unitaria y el e2e smoke en chromium.
+Desde la higiene del **2026-10-04** ejecuta además `pnpm type-check` (vue-tsc,
+que mira los `.vue`), desde `init.local.sh` y solo en la pasada completa: su
+propio paso de tipos (`npx tsc --noEmit --incremental`) no comprueba ningún
+archivo en este proyecto. Lo que sigue **sin** cubrir es `pnpm build`: en una
+actualización de dependencias hay que lanzarlo a mano. Ver la tabla completa en
+`docs/verification.md` → *Qué comprueba la puerta*.
 
 ### Lo que subió por debajo en la pasada del 2026-10-04
 
@@ -678,10 +681,15 @@ y `typescript` se queda en `~6.0.3` (la última 6.0.x publicada):
    `pnpm build` cae con él (exit 1, `ERROR: "type-check" exited with 1.`), porque
    lanza `type-check` en paralelo. Es un fallo duro, no un aviso. Es el mismo
    error que dio `vue-tsc` 3.3.11 en la feature #12 (2026-09-13).
-3. **`./init.sh` no lo detecta.** Con TypeScript 7 instalado, `./init.sh` terminó
-   con exit 0 (tsc, lint, formato, 1703 tests unitarios y el e2e de chromium):
-   no ejecuta `vue-tsc` ni el build. Un `./init.sh` verde no dice nada sobre
-   TypeScript 7; hay que lanzar `pnpm type-check` y `pnpm build` a mano.
+3. **`./init.sh` no lo detectaba cuando se hizo la prueba.** Con TypeScript 7
+   instalado, `./init.sh` terminó con exit 0 (tsc, lint, formato, 1703 tests
+   unitarios y el e2e de chromium): entonces no ejecutaba `vue-tsc` ni el build.
+   Ese mismo día, después de la prueba, se añadió a `init.local.sh` un paso que
+   ejecuta `pnpm type-check` y pone `./init.sh` en rojo si falla (ver
+   `docs/verification.md` → *`pnpm type-check` dentro de `./init.sh`*). **No se
+   ha repetido la prueba con TypeScript 7 instalado** después de añadirlo; el
+   paso sí se comprobó con un error de tipos en un `.vue`. `pnpm build` sigue
+   sin ejecutarlo `./init.sh`: hay que lanzarlo a mano.
 
 Tras la prueba del 2026-10-04 se volvió a `typescript` `~6.0.3` y los tres
 comandos quedaron otra vez en exit 0.
