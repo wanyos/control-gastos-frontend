@@ -1045,3 +1045,5 @@ Plantilla para cada entrada nueva:
 - 2026-10-04 — **F26 `overview-previous-months`**: en `Overview`, debajo del mes, los veinticuatro meses que acaban en el del último dato, con lo que entró y salió en cada uno y lo ahorrado en el periodo (pedido al backend en una sola petición). Se perdieron y se repusieron 44 tests por dos archivos del spec que solo se distinguían en una mayúscula. → [`summaries/overview-previous-months.md`](summaries/overview-previous-months.md)
 
 - 2026-10-04 — **Higiene: `init.local.sh` falla si un `tasks.md` declara dos rutas que solo se distinguen en mayúsculas**, en sus cabeceras `Archivos:`. Sale del incidente de la F26. → [`summaries/init-local-rutas-mayusculas.md`](summaries/init-local-rutas-mayusculas.md)
+
+- 2026-10-04 — **Mantenimiento: dependencias al día.** Once subidas menores y de parche (`vue` 3.5.43, `vite` 8.3.2, `vitest` 5.0.3, `jsdom` 30.1.1, `oxlint` 1.86.0, `prettier` 3.9.9 y otras cinco). TypeScript 7 probada con `vue-tsc` 3.3.12 y sigue sin poder entrar; se queda en 6.0.3. → [`summaries/dependency-upgrade-2026-10.md`](summaries/dependency-upgrade-2026-10.md)

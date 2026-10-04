@@ -65,7 +65,7 @@ Verificado en `.prettierrc.json`, `.editorconfig`, `tsconfig.*` y
 
 - **TypeScript** serie 6.0.x, `strict: true`, target efectivo ES2022
   (ver `docs/stack.md`).
-- **Formatter:** Prettier `3.9.6`. **Linter:** solo **oxlint** (`.oxlintrc.json`;
+- **Formatter:** Prettier `3.9.9`. **Linter:** solo **oxlint** (`.oxlintrc.json`;
   plugins `eslint`, `typescript`, `unicorn`, `oxc`, `vue` y `vitest` en los tests
   unitarios). ESLint se retiró en la feature #12: oxlint **no lintea el
   `<template>` de los `.vue`** ni tiene reglas de Playwright; qué cubre y qué no,

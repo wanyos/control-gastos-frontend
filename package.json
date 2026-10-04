@@ -18,28 +18,28 @@
     "format:check": "prettier --check --experimental-cli src/ e2e/ \"*.config.ts\" env.d.ts index.html \"tsconfig*.json\" .oxlintrc.json package.json"
   },
   "dependencies": {
-    "@lucide/vue": "^1.45.0",
+    "@lucide/vue": "^1.51.0",
     "pinia": "^4.0.3",
-    "vue": "^3.5.42",
+    "vue": "^3.5.43",
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/node24": "^24.0.5",
-    "@types/node": "^26.5.1",
-    "@vitejs/plugin-vue": "^6.0.8",
-    "@vue/test-utils": "^2.5.0",
+    "@types/node": "^26.6.4",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
-    "jsdom": "^30.0.1",
+    "jsdom": "^30.1.1",
     "npm-run-all2": "^9.0.3",
-    "oxlint": "~1.82.0",
-    "prettier": "3.9.6",
+    "oxlint": "~1.86.0",
+    "prettier": "3.9.9",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
-    "vite": "^8.3.0",
-    "vitest": "^5.0.0",
-    "vue-tsc": "^3.3.11"
+    "vite": "^8.3.2",
+    "vitest": "^5.0.3",
+    "vue-tsc": "^3.3.12"
   },
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"

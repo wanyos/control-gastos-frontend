@@ -31,7 +31,7 @@
 
 ## Framework / Runtime
 
-- **Vue 3** `^3.5.42` — SFC (`.vue`) con Composition API. `jsx: preserve` /
+- **Vue 3** `^3.5.43` — SFC (`.vue`) con Composition API. `jsx: preserve` /
   `jsxImportSource: vue` habilitados por si se usa TSX.
 - **Runtime Node** — `engines`: `^22.22.2 || ^24.15.0 || >=26.0.0`. En desarrollo todo
   corre sobre Vite; no hay servidor propio (el backend es un proyecto hermano).
@@ -83,7 +83,7 @@
   Los valores del theme (colores, tipografía, radios, sombras) los aporta el
   design system: ver *Design system y tokens* más abajo. Qué ficheros mira
   Tailwind para decidir qué CSS emite: ver *Qué ficheros escanea Tailwind*.
-- **Test utils:** `@vue/test-utils` `^2.5.0`.
+- **Test utils:** `@vue/test-utils` `^2.5.1`.
 
 ## Design system y tokens
 
@@ -285,7 +285,7 @@ feature #8; ver *Iconos (Lucide)*.
 > Feature #8 (`app-shell`, 2026-09-12). **Dependencia nueva aprobada** para esta
 > feature.
 
-- **Paquete:** `@lucide/vue` **1.45.0** (rango `^1.45.0` en `dependencies`; es
+- **Paquete:** `@lucide/vue` **1.51.0** (rango `^1.51.0` en `dependencies`; es
   código de runtime). Peer: `vue >=3.0.1`.
 - **Por qué este paquete y no otro:**
   - Es el paquete **oficial** de Lucide para Vue. `lucide-vue-next`, el nombre
@@ -335,7 +335,7 @@ feature #8; ver *Iconos (Lucide)*.
 
 ## Build / Dev tooling
 
-- **Bundler / build tool:** Vite `^8.3.0` con `@vitejs/plugin-vue` `^6.0.8` y
+- **Bundler / build tool:** Vite `^8.3.2` con `@vitejs/plugin-vue` `^6.0.9` y
   `@tailwindcss/vite`. **Sin `vite-plugin-vue-devtools`** desde la feature #12
   (decisión del humano): ya no aparece el botón flotante de Vue DevTools en
   `pnpm dev`. Para inspeccionar componentes o stores sigue valiendo la extensión
@@ -363,7 +363,7 @@ feature #8; ver *Iconos (Lucide)*.
 
 > Tarea de higiene, 2026-09-23. Sin dependencias nuevas.
 
-**Prettier** `3.9.6`, configurado en `.prettierrc.json`: `semi: false`,
+**Prettier** `3.9.9`, configurado en `.prettierrc.json`: `semi: false`,
 `singleQuote: true`, **`printWidth: 100`**. Se invoca con `--experimental-cli`.
 
 `pnpm format` va por **lista de rutas explícita**, no por `.` :
@@ -397,7 +397,7 @@ prettier --write --experimental-cli src/ e2e/ "*.config.ts" env.d.ts index.html 
 
 > Feature #12 (`dependency-cleanup-and-upgrade`, 2026-09-13). Decisión del
 > humano: **ESLint y todo su ecosistema se retiraron**; el único linter es
-> **oxlint** `~1.82.0`. `pnpm lint` = `run-s "lint:*"` → `oxlint . --fix`.
+> **oxlint** `~1.86.0`. `pnpm lint` = `run-s "lint:*"` → `oxlint . --fix`.
 
 **Dos entradas: una arregla, otra comprueba** (higiene 2026-09-30).
 `pnpm lint` lleva `--fix` y **modifica archivos**: perfecto mientras trabajas,
@@ -458,7 +458,7 @@ Configuración en `.oxlintrc.json`:
 
 ## Testing
 
-- **Unitarios:** **Vitest** `^5.0.0`, entorno `jsdom` `^30.0.1`, con
+- **Unitarios:** **Vitest** `^5.0.3`, entorno `jsdom` `^30.1.1`, con
   `@vue/test-utils`. El requisito de Node del proyecto lo marca **jsdom**, que
   es más estricto que Vite o Vue: ver *Restricciones / decisiones de versionado*.
   - Comando: `pnpm test:unit`.
@@ -619,16 +619,22 @@ de seguridad aborta cualquier `/api` no prevista, así que **nunca** llega un
 
 ## Mantenimiento de dependencias
 
-> Última pasada: **2026-09-13**, feature #12 (`dependency-cleanup-and-upgrade`).
-> Informe completo: `progress/implementation/dependency-cleanup-and-upgrade.md`.
+> Última pasada: **2026-10-04**, tarea de mantenimiento (no es una feature): se
+> subieron once versiones menores y de parche, y se volvió a probar TypeScript 7.
+> Informe completo: `progress/implementations/dependency-upgrade-2026-10.md`.
+> Pasada anterior: 2026-09-13, feature #12 (`dependency-cleanup-and-upgrade`),
+> informe en `progress/implementations/dependency-cleanup-and-upgrade.md`.
 
 ### Cómo se hace una actualización aquí
 
-`ncu` lista lo desatendido, pero **no se sube todo de golpe**: si algo rompe,
+`pnpm outdated` lista lo desatendido (o `ncu`, que no es dependencia del proyecto: hay
+que tenerlo instalado en la máquina), pero **no se sube todo de golpe**: si algo rompe,
 mezclar 20 paquetes hace imposible saber cuál fue. El orden que funciona es:
 
 1. Línea base: `./init.sh` en verde **antes** de tocar nada.
-2. Todo lo **minor/patch** junto (`ncu -u --target minor`) → verificar.
+2. Todo lo **minor/patch** junto → verificar. En la pasada del 2026-10-04 se hizo con
+   `pnpm add` paquete a paquete, conservando el tipo de rango que tenía cada uno; con
+   `ncu -u --target minor` sale lo mismo.
 3. Cada **major uno a uno**, verificando entre medias.
 4. Cierre: `pnpm type-check`, `pnpm build` (lo demás lo cubre ya la puerta).
 
@@ -638,6 +644,15 @@ en chromium. Lo que sigue **sin** cubrir es `pnpm type-check` (vue-tsc, que mira
 los `.vue`) y `pnpm build`: en una actualización de dependencias hay que
 lanzarlos a mano. Ver la tabla completa en `docs/verification.md` → *Qué
 comprueba la puerta*.
+
+### Lo que subió por debajo en la pasada del 2026-10-04
+
+Al subir `jsdom` a 30.1.1 y `vitest` a 5.0.3 cambiaron de versión mayor cinco
+dependencias indirectas, todas de los tests y ninguna del build de producción:
+`@asamuzakjp/css-color` 6 → 7, `@asamuzakjp/dom-selector` 8 → 9,
+`html-encoding-sniffer` 6 → 7, `w3c-xmlserializer` 5 → 6 y `why-is-node-running` 2 → 3.
+El lockfile pasó de 237 a 234 paquetes. Lo leyó el reviewer en el `git diff` del
+lockfile; la suite (1.703 tests) pasó con ellas.
 
 ### Por qué TypeScript 7 no entra (todavía)
 
@@ -649,16 +664,34 @@ y `typescript` se queda en `~6.0.3` (la última 6.0.x publicada):
 1. **TS 7 no tiene API programática estable.** Sus `exports` solo publican
    `version` y rutas `unstable/*` (`unstable/sync`, `unstable/ast`…); ya no hay
    `typescript/lib/*` ni la API JS clásica.
-2. **`vue-tsc` depende de esa API y no arranca.** Comprobado en la feature #12
-   con `vue-tsc` **3.3.11** (la última) en una copia del repo: `pnpm type-check`
-   revienta con `ERR_PACKAGE_PATH_NOT_EXPORTED` al resolver `typescript/lib/tsc`.
-   Eso tumba también `pnpm build`. Es un fallo duro, no un aviso.
+2. **`vue-tsc` depende de esa API y no arranca.** Comprobado por última vez el
+   **2026-10-04** con `vue-tsc` **3.3.12** (la última ese día) y `typescript`
+   `7.0.2`, instalados en el propio repo: `pnpm type-check` termina con exit 1 y
+   este error, antes de comprobar ningún archivo:
+
+   ```
+   Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/tsc' is not
+   defined by "exports" in …/node_modules/typescript/package.json
+       at resolveTscPath (…/vue-tsc/index.js:73:43)
+   ```
+
+   `pnpm build` cae con él (exit 1, `ERROR: "type-check" exited with 1.`), porque
+   lanza `type-check` en paralelo. Es un fallo duro, no un aviso. Es el mismo
+   error que dio `vue-tsc` 3.3.11 en la feature #12 (2026-09-13).
+3. **`./init.sh` no lo detecta.** Con TypeScript 7 instalado, `./init.sh` terminó
+   con exit 0 (tsc, lint, formato, 1703 tests unitarios y el e2e de chromium):
+   no ejecuta `vue-tsc` ni el build. Un `./init.sh` verde no dice nada sobre
+   TypeScript 7; hay que lanzar `pnpm type-check` y `pnpm build` a mano.
+
+Tras la prueba del 2026-10-04 se volvió a `typescript` `~6.0.3` y los tres
+comandos quedaron otra vez en exit 0.
 
 El otro motivo que había (`typescript-eslint` limitaba TypeScript a `<6.1.0`)
 **desapareció con ESLint** en la feature #12; no cambia la conclusión.
 
-**Cuándo reintentarlo:** cuando `vue-tsc` publique una versión que funcione con
-TS 7 (o TS 7 estabilice su API). Hasta entonces `pnpm outdated` seguirá
+**Cuándo reintentarlo:** cuando `vue-tsc` publique una versión posterior a la
+3.3.12 (o TS 7 estabilice su API). La prueba son tres comandos con `typescript`
+en la 7: `pnpm type-check`, `pnpm build` y `./init.sh`. Hasta entonces `pnpm outdated` seguirá
 ofreciendo la 7: es esperado, no es un despiste.
 
 ### Otras trampas conocidas
