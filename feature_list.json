@@ -1103,6 +1103,105 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 26,
+      "name": "overview-previous-months",
+      "title": "Los meses anteriores, debajo del mes, en Overview",
+      "intent": {
+        "que_quiero": "En la pantalla `Overview`, debajo del mes que estoy mirando, quiero ver los meses anteriores uno al lado de otro: lo que entró y lo que salió en cada uno, para comparar de un vistazo. Quiero ver si un mes fue de los caros o de los baratos sin tener que ir pasando de uno en uno. Quiero que el mes que estoy mirando arriba se distinga entre los demás, y poder pulsar otro mes para verlo arriba. Y quiero que un mes incompleto se vea como incompleto, no como un mes en el que casi no gasté.",
+        "por_que": "Porque un mes suelto no me dice si mi gasto está subiendo o bajando. Con los doce últimos meses medidos el 2026-10-02 ya se ve algo que mirando mes a mes no se ve: de abril a agosto de 2026 gasté entre 4.000 y 5.100 € al mes, y de octubre a marzo entre 1.900 y 3.100 €.",
+        "como_se_que_esta_bien": [
+          "Debajo del mes veo los meses anteriores, cada uno con lo que entró y lo que salió.",
+          "Distingo de un vistazo qué meses gasté más de lo que ingresé.",
+          "El mes que tengo arriba está señalado entre los demás.",
+          "Pulso otro mes y pasa a ser el de arriba.",
+          "Un mes incompleto está marcado como incompleto.",
+          "Un mes sin movimientos se ve como vacío, no como un cero.",
+          "Las cifras de cada mes son las mismas que veo si entro en ese mes.",
+          "Veo lo que he ahorrado a lo largo de esos meses."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero que escriba nada: solo mira.",
+          "No quiero reparto por categoría ni fijo frente a variable: eso espera a que haya más categorizado.",
+          "No quiero otra entrada en el menú: va en `Overview`.",
+          "No quiero que cambie nada de la parte del mes, que ya está cerrada."
+        ],
+        "delego_en_agente": [
+          "Cómo se dibuja: barras, una tabla con cifras, o las dos cosas.",
+          "Qué pasa si no hay datos para todos los meses que se piden.",
+          "Cuántas peticiones más cuesta y si se aprovechan las que ya hace la parte del mes.",
+          "Si los meses que se enseñan son siempre los más recientes con datos o los anteriores al mes que tengo arriba: lo que sea más fácil."
+        ],
+        "respuestas_del_humano": [
+          "Veinticuatro meses, mejor que doce.",
+          "Sí quiere saber lo que ha ahorrado (el ahorro acumulado a lo largo de esos meses).",
+          "Qué meses se enseñan no lo tiene claro: en principio, lo que sea más fácil. Queda delegado.",
+          "Del 2026-10-02: el mes y el año son una sola pantalla, con el mes arriba y esto debajo."
+        ]
+      },
+      "acceptance": [
+        "En `/overview`, debajo de la parte del mes, se enseñan veinticuatro meses con lo que entró y lo que salió en cada uno",
+        "Las cifras de cada mes salen del backend (`totals` de `GET /api/movements` con `from` y `to` del mes), las mismas que enseña la parte del mes para ese mes",
+        "Se distingue a la vista qué meses salieron más de lo que entró",
+        "El mes que está arriba queda señalado, y pulsar otro mes lo pone arriba conservando el mes en la URL",
+        "Un mes incompleto se marca como incompleto con el mismo criterio de la feature 25 (el movimiento más reciente de la base es anterior a su último día)",
+        "Un mes sin movimientos se enseña como vacío, distinto de un mes que suma cero",
+        "Se enseña el ahorro acumulado a lo largo de esos meses; si se calcula en el cliente a partir de los `net` del backend, la pantalla lo dice, como ya hace con la mediana",
+        "Solo lectura: ni un POST, PATCH ni DELETE",
+        "No cambia el comportamiento ni los textos de la parte del mes de la feature 25",
+        "Todo en inglés, tema oscuro con tokens semánticos y contraste verificado; sin dependencias nuevas",
+        "./init.sh termina con exit 0"
+      ],
+      "checks": [
+        {
+          "descripcion": "Debajo del mes veo los meses anteriores, cada uno con lo que entró y lo que salió.",
+          "comando": "grep -qF \"shows the 24 months below the month, each with what came in and what went out\" src/features/overview/__tests__/OverviewPreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/OverviewPreviousMonths.spec.ts -t \"shows the 24 months below the month, each with what came in and what went out\""
+        },
+        {
+          "descripcion": "Distingo de un vistazo qué meses gasté más de lo que ingresé.",
+          "comando": "grep -qF \"marks the months that spent more than came in\" src/features/overview/__tests__/PreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/PreviousMonths.spec.ts -t \"marks the months that spent more than came in\""
+        },
+        {
+          "descripcion": "El mes que tengo arriba está señalado entre los demás.",
+          "comando": "grep -qF \"marks the month shown above, and only that one\" src/features/overview/__tests__/OverviewPreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/OverviewPreviousMonths.spec.ts -t \"marks the month shown above, and only that one\""
+        },
+        {
+          "descripcion": "Pulso otro mes y pasa a ser el de arriba.",
+          "comando": "grep -qF \"pressing another month puts it above, through the URL\" src/features/overview/__tests__/OverviewPreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/OverviewPreviousMonths.spec.ts -t \"pressing another month puts it above, through the URL\""
+        },
+        {
+          "descripcion": "Un mes incompleto está marcado como incompleto.",
+          "comando": "grep -qF \"marks an incomplete month as incomplete, with no bars\" src/features/overview/__tests__/PreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/PreviousMonths.spec.ts -t \"marks an incomplete month as incomplete, with no bars\""
+        },
+        {
+          "descripcion": "Un mes sin movimientos se ve como vacío, no como un cero.",
+          "comando": "grep -qF \"shows a month with no movements as empty, not as a zero\" src/features/overview/__tests__/PreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/PreviousMonths.spec.ts -t \"shows a month with no movements as empty, not as a zero\""
+        },
+        {
+          "descripcion": "Las cifras de cada mes son las mismas que veo si entro en ese mes.",
+          "comando": "grep -qF \"a row shows the same figures as the month does when it is above\" src/features/overview/__tests__/OverviewPreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/OverviewPreviousMonths.spec.ts -t \"a row shows the same figures as the month does when it is above\""
+        },
+        {
+          "descripcion": "Las cifras de cada mes son las mismas que veo si entro en ese mes. (cada mes se pide una sola vez y lo usan las dos partes de la pantalla)",
+          "comando": "grep -qF \"asks for each month once in a visit, whoever asks\" src/features/overview/__tests__/previousMonthsStore.spec.ts && pnpm exec vitest run src/features/overview/__tests__/previousMonthsStore.spec.ts -t \"asks for each month once in a visit, whoever asks\""
+        },
+        {
+          "descripcion": "Veo lo que he ahorrado a lo largo de esos meses.",
+          "comando": "grep -qF \"says what was saved over the complete months, with the totals of the backend\" src/features/overview/__tests__/OverviewPreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/OverviewPreviousMonths.spec.ts -t \"says what was saved over the complete months, with the totals of the backend\""
+        },
+        {
+          "descripcion": "(añadido) No quiero que cambie nada de la parte del mes, que ya está cerrada: sus textos, sus componentes y cuatro de sus archivos de test siguen idénticos a los del commit de la feature 25, y esos tests pasan.",
+          "comando": "git diff --quiet a68df91 -- src/features/overview/reading.ts src/features/overview/components/MonthSentence.vue src/features/overview/components/MonthFiguresGrid.vue src/features/overview/components/UsualLine.vue src/features/overview/components/UncategorizedLine.vue src/features/overview/__tests__/reading.spec.ts src/features/overview/__tests__/store.spec.ts src/features/overview/__tests__/service.spec.ts src/features/overview/__tests__/components.spec.ts src/features/statement src/features/import && pnpm exec vitest run src/features/overview/__tests__/reading.spec.ts src/features/overview/__tests__/store.spec.ts src/features/overview/__tests__/service.spec.ts src/features/overview/__tests__/components.spec.ts"
+        },
+        {
+          "descripcion": "(añadido) No quiero que escriba nada: solo mira. En un navegador de verdad, con las respuestas del backend imitadas, toda la visita a la pantalla manda solo GET.",
+          "comando": "grep -qF \"reads the previous months below the month and moves on a click\" e2e/overview.spec.ts && pnpm test:e2e --project=chromium e2e/overview.spec.ts"
+        }
+      ],
+      "sdd": true,
+      "status": "in_progress"
     }
   ]
 }

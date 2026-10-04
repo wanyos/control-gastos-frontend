@@ -3,10 +3,9 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** 25 — month-at-a-glance (implementada; pendiente de reviewer y de
-  la T19 con el humano). Primera de la E8.
-- **Plan:** las tasks T0..T18 de `specs/25-month-at-a-glance/tasks.md` (hechas). La T19 no
-  es del implementer.
+- **Feature en curso:** 26 — overview-previous-months (implementación, por lotes: A, luego
+  B y C a la vez, luego D). Spec aprobado por el humano el 2026-10-04, tal cual.
+- **Nivel de consumo:** medio (todos los subagentes en `opus`).
 - **Última sesión:** 2026-09-22 → 2026-10-02 (features 16 a 24). Todo su detalle está
   en `progress/history.md`.
 
@@ -64,6 +63,12 @@ lint y formato incluidos.
     febrero de 2024; R11 fija `Your usual month is the only previous month with data.`,
     que es lo implementado.
 
+- **2026-10-03 — F26 `overview-previous-months` en `spec_ready`** (segunda de la E8). Spec
+  en `specs/26-overview-previous-months/`; espera la aprobación del humano sobre
+  `decisions.md`. Solo lectura; 15 requisitos; 11 `checks`; cuatro lotes (A → B y C a la
+  vez → D). El backend no respondía en `:3000` al redactar: no se leyó nada nuevo, y las
+  cifras de 2024-10 a 2025-02 quedan para la comprobación final (T15).
+
 ## Decisiones de esta feature que no están en el spec
 
 - 2026-10-02 — **Arranca la E8** con un borrador razonado (`docs/intent-e8-draft.md`) que
@@ -103,11 +108,17 @@ lint y formato incluidos.
   de inicio sigue siendo Patrimonio. Cero escrituras y cero errores. El leader arrancó
   `pnpm dev` para la prueba y lo paró al terminar.
 
+## Feature 26 — lo comprobado antes de implementar (2026-10-04, solo GET)
+
+- Último dato: 2026-09-11. Los 24 meses van de 2024-10 a 2026-09.
+- Cifra más alta: salida 11.527,15 € (2025-07); entrada 7.204,68 € (2026-05).
+- Una sola petición con el rango de los 23 meses completos (2024-10 → 2026-08):
+  1.081 movimientos, entra 74.720,14 €, sale 116.607,06 €, **net −41.886,92 €**. El
+  spec-author estimaba −20.799 € con los 18 meses que tenía; con el rango entero es el
+  doble. Meses que faltaban: 2024-10 −103,35 · 2024-11 −7.827,25 · 2024-12 −5.480,16 ·
+  2025-01 −2.777,44 · 2025-02 −4.899,59.
+
 ## Próximo paso
 
-La tira del año, debajo del mes en la misma pantalla `Overview`; y lo que ganó cada
-depósito, en Patrimonio. Recurrentes espera a la parte 1 de
-`../docs/handoff-recurrentes.md`; el reparto por categoría, a que haya más categorizado.
-
-Para que la comparación de «mes normal» diga la verdad, el humano tiene que marcar como
-que no cuentan los traspasos a sus cuentas de inversión, en bloque desde el extracto.
+Implementar la feature 26 por lotes y pasarla por el reviewer. La comprobación final
+contra el backend real es de solo lectura y la hace el leader con el humano delante.
