@@ -26,8 +26,8 @@ pnpm test:unit          # una sola pasada (es lo que corre init.sh y la puerta)
 > (`test:unit` → `vitest run`, añadido en la feature #2) y ejecuta la suite
 > automáticamente en su bloque de tests, además del type-check. Desde la
 > feature #6 también ejecuta el **e2e smoke limitado a chromium**
-> (sección 8 del script). Desde la higiene del 2026-09-30 ejecuta además
-> **lint y formato** (secciones 5 y 6); ver *Qué comprueba la puerta*.
+> (paso 6b del script). Desde la higiene del 2026-09-30 ejecuta además
+> **lint y formato** (paso 5); ver *Qué comprueba la puerta*.
 
 ### Nivel 2 — Test de integración / E2E (obligatorio para features de UI)
 
@@ -50,7 +50,7 @@ HEADED=1 pnpm test:e2e             # con ventanas visibles (por defecto es headl
 pnpm build && CI=true pnpm test:e2e
 ```
 
-La puerta de `./init.sh` (sección 8) ejecuta el e2e limitado a chromium contra
+La puerta de `./init.sh` (paso 6b) ejecuta el e2e limitado a chromium contra
 el dev server y termina en rojo si falla; si faltan los navegadores de
 Playwright, degrada con un aviso claro en vez de fallar.
 
@@ -72,7 +72,7 @@ pnpm build && pnpm preview   # sirve el build en http://localhost:4173
 Cada `R<n>` de `specs/<nn>-<name>/requirements.md` debe poder mapearse a al
 menos un test concreto. El reviewer rechaza si falta cobertura.
 
-El implementer documenta el mapa en `progress/implementation/<name>.md`:
+El implementer documenta el mapa en `progress/implementations/<name>.md`:
 
 ```markdown
 ## Trazabilidad
@@ -109,11 +109,55 @@ el script termina con `[FAIL] Entorno NO está listo`:
 | 2 | Archivos base del arnés | — |
 | 3 | `feature_list.json` + specs de las features `sdd` | — |
 | 4 | Type check | `npx tsc --noEmit` |
-| 5 | **Lint (nuevo)** | `pnpm lint:oxlint:check` → `oxlint .` |
-| 6 | **Formato (nuevo)** | `pnpm format:check` → `prettier --check …` |
-| 7 | Tests unitarios | `pnpm test:unit` |
-| 8 | E2E smoke | `pnpm test:e2e --project=chromium` |
-| 9 | Resumen | — |
+| 5 | Lint y formato (los dos en este paso) | `pnpm lint:oxlint:check` → `oxlint .`, y `pnpm format:check` → `prettier --check …` |
+| 6 | Tests unitarios | `pnpm test:unit` |
+| 6b | Pasos propios del proyecto (`init.local.sh`), en este orden: las rutas de las cabeceras `Archivos:` de cada `specs/*/tasks.md` que solo se distinguen en mayúsculas y minúsculas (higiene 2026-10-04), y el E2E de chromium | función `check_case_only_paths` de `init.local.sh`, y `pnpm test:e2e --project=chromium` |
+| 7 | Resumen | — |
+
+### Rutas de un `tasks.md` que solo se distinguen en mayúsculas y minúsculas
+
+> Añadido en la higiene del **2026-10-04**. En la feature 26, el `tasks.md`
+> declaraba `__tests__/previousMonths.spec.ts` en la cabecera `Archivos:` de un
+> lote y `__tests__/PreviousMonths.spec.ts` en la de otro. En un disco que no
+> distingue mayúsculas (Windows, macOS por defecto) son el mismo archivo: el
+> segundo lote escribió encima del primero y se perdieron 44 tests que no
+> estaban en git.
+
+**Qué comprueba.** Recorre cada `specs/*/tasks.md`, toma las líneas que empiezan
+por `Archivos:` y saca las rutas que van entre acentos graves. Si dentro de un
+mismo `tasks.md` hay dos rutas distintas que quedan iguales al pasarlas a
+minúsculas, `./init.sh` escribe un `[FAIL]` con el `tasks.md` y las dos rutas y
+termina con exit 1. Si no hay ninguna, escribe una línea `[OK]`.
+
+**Cuándo se ejecuta.** Solo en `./init.sh` completo, dentro de `local_steps` de
+`init.local.sh` (bloque «6b. Pasos propios del proyecto» de la salida), después
+de los tests unitarios y antes del e2e. **No** se ejecuta en `./init.sh --state`
+ni en `./init.sh --fast` (los dos salen antes de llegar a `local_steps`), ni en
+`./init.sh --checks` (ese modo no carga `init.local.sh`).
+
+**Qué no es un fallo.** La misma ruta escrita tal cual en dos lotes; un
+`tasks.md` sin cabeceras `Archivos:` (los specs anteriores a los lotes); la
+misma ruta, o dos que solo se distinguen en mayúsculas, en dos specs distintos:
+la comparación es dentro de cada `tasks.md`.
+
+**Qué no ve.**
+
+- Un archivo creado fuera de lo que declara el spec: solo lee las cabeceras
+  `Archivos:`, no el disco ni git.
+- Una ruta escrita en otra parte del `tasks.md` (dentro de una task, por
+  ejemplo), o en una línea que no empiece exactamente por `Archivos:`.
+- Rutas escritas sin acentos graves, o una con `` y la otra con `/`, o con `./` delante
+  de una sola de las dos. Comprobado por el reviewer el 2026-10-04.
+- Una cabecera con sangría, viñeta, negrita u otra capitalización (`archivos:`): ese
+  `tasks.md` se da por bueno sin haberlo mirado. La línea `[OK]` cuenta los `tasks.md`
+  recorridos, no los que tienen cabeceras.
+- Letras fuera de ASCII (`Árbol.ts` y `árbol.ts`) en esta máquina. En macOS no está
+  comprobado; en Ubuntu sí, con GNU Awk y con mawk.
+- Una ruta declarada que solo se distingue en mayúsculas de un archivo que ya
+  existe en el repositorio pero que ese `tasks.md` no declara.
+- Letras fuera de ASCII: comprobado el 2026-10-04 con el `bash` de Git para
+  Windows (GNU Awk 5.0.0, sin `LANG` ni `LC_ALL`), `Árbol.ts` y `árbol.ts` **no**
+  se detectan como pareja. El paso a minúsculas lo hace `awk`.
 
 ### Arreglar vs. comprobar: dos parejas de scripts
 

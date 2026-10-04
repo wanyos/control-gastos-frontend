@@ -1043,3 +1043,5 @@ Plantilla para cada entrada nueva:
 - **Cierre:** feature 25 → **done**. E8 a medias.
 
 - 2026-10-04 — **F26 `overview-previous-months`**: en `Overview`, debajo del mes, los veinticuatro meses que acaban en el del último dato, con lo que entró y salió en cada uno y lo ahorrado en el periodo (pedido al backend en una sola petición). Se perdieron y se repusieron 44 tests por dos archivos del spec que solo se distinguían en una mayúscula. → [`summaries/overview-previous-months.md`](summaries/overview-previous-months.md)
+
+- 2026-10-04 — **Higiene: `init.local.sh` falla si un `tasks.md` declara dos rutas que solo se distinguen en mayúsculas**, en sus cabeceras `Archivos:`. Sale del incidente de la F26. → [`summaries/init-local-rutas-mayusculas.md`](summaries/init-local-rutas-mayusculas.md)
