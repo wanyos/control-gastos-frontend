@@ -40,3 +40,32 @@ export interface Comparison {
 }
 
 export type LoadState = 'idle' | 'loading' | 'ready' | 'error'
+
+// The months below the month (feature 26).
+
+/** What the backend adds up over a run of whole months, in one request. */
+export interface PeriodTotals {
+  from: MonthKey
+  to: MonthKey
+  totals: Totals
+  /** `pagination.total` of the whole range. */
+  movementCount: number
+}
+
+export type NetSign = 'positive' | 'zero' | 'negative'
+
+/** One of the 24 months, ready to paint. */
+export interface MonthRow {
+  month: MonthKey
+  label: string
+  state: MonthState
+  /** The month the screen shows above. */
+  isShown: boolean
+  /** null when the month is empty. */
+  totals: Totals | null
+  /** Bar width in tenths of a percent of the shared scale; null unless complete. */
+  incomePermille: number | null
+  expensePermille: number | null
+  /** null unless complete. */
+  netSign: NetSign | null
+}

@@ -7,7 +7,7 @@
       </p>
     </header>
 
-    <MonthNav :month="store.month" @change="onMonth" />
+    <MonthNav ref="monthNav" :month="store.month" @change="onMonth" />
 
     <p v-if="store.core === 'loading'" class="text-sm text-ink-muted" data-test="overview-loading">
       {{ loadingMonthLine(store.month) }}
@@ -16,13 +16,13 @@
     <BaseCard v-if="failure" data-test="overview-error">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <p class="text-sm text-ink-body" data-test="overview-error-message">{{ failure }}</p>
-        <BaseButton variant="secondary" size="sm" data-test="overview-retry" @click="store.retry()">
+        <BaseButton variant="secondary" size="sm" data-test="overview-retry" @click="onRetry">
           Try again
         </BaseButton>
       </div>
     </BaseCard>
 
-    <!-- The sentence first, before any figure (R4). An empty month is only its sentence (R9). -->
+    <!-- The sentence first, before any figure (R4). Of an empty month, only its sentence (R9). -->
     <MonthSentence v-if="store.sentence" :text="store.sentence" />
 
     <template v-if="store.figures && shownState">
@@ -61,15 +61,28 @@
         {{ statementLinkText(store.month) }}
       </RouterLink>
     </template>
-    <!-- Nothing below the month: the year strip of a later feature goes here (C6). -->
+
+    <!-- Outside the month's template: it shows with an empty month above, or a failed one. -->
+    <PreviousMonths
+      :rows="store.monthRows"
+      :load="store.previousLoad"
+      :sentence="periodLine"
+      :period-load="store.periodLoad"
+      :left-out="leftOutLine(store.latest)"
+      :not-shown="notShownLine(store.month, store.previousMonths)"
+      :data-ends="store.latest ? dataEndsLine(store.latest) : null"
+      @retry="store.loadPreviousMonths()"
+      @select="onSelect"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-// The month at a glance. The URL is the single writer of the month: the nav rewrites
-// the query and the watcher turns that into the reads, so back, forward and reload all
-// behave the same (R2, R3). The screen only reads.
-import { computed, onMounted, watch } from 'vue'
+// The month at a glance and, below it, the 24 months that end where the data ends. The
+// URL is the single writer of the month: the nav and the rows rewrite the query and the
+// watcher turns that into the reads, so back, forward and reload all behave the same
+// (R2, R3). The screen only reads.
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 
 import MonthNav from '@/features/statement/components/MonthNav.vue'
@@ -84,7 +97,9 @@ import { toCents } from '@/shared/money'
 
 import MonthFiguresGrid from '../components/MonthFiguresGrid.vue'
 import MonthSentence from '../components/MonthSentence.vue'
+import PreviousMonths from '../components/PreviousMonths.vue'
 import UncategorizedLine from '../components/UncategorizedLine.vue'
+import { dataEndsLine, leftOutLine, notShownLine, periodSentence } from '../previousMonths'
 import {
   COMPARISON_FAILED,
   COMPARISON_LOADING,
@@ -115,6 +130,8 @@ onMounted(() => {
   // What was read is worth one visit: coming back starts clean (C3).
   store.reset()
   syncFromRoute()
+  // After the month above: its request stays the first one of the screen.
+  void store.loadPreviousMonths()
 })
 
 watch(() => route.query, syncFromRoute)
@@ -123,6 +140,27 @@ watch(() => route.query, syncFromRoute)
 function onMonth(next: MonthKey): void {
   void router.push({ query: monthToRouteQuery(next) })
 }
+
+/** The months below share the reads of the month above, so one failure can take both down. */
+function onRetry(): void {
+  void store.retry()
+  if (store.previousLoad === 'error') void store.loadPreviousMonths()
+}
+
+const monthNav = ref<InstanceType<typeof MonthNav> | null>(null)
+
+/** A row far down was pressed: bring the month nav back into view to show what changed. */
+function onSelect(): void {
+  const nav: HTMLElement | undefined = monthNav.value?.$el
+  // Optional call: jsdom has no `scrollIntoView`.
+  nav?.scrollIntoView?.({ block: 'start' })
+}
+
+/** What was saved over the complete months, in the backend's own sums; null until read. */
+const periodLine = computed(() => {
+  const first = store.previousMonths.at(-1)
+  return store.period && first !== undefined ? periodSentence(store.period, first) : null
+})
 
 const failure = computed(() =>
   store.core === 'error' && store.coreError ? overviewErrorMessage(store.coreError) : null,

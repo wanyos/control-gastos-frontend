@@ -325,6 +325,8 @@ feature #8; ver *Iconos (Lucide)*.
   otro significado). El aviso de la pantalla reutiliza `Undo2`.
 - **Feature #25:** ninguno nuevo. `Overview` conserva `LayoutDashboard`, y la pantalla
   reutiliza las flechas de `MonthNav`.
+- **Feature #26:** ninguno nuevo. Los 24 meses de debajo del mes no llevan iconos: la
+  leyenda de las barras son dos puntos de color (`bg-chart-8` y `bg-chart-5`).
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,
@@ -545,7 +547,16 @@ categoría, la fecha del último dato y el recuento de la barra lateral) con las
 reales de los meses, entra por la barra lateral, cambia de mes, recarga, vuelve atrás y
 abre el extracto del mismo mes para comprobar que enseña las mismas cifras. Afirma que la
 red de seguridad no tuvo que parar ninguna llamada y que **todos** los métodos de la
-sesión son `GET`.
+sesión son `GET`. Desde la feature #26 tiene **tres tests** en vez de dos y responde una
+pregunta más: un `GET /api/movements` cuyo `from` y `to` son de meses distintos (las sumas
+del periodo). Solo contesta al rango `2024-10-01` → `2026-08-31`; cualquier otro se
+aborta y se apunta en la lista que debe acabar vacía, para que un periodo mal calculado no
+pase en silencio. El test nuevo
+(«reads the previous months below the month and moves on a click») abre agosto de 2026,
+lee la frase de lo ahorrado, cuenta 24 filas, comprueba la fila marcada, la del mes
+incompleto y las de los meses sin movimientos, pulsa enero de 2026 y comprueba la URL,
+que la navegación de mes vuelve a estar a la vista y que «atrás» regresa. El test del mes
+posterior al último dato cuenta ahora 27 lecturas de la pantalla, no 2.
 
 Desde la feature #15 la **barra lateral** pide `GET /api/movements` (el recuento de
 pendientes, `pageSize=1`) también al montar y en todas las rutas, así que el smoke

@@ -7,21 +7,21 @@
 > Orden: Lote A → (Lote B y Lote C a la vez) → Lote D.
 
 ## Lote A — lo puro y la lectura del periodo
-Archivos: `src/features/overview/previousMonths.ts`, `src/features/overview/types.ts`, `src/features/overview/service.ts`, `src/features/overview/__tests__/fixtures.ts`, `src/features/overview/__tests__/previousMonths.spec.ts`, `src/features/overview/__tests__/previousMonthsService.spec.ts`
+Archivos: `src/features/overview/previousMonths.ts`, `src/features/overview/types.ts`, `src/features/overview/service.ts`, `src/features/overview/__tests__/fixtures.ts`, `src/features/overview/__tests__/previousMonthsFunctions.spec.ts`, `src/features/overview/__tests__/previousMonthsService.spec.ts`
 Depende de: —
 
-- [ ] T1 — `types.ts`: añadir `PeriodTotals`, `NetSign` y `MonthRow` (design §3). Nada
+- [x] T1 — `types.ts`: añadir `PeriodTotals`, `NetSign` y `MonthRow` (design §3). Nada
   de lo que hay cambia. Cubre: R2, R4, R11.
-- [ ] T2 — `service.ts`: añadir `getPeriodTotals`. `previousMonthsService.spec.ts`:
+- [x] T2 — `service.ts`: añadir `getPeriodTotals`. `previousMonthsService.spec.ts`:
   `getPeriodTotals('2024-10', '2026-08')` pide **exactamente**
   `/api/movements?from=2024-10-01&to=2026-08-31&pageSize=1`, con `GET` y sin cuerpo, y
   devuelve `totals` y `pagination.total`. Cubre: R11, C1.
-- [ ] T3 — `fixtures.ts`, solo añadidos (design §7): la clase `period` en `readOf` y su
+- [x] T3 — `fixtures.ts`, solo añadidos (design §7): la clase `period` en `readOf` y su
   respuesta en `mockBackend` (`60135.60` / `80934.73` / `-20799.13`, 863 movimientos
   para `2024-10-01`…`2026-08-31`; cualquier otro rango, rechazado). Lanzar los cuatro
   specs de la F25 sin tocarlos y pegar el resultado en el informe. Cubre: C2.
-- [ ] T4 — `previousMonths.ts` completo (design §4). Cubre: R1–R6, R9–R12, C3.
-- [ ] T5 — `previousMonths.spec.ts`: (a) `shownMonths('2026-09-11')` son 24, de
+- [x] T4 — `previousMonths.ts` completo (design §4). Cubre: R1–R6, R9–R12, C3.
+- [x] T5 — *(Reabierta el 2026-10-04: el archivo se perdió al escribir el Lote C el suyo, porque los dos nombres solo se distinguían en una mayúscula. Ahora se llama `previousMonthsFunctions.spec.ts`.)* `previousMonthsFunctions.spec.ts`: (a) `shownMonths('2026-09-11')` son 24, de
   `2026-09` a `2024-10`, y cruza dos cambios de año; `[]` con `null`; (b)
   `summedPeriod`: `2024-10`…`2026-08` con `2026-09-11`, y `2024-10`…`2026-09` con
   `2026-09-30`; (c) `scaleTop` de los 18 meses completos de la fixture es `11527.15`,
@@ -40,11 +40,11 @@ Depende de: —
 Archivos: `src/features/overview/store.ts`, `src/features/overview/__tests__/previousMonthsStore.spec.ts`
 Depende de: Lote A
 
-- [ ] T6 — `store.ts` (design §5): lecturas en curso compartidas, `previousLoad`,
+- [x] T6 — `store.ts` (design §5): lecturas en curso compartidas, `previousLoad`,
   `period`, `periodLoad`, `previousMonths`, `monthRows`, `loadPreviousMonths`, y los
   añadidos de `reset` y `refreshIfLoaded`. `store.spec.ts` pasa **sin tocarse**.
   Cubre: R1, R11, R13, R14, R15, C2, C4.
-- [ ] T7 — `previousMonthsStore.spec.ts`: (a) **«asks for each month once in a visit,
+- [x] T7 — `previousMonthsStore.spec.ts`: (a) **«asks for each month once in a visit,
   whoever asks»**: `show('2026-08')` y `loadPreviousMonths()` lanzados a la vez → 27
   `GET`, ningún mes repetido, 24 filas; luego `show('2026-07')` → 1 petición más (su
   gasto sin categoría); (b) con `2026-09` arriba 27 y con `2026-10` 27; (c) falla un
@@ -60,13 +60,13 @@ Depende de: Lote A
 Archivos: `src/features/overview/components/PreviousMonths.vue`, `src/features/overview/components/PreviousMonthRow.vue`, `src/features/overview/__tests__/PreviousMonths.spec.ts`, `src/assets/theme-dark.css`
 Depende de: Lote A
 
-- [ ] T8 — Comprobación previa, anotada en el informe: qué dos colores `chart-*` se
+- [x] T8 — Comprobación previa, anotada en el informe: qué dos colores `chart-*` se
   usan (distintos de `bg-chart-4`, con su línea `contrast:` sobre `surface-sunken`), y
   que ninguna clase elegida está entre las que vigila `tailwind-sources.spec.ts`.
   `theme-dark.css` solo se edita si aparece un par nuevo. Cubre: C8.
-- [ ] T9 — `PreviousMonthRow.vue` y `PreviousMonths.vue` (design §6). Cubre: R1–R6,
+- [x] T9 — `PreviousMonthRow.vue` y `PreviousMonths.vue` (design §6). Cubre: R1–R6,
   R9–R14, C7, C8.
-- [ ] T10 — `PreviousMonths.spec.ts`, con filas construidas por `buildMonthRows` sobre
+- [x] T10 — `PreviousMonths.spec.ts`, con filas construidas por `buildMonthRows` sobre
   la fixture: (a) **«marks the months that spent more than came in»**: las nueve filas
   de `net` negativo llevan `data-net="negative"` y el importe con signo menos; enero de
   2026, `positive`; (b) **«marks an incomplete month as incomplete, with no bars»**:
@@ -83,11 +83,11 @@ Depende de: Lote A
 Archivos: `src/features/overview/views/OverviewView.vue`, `src/features/overview/__tests__/OverviewView.spec.ts`, `src/features/overview/__tests__/OverviewPreviousMonths.spec.ts`, `e2e/overview.spec.ts`, `docs/architecture.md`, `docs/stack.md`
 Depende de: Lote B, Lote C
 
-- [ ] T11 — `OverviewView.vue` (design §6): el bloque como último hijo, la llamada a
+- [x] T11 — `OverviewView.vue` (design §6): el bloque como último hijo, la llamada a
   `loadPreviousMonths` tras `syncFromRoute`, el desplazamiento al pulsar y el reintento.
   `OverviewView.spec.ts`: **solo** las cuatro aserciones de design §7. Cubre: R1, R7,
   R8, R13, C2.
-- [ ] T12 — `OverviewPreviousMonths.spec.ts`, montando `OverviewView`: (a) **«shows
+- [x] T12 — `OverviewPreviousMonths.spec.ts`, montando `OverviewView`: (a) **«shows
   the 24 months below the month, each with what came in and what went out»**: con
   `2026-08` arriba, `previous-months` es el último hijo, tiene 24 filas de `2026-09` a
   `2024-10` y agosto de 2026 enseña `2.590,26 €` y `4.003,89 €`; (b) **«marks the month
@@ -105,18 +105,18 @@ Depende de: Lote B, Lote C
   letra por letra la de antes (frase, cuatro tarjetas, leyenda, línea sin categoría y
   enlace de agosto de 2026); (h) una visita entera solo manda `GET` a
   `/api/movements`. Cubre: R1, R5–R8, R11, R12, R15, C1, C2.
-- [ ] T13 — `e2e/overview.spec.ts`: la rama del periodo y los cinco meses en `MONTHS`
+- [x] T13 — `e2e/overview.spec.ts`: la rama del periodo y los cinco meses en `MONTHS`
   (design §7), la aserción `2` → `27`, y un test nuevo, **«reads the previous months
   below the month and moves on a click»**: abrir `/overview?month=2026-08`, leer la
   frase del periodo, contar 24 filas, ver agosto marcado, septiembre `Incomplete` y una
   fila `No movements`; pulsar enero de 2026 y comprobar la URL, la frase de arriba, que
   la navegación de mes está a la vista y que «atrás» vuelve; la lista de llamadas
   paradas acaba vacía y todos los métodos son `GET`. Cubre: R1, R5, R7–R12, C1.
-- [ ] T14 — `docs/architecture.md` y `docs/stack.md` (design §8). Trazabilidad
+- [x] T14 — `docs/architecture.md` y `docs/stack.md` (design §8). Trazabilidad
   `R1…R15 → test` en `progress/implementations/overview-previous-months.md`. Puerta:
   `pnpm type-check`, `pnpm build`, `./init.sh` y `./init.sh --checks 26`, con la salida
   pegada. Cubre: todos, C9.
-- [ ] T15 — *(NO es del implementer: la hace el leader con el humano delante. **Solo
+- [x] T15 — *(HECHA el 2026-10-04 por el leader con el humano, solo `GET`. Último dato 2026-09-11; 24 meses de 2024-10 a 2026-09. Las tres cifras de las 24 filas coinciden al céntimo con la API. Periodo 2024-10 → 2026-08: 1.081 movimientos, 74.720,14 / 116.607,06 / −41.886,92 €, igual que la suma aparte de los `net` de los 23 meses; frase en pantalla: «From October 2024 to August 2026, 74.720 € came in and 116.607 € went out: you spent 41.887 € more than came in.» Barra más ancha: la salida de 2025-07 (11.527,15 €); de 2024-10 a 2025-02 ninguna la supera (la mayor, 11.117,32 €). `/overview` sin mes: ninguna fila marcada y «October 2026 is not one of these months.» Pulsar marzo de 2026, atrás y recargar conservan la URL. 29 peticiones al entrar a agosto de 2026, todas `GET`. Sin errores de consola.)* *(NO es del implementer: la hace el leader con el humano delante. **Solo
   lectura:** únicamente `GET`.)* Con el backend real en `:3000`:
   1. `GET /api/movements?pageSize=1`: apuntar la fecha del último dato y deducir los 24
      meses y el periodo.

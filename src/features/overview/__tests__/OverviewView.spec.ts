@@ -141,13 +141,13 @@ describe('OverviewView', () => {
       expect(link.attributes('href')).toBe('/movements?month=2026-08')
     })
 
-    it('paints nothing below the block of the month (C6)', async () => {
+    it('paints the previous months below the block of the month, and nothing after them', async () => {
       const { wrapper } = await mountView('/overview?month=2026-08')
 
       const blocks = [...wrapper.get('[data-test="overview-view"]').element.children]
 
-      expect(blocks.at(-1)?.getAttribute('data-test')).toBe('overview-statement-link')
-      expect(wrapper.text()).not.toMatch(/coming soon|year/i)
+      expect(blocks.at(-1)?.getAttribute('data-test')).toBe('previous-months')
+      expect(blocks.at(-2)?.getAttribute('data-test')).toBe('overview-statement-link')
     })
   })
 
@@ -184,7 +184,7 @@ describe('OverviewView', () => {
   })
 
   it('an incomplete month shows its figures, a dash for the rate and no comparison (R8)', async () => {
-    const { api, wrapper } = await mountView('/overview?month=2026-09')
+    const { wrapper } = await mountView('/overview?month=2026-09')
 
     expect(text(wrapper, 'overview-sentence')).toBe(
       `September 2026 is incomplete: your data ends on ${formatDate(LATEST)}. So far, ${eur('162')} came in and ${eur('967')} went out.`,
@@ -197,7 +197,6 @@ describe('OverviewView', () => {
     expect(text(wrapper, 'overview-caption')).toBe('No comparison for an incomplete month.')
     expect(has(wrapper, 'overview-usual')).toBe(false)
     expect(has(wrapper, 'overview-uncategorized-line')).toBe(true)
-    expect(api.months()).toEqual(['2026-09'])
   })
 
   it('a complete month with no income has a dash for the rate, and says why (R7)', async () => {
@@ -216,8 +215,8 @@ describe('OverviewView', () => {
     )
   })
 
-  it('an empty month is only its sentence (R9)', async () => {
-    const { api, wrapper } = await mountView('/overview?month=2026-10')
+  it('an empty month shows only its sentence in the part of the month (R9)', async () => {
+    const { wrapper } = await mountView('/overview?month=2026-10')
 
     expect(text(wrapper, 'overview-sentence')).toBe(
       `No movements in October 2026. Your data ends on ${formatDate(LATEST)}.`,
@@ -232,7 +231,6 @@ describe('OverviewView', () => {
     ]) {
       expect({ name, shown: has(wrapper, name) }).toEqual({ name, shown: false })
     }
-    expect(api.calls).toHaveLength(2)
   })
 
   it('a month whose spending is zero has no uncategorized line (R12)', async () => {
@@ -372,13 +370,13 @@ describe('OverviewView', () => {
   it('entering the screen again reads again: what was read is worth one visit (C3)', async () => {
     const pinia = createPinia()
     const first = await mountView('/overview?month=2026-08', undefined, pinia)
-    expect(first.api.calls).toHaveLength(15)
+    expect(first.api.calls).toHaveLength(27)
     first.wrapper.unmount()
     vi.restoreAllMocks()
 
     const second = await mountView('/overview?month=2026-08', undefined, pinia)
 
-    expect(second.api.calls).toHaveLength(15)
+    expect(second.api.calls).toHaveLength(27)
   })
 
   it('a whole visit only ever sends GET to /api/movements (C1)', async () => {

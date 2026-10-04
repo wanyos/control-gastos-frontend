@@ -124,16 +124,27 @@ src/
       pairs.ts            # lo puro: la señal Bizum, la validación previa a enlazar y
                           # todos los textos, incluidos los de error
       types.ts            # TransferPair, AmbiguousGroup, LinkChoice, Notice, Undo
-    overview/             # feature #25: el mes de un vistazo (ruta /overview); SOLO LECTURA
-      components/         # MonthSentence, MonthFiguresGrid, UsualLine, UncategorizedLine
-      views/              # OverviewView (la URL es la única que escribe el mes)
+    overview/             # feature #25: el mes de un vistazo (ruta /overview); SOLO LECTURA.
+                          # Feature #26: debajo del mes, 24 meses, uno por fila
+      components/         # MonthSentence, MonthFiguresGrid, UsualLine, UncategorizedLine (#25);
+                          # PreviousMonths (el bloque `Month by month`) y PreviousMonthRow
+                          # (una fila de su tabla) (#26)
+      views/              # OverviewView (la URL es la única que escribe el mes; monta
+                          # PreviousMonths como último hijo)
       store.ts            # useOverviewStore: el mes, lo leído en esta visita (por mes), la
-                          # fecha del último dato y un estado de carga por grupo de lecturas
-      service.ts          # tres lecturas, las tres `GET /api/movements` con `pageSize=1`:
-                          # las cifras del mes, el gasto sin categoría y la fecha del último dato
-      reading.ts          # lo puro: los doce meses anteriores, si el mes está incompleto,
-                          # la mediana, la tasa, el veredicto y TODOS los textos
-      types.ts            # MonthFigures, Uncategorized, MonthState, Verdict, Comparison, LoadState
+                          # fecha del último dato y un estado de carga por grupo de lecturas;
+                          # desde la #26, además, las filas de los 24 meses y la suma del
+                          # periodo, cada una con su estado, y las lecturas que aún no han
+                          # respondido (para no pedir dos veces el mismo mes)
+      service.ts          # cuatro lecturas, las cuatro `GET /api/movements` con `pageSize=1`:
+                          # las cifras del mes, el gasto sin categoría, la fecha del último
+                          # dato y, desde la #26, las sumas de un rango de varios meses
+      reading.ts          # lo puro de la #25: los doce meses anteriores, si el mes está
+                          # incompleto, la mediana, la tasa, el veredicto y TODOS sus textos
+      previousMonths.ts   # lo puro de la #26: qué 24 meses se enseñan, el rango que suma el
+                          # backend, la escala de las barras, las filas y TODOS sus textos
+      types.ts            # MonthFigures, Uncategorized, MonthState, Verdict, Comparison,
+                          # LoadState (#25); PeriodTotals, NetSign, MonthRow (#26)
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
@@ -164,8 +175,9 @@ src/
 > transversal (p. ej. sesión); lo demás va por feature.
 
 > **El mes de un vistazo solo lee, y calcula una única cifra (feature #25).**
-> `features/overview/` no manda ni un `POST`, `PATCH` o `DELETE`: sus tres lecturas son
-> `GET /api/movements` (`service.ts` no acepta método ni cuerpo). Las cifras del mes salen
+> `features/overview/` no manda ni un `POST`, `PATCH` o `DELETE`: sus cuatro lecturas son
+> `GET /api/movements` (`service.ts` no acepta método ni cuerpo; eran tres hasta la
+> feature #26, que añadió la del rango de varios meses). Las cifras del mes salen
 > de **la misma petición que hace el extracto** (`from`, `to`, sin filtros), así que
 > cuadran con `/movements` por construcción. **La mediana de los meses anteriores es la
 > única cifra que calcula el cliente** (`medianAmount` en `reading.ts`, en céntimos
@@ -179,6 +191,28 @@ src/
 > conoce `overview`) e `import` → `overview` (una llamada a `refreshIfLoaded` tras cada
 > importación, igual que `import` → `net-worth`). `shared/money.ts` gana
 > `formatMoneyWhole` (euros enteros, solo para la frase).
+>
+> **Debajo del mes, 24 meses que no suman nada en el cliente (feature #26).** El bloque
+> `Month by month` de `/overview` enseña siempre los 24 meses naturales que terminan en el
+> mes de la fecha del último dato: no dependen del mes de `?month=` ni del reloj, así que
+> pulsar un mes solo cambia cuál está marcado. Cada fila pinta el **mismo objeto** de
+> `figuresByMonth` que pinta la parte del mes cuando ese mes está arriba; por eso las
+> cifras coinciden por construcción, y cada mes se pide **una sola vez por visita** aunque
+> lo pidan las dos partes a la vez (el store guarda las lecturas que todavía no han
+> respondido y se las da a quien llegue después). **Lo ahorrado en el periodo lo suma el
+> backend**, en una petición con `from` = día 1 del mes más antiguo y `to` = último día
+> del último mes completo: es la cuarta lectura. **La mediana sigue siendo la única cifra
+> que calcula el cliente**; la aritmética de este bloque (`previousMonths.ts`, en céntimos
+> `bigint`) se queda en elegir la cifra más alta de los meses completos, dividir cada
+> cifra entre ella para el ancho de su barra y cambiar el signo del neto en la frase. Un
+> mes incompleto no lleva barras ni entra en la escala ni en la suma. Si falla un mes no
+> se pinta ninguna fila; si falla la suma, las filas siguen y no se sustituye por una suma
+> hecha aquí. Entrar a un mes completo pasa de 15 a 27 peticiones (11 meses que la parte
+> del mes no pedía y 1 del periodo); después, ir a un mes cuyos doce anteriores están
+> entre los 24 cuesta 1. `store.loadPreviousMonths` no forma parte de `show`: la vista la
+> llama al montarse, después de pedir el mes de arriba, y `refreshIfLoaded` la repite tras
+> una importación si el bloque se había leído. `reading.ts`, los cuatro componentes de la
+> #25, `features/statement/` y `features/import/` no cambian.
 >
 > **La pantalla que escribe `transferId` (feature #24).** `features/transfers/` es el
 > único sitio de la app que enlaza y desenlaza parejas de traspaso, y **no escribe nada

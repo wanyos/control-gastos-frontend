@@ -1,6 +1,6 @@
 import { vi } from 'vitest'
 
-import type { MonthFigures } from '../types'
+import type { MonthFigures, PeriodTotals } from '../types'
 
 // The month at a glance (feature 25) against the REAL monthly figures, read from
 // `GET /api/movements` on 2026-10-02. Only figures: the three totals and the count of
@@ -124,6 +124,25 @@ export function rawLatestPage(latest: string | null = LATEST): Record<string, un
     : rawPage({ income: '0.00', expense: '0.00', net: '0.00' }, BASE_TOTAL, latest)
 }
 
+/**
+ * What the backend adds up over the complete months of the 24 that end in `LATEST`
+ * (feature 26): the 18 months of `REAL` from 2025-03 to 2026-08, added up apart. The
+ * five months before them have no figures here, so they count as empty.
+ */
+export const PERIOD: PeriodTotals = {
+  from: '2024-10',
+  to: '2026-08',
+  totals: { income: '60135.60', expense: '80934.73', net: '-20799.13' },
+  movementCount: 863,
+}
+const PERIOD_FROM = '2024-10-01'
+const PERIOD_TO = '2026-08-31'
+
+/** What it answers to the whole range of `PERIOD`: its newest movement and the sums. */
+export function rawPeriodPage(): Record<string, unknown> {
+  return rawPage(PERIOD.totals, PERIOD.movementCount, PERIOD_TO)
+}
+
 export function jsonResponse(body: unknown, init?: ResponseInit): Response {
   return new Response(JSON.stringify(body), {
     headers: { 'Content-Type': 'application/json' },
@@ -156,12 +175,12 @@ export function deferred() {
   return { answer: () => promise, resolve }
 }
 
-/** Which of the three reads a querystring is. */
-export type ReadKind = 'latest' | 'month' | 'uncategorized'
+/** Which of the reads a querystring is. `period`: `from` and `to` in different months. */
+export type ReadKind = 'latest' | 'month' | 'uncategorized' | 'period'
 
 export interface Read {
   kind: ReadKind
-  /** `2026-08`; empty for the latest read. */
+  /** `2026-08`; empty for the latest read; the month of `from` for a period. */
   month: string
   query: URLSearchParams
 }
@@ -169,6 +188,8 @@ export interface Read {
 export function readOf(query: URLSearchParams): Read {
   const month = (query.get('from') ?? '').slice(0, 7)
   if (query.get('from') === null) return { kind: 'latest', month, query }
+  const to = query.get('to')
+  if (to !== null && to.slice(0, 7) !== month) return { kind: 'period', month, query }
   return { kind: query.get('uncategorized') === 'true' ? 'uncategorized' : 'month', month, query }
 }
 
@@ -183,7 +204,9 @@ export interface ApiCall {
  * Mocks the HTTP boundary with the real figures and records every call. Nothing may
  * leave for real: jsdom's origin is the backend's, so any path other than
  * `GET /api/movements` is rejected here. `override` answers a read differently
- * (a failure, a deferred answer); returning undefined leaves the default.
+ * (a failure, a deferred answer); returning undefined leaves the default. The only
+ * period it answers is `PERIOD`: any other range is rejected, so a period worked out
+ * wrong cannot pass in silence.
  */
 export function mockBackend(
   override: (read: Read) => Promise<Response> | undefined = () => undefined,
@@ -202,6 +225,13 @@ export function mockBackend(
     if (special) return special
     if (read.kind === 'latest') return json(rawLatestPage(latest))()
     if (read.kind === 'uncategorized') return json(rawUncategorizedPage(read.month))()
+    if (read.kind === 'period') {
+      const from = read.query.get('from')
+      const to = read.query.get('to')
+      return from === PERIOD_FROM && to === PERIOD_TO
+        ? json(rawPeriodPage())()
+        : Promise.reject(new TypeError(`unexpected period ${from} to ${to}`))
+    }
     return json(rawMonthPage(read.month))()
   })
   return {

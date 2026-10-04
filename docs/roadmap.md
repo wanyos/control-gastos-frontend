@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-10-02.
+> **Última revisión:** 2026-10-04.
 
 ## Este documento frente a los otros
 
@@ -24,7 +24,7 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Ya hay aplicación, y ya escribe.** 25 features cerradas. Las pantallas que
+**Ya hay aplicación, y ya escribe.** 26 features cerradas. Las pantallas que
 existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
 acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
 y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14),
@@ -34,11 +34,11 @@ interruptor que esconde ese ruido (F19, F20, F21, F22, F23), **Transfers** en
 `/transfers`, para revisar las parejas de traspaso, deshacer las falsas y emparejar las
 dudosas (F24) y, nueva, **Overview** en `/overview`, que deja de ser un placeholder y
 enseña el mes de un vistazo: una frase interpretada, lo que entró, lo que salió, el ahorro
-y si fue un mes habitual (F25).
-Etapas E0 a E7 cerradas; **la E8 está a medias**, con su primera feature cerrada.
+y si fue un mes habitual (F25); debajo, los veinticuatro meses que acaban en el del último
+dato, con lo que entró y salió en cada uno y lo ahorrado en el periodo (F26).
+Etapas E0 a E7 cerradas; **la E8 está a medias**, con dos features cerradas.
 
-**Lo siguiente en la E8** (plan aprobado por el humano el 2026-10-02): **la tira del año**
-en la misma pantalla `Overview`, y **lo que ganó cada depósito** en Patrimonio. Detalle en
+**Lo siguiente en la E8** (plan aprobado por el humano el 2026-10-02): **lo que ganó cada depósito** en Patrimonio. Detalle en
 la sección de la E8.
 
 **El ruido de las sumas está resuelto en el extracto.** La **F22** (cerrada el
@@ -82,7 +82,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
 | E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | ✅ | F19, F20, F21, F22, F23, F24 |
-| E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | 🟡 | F25 |
+| E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | 🟡 | F25, F26 |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
 ### E0 — Cimientos ✅
@@ -362,8 +362,8 @@ agregados: `GET /api/overview`, `GET /api/investments/overview`,
 > **Plan de la etapa, aprobado por el humano el 2026-10-02:**
 >
 > 1. ✅ **El mes de un vistazo** — F25, cerrada.
-> 2. ⬜ **La tira del año**, en esta misma pantalla `Overview`, debajo del mes (el mes y el
->    año son una sola pantalla). Es lo siguiente.
+> 2. ✅ **Los meses anteriores, debajo del mes**, en esta misma pantalla `Overview` (el mes
+>    y el año son una sola pantalla) — F26, cerrada.
 > 3. ⬜ **Lo que ganó cada depósito**, en Patrimonio, con `GET /api/investments/deposits`
 >    (feature 50 del backend, commit `a6195be`), servido y todavía **sin usar en el
 >    frontend**. También es lo siguiente.
@@ -393,6 +393,25 @@ agregados: `GET /api/overview`, `GET /api/investments/overview`,
 > **siete de doce meses pasan de 5.000 € de gasto** por traspasos a cuentas propias de
 > inversión sin marcar. La mediana resiste excepciones, no limpia datos. Se corrige cuando
 > el humano los marque como que no cuentan desde el extracto (F22), **no con código**.
+>
+> **F26 cerrada el 2026-10-04** — debajo del mes, en `/overview`, los veinticuatro meses que
+> acaban en el mes del último dato (hoy, de octubre de 2024 a septiembre de 2026): una fila
+> por mes con dos barras horizontales a una sola escala y sus tres cifras. Los meses no se
+> mueven al pulsar uno; pulsarlo lo pone arriba, por la URL. El mes incompleto se marca, va
+> sin barras y queda fuera de la suma; un mes sin movimientos se enseña como vacío. Lo
+> ahorrado en los meses completos **se pide al backend en una sola petición con el rango
+> entero**: la pantalla no suma nada. Con esta feature la pantalla hace **cuatro** clases de
+> lectura a `GET /api/movements` (antes tres) y entrar a un mes cuesta 27 peticiones (antes
+> 15). Solo lectura. Comprobada con el humano contra el backend real el 2026-10-04, solo con
+> `GET`: las tres cifras de las 24 filas coinciden al céntimo; el periodo de 23 meses da
+> 1.081 movimientos y −41.886,92 €, igual que la suma aparte de los 23 meses; la barra más
+> ancha es la salida de julio de 2025 (11.527,15 €). Spec en
+> [`specs/26-overview-previous-months/`](../specs/26-overview-previous-months/); resumen en
+> [`progress/summaries/overview-previous-months.md`](../progress/summaries/overview-previous-months.md).
+>
+> ⚠️ **Lo que esa cifra dice hoy:** «gastaste 41.887 € más de lo que entró» en esos 23 meses.
+> Es lo que devuelve el backend con los datos como están: los traspasos a cuentas propias
+> de inversión que no tienen pareja ni marca siguen contando como salida (cabo 10).
 
 ### E9 — Que esto se vea desde algún sitio ⬜
 
@@ -414,6 +433,9 @@ datos bancarios reales. No es urgente; es que no estaba.
 | 5 | El ejemplo JSON de `GET /api/net-worth` en el contrato del backend no cuadra (`investments.total`) — defecto de documentación, no de datos | backend |
 | ~~6~~ | ~~`GET /api/ingestion/pending` cuenta también los archivos sin parser, así que el aviso «N new files» no bajaría a 0~~ | ✅ **retirado el 2026-09-15**: el humano confirma que todos los bancos tienen parser (Revolut incluido) y en Drive no hay PDFs, así que todo lo pendiente es importable |
 | 7 | `GET /api/movements` con `pageSize=100` devuelve 1.605 movimientos distintos de 1.607: la cola de revisión esconde dos (`../docs/handoff-paginacion-estable.md`) | backend, luego **E6** se corrige sola |
+| 8 | La propuesta de texto de una regla arrastra una palabra de trámite y puntuación («ANUL. /VivaGym» propone `anul. /vivagym`) y se queda corta con nombres de canal (`trans inm`, `tpv virtual`). Anotado al cerrar la F18 | sin etapa |
+| 9 | Los tests unitarios no tienen nada que haga fallar por defecto una llamada a `fetch` sin responder: el origen de jsdom coincide con el del backend real (`localhost:3000`), así que un test que olvide `mockBackend` hablaría con él. Y un fallo de red al escribir se cuenta como «no cambió nada» en las F16, F21, F22 y F24. Anotado por el reviewer | sin etapa |
+| 10 | Traspasos a cuentas propias sin pareja ni marca siguen contando en las sumas; hacen que la comparación del mes (F25) y lo ahorrado en el periodo (F26) salgan peor de lo que son | **deber del humano**: marcarlos desde el extracto (F22) |
 
 > Los cabos 3, 4, 5 y 7 **no son tuyos**: son del backend. Está aquí porque bloquea bloques
 > de la vista de Patrimonio y la regla de oro del workspace dice que el backend

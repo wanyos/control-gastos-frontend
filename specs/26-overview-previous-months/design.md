@@ -44,7 +44,7 @@
 | `previousMonths.ts` | Todo lo puro de este bloque (§4): los 24 meses, el periodo, la escala, las filas y **todos sus textos**. Sin estado ni HTTP. `reading.ts` no se toca. |
 | `components/PreviousMonths.vue` | El bloque: título, frase, notas, cabeceras, filas, carga y error. Solo props y un evento. |
 | `components/PreviousMonthRow.vue` | Una fila (`<tr>`). |
-| `__tests__/previousMonths.spec.ts` | Lo puro. |
+| `__tests__/previousMonthsFunctions.spec.ts` | Lo puro. *(Corregido el 2026-10-04: se llamaba `previousMonths.spec.ts`, que en un disco que no distingue mayúsculas es el mismo archivo que `PreviousMonths.spec.ts`, el de los componentes.)* |
 | `__tests__/previousMonthsService.spec.ts` | La lectura del periodo. |
 | `__tests__/previousMonthsStore.spec.ts` | Lo que el store añade. |
 | `__tests__/PreviousMonths.spec.ts` | Los dos componentes, con props. |
@@ -234,6 +234,21 @@ cambia de clase); `mockBackend` responde a `2024-10-01`…`2026-08-31` con
 rango, para que un periodo mal calculado no pase en silencio. En `e2e/overview.spec.ts`,
 `answerMovements` gana la misma rama y `MONTHS` los cinco meses de 2025-03 a 2025-07 de
 la fixture, para que las filas y la frase hablen de lo mismo.
+
+**Ampliación del 2026-10-04, tras la revisión.** Además de esas cinco aserciones, cambian
+**tres títulos** de tests de la F25, y solo el título, sin tocar lo que cada test
+comprueba. El reviewer rechazó dejar el primero como estaba, porque el título decía lo
+contrario de lo que el test afirma; los otros dos se cambian en la misma pasada para
+que nombren la parte del mes, que es de lo que hablan:
+
+| Dónde | Título que tenía | Título nuevo |
+|---|---|---|
+| `OverviewView.spec.ts` | «paints nothing below the block of the month (C6)» | «paints the previous months below the block of the month, and nothing after them» |
+| `OverviewView.spec.ts` | «an empty month is only its sentence (R9)» | «an empty month shows only its sentence in the part of the month (R9)» |
+| `e2e/overview.spec.ts` | «a month after the last data says so, and shows nothing else» | «a month after the last data says so, and shows no figures in the part of the month» |
+
+Si algún `check` de la feature 25 o de la 26 busca uno de esos títulos con `grep`, se
+actualiza con el título nuevo.
 
 R9 de la F25 («un mes vacío no muestra ninguna cifra») se lee como hasta ahora: habla de
 la parte del mes. Con octubre de 2026 arriba, debajo se ven los 24 meses.

@@ -1041,3 +1041,5 @@ Plantilla para cada entrada nueva:
 - **Verificación:** `./init.sh` de nueve pasos en verde: 1.575 tests (99 ficheros), e2e
   chromium, lint y formato; `pnpm build` en verde.
 - **Cierre:** feature 25 → **done**. E8 a medias.
+
+- 2026-10-04 — **F26 `overview-previous-months`**: en `Overview`, debajo del mes, los veinticuatro meses que acaban en el del último dato, con lo que entró y salió en cada uno y lo ahorrado en el periodo (pedido al backend en una sola petición). Se perdieron y se repusieron 44 tests por dos archivos del spec que solo se distinguían en una mayúscula. → [`summaries/overview-previous-months.md`](summaries/overview-previous-months.md)

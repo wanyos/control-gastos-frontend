@@ -1,12 +1,13 @@
-// The three reads of the month at a glance (feature 25). All of them are
-// `GET /api/movements` through the shared reader: no function here takes a method or
-// a body, so there is no way to write from this feature (C1).
+// The three reads of the month at a glance (feature 25) and the read of a run of
+// months (feature 26). All of them are `GET /api/movements` through the shared reader:
+// no function here takes a method or a body, so there is no way to write from this
+// feature (C1).
 
 import { monthRange } from '@/features/statement/months'
 import type { HttpClient } from '@/services/http'
 import { getMovements } from '@/shared/movements'
 
-import type { DateOnly, MonthFigures, MonthKey, Uncategorized } from './types'
+import type { DateOnly, MonthFigures, MonthKey, PeriodTotals, Uncategorized } from './types'
 
 /** The statement's own question, with no filters: that is why the figures match it (R5). */
 export async function getMonthFigures(month: MonthKey, client?: HttpClient): Promise<MonthFigures> {
@@ -41,4 +42,20 @@ export async function getUncategorizedSpending(
 export async function getLatestBookingDate(client?: HttpClient): Promise<DateOnly | null> {
   const page = await getMovements({ pageSize: 1 }, client)
   return page.movements[0]?.bookingDate ?? null
+}
+
+/**
+ * The totals of every month from `from` to `to`, both included, in ONE request: the
+ * backend adds up over the whole range, so nothing is summed here (feature 26, R11).
+ */
+export async function getPeriodTotals(
+  from: MonthKey,
+  to: MonthKey,
+  client?: HttpClient,
+): Promise<PeriodTotals> {
+  const page = await getMovements(
+    { from: monthRange(from).from, to: monthRange(to).to, pageSize: 1 },
+    client,
+  )
+  return { from, to, totals: page.totals, movementCount: page.pagination.total }
 }
