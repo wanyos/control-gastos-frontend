@@ -36,3 +36,4 @@ señal para lanzar `/lessons` y consolidar.
 
 | # | Fecha | Feature | Agente | Qué pasó | Qué hay que hacer | Alcance | Estado |
 |---|---|---|---|---|---|---|---|
+| 1 | 2026-10-04 | higiene (`init-local-type-check`) | motor del harness (`init.sh`) | El paso 4 de `init.sh` lanza `npx tsc --noEmit --incremental`, que con un `tsconfig.json` de solo `references` y `"files": []` no comprueba ningún archivo y sale con 0. Dijo «Type check OK» durante 26 features sin mirar nada. `./init.sh --fast` sigue igual. | En un proyecto con `references`, el paso de tipos de `init.sh` tiene que usar el script de tipos del proyecto (`tsc --build` o `vue-tsc --build`), o fallar si la lista de archivos sale vacía. | harness | activa |
