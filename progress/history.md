@@ -942,7 +942,10 @@ Plantilla para cada entrada nueva:
   julio de 93 a 79, diciembre de 49 a 36. La nota sale **sin un solo dígito** y sin botón
   de cerrar. El recuento de dudosos es **una petición por sesión**, medido navegando tres
   meses y accionando el interruptor. La pega anotada por el reviewer (un mes vacío
-  culpando al interruptor) no se reprodujo. Cero escrituras, cero errores.
+  culpando al interruptor) se dio entonces por no reproducida. **Era falso** (corregido
+  el 2026-10-05): el leader la probó con un parámetro de URL que no existe (`hideNoise`;
+  el real es `hide`). Con el correcto sí ocurre: cabo suelto 11 del roadmap. Cero
+  escrituras, cero errores.
 - **Se cierra con un punto del humano a medias, a la vista:** pidió saber cuántos
   movimientos quedan fuera **y por cuánto**; el «cuántos» está, el «por cuánto» no puede
   estar, y está explicado en su resumen.

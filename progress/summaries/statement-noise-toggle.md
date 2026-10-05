@@ -205,9 +205,12 @@ todas cuadrando:
   recuento de arriba («93 movements») cuenta también lo apartado y las tres cifras no.
   Con el interruptor puesto ya cuadran. Es lo que el interruptor viene a resolver, no a
   esconder.
-- **Un detalle pequeño, anotado y no visto en la T20:** si abres un mes **realmente vacío**
-  con el interruptor puesto, el texto dice «everything in this month is hidden», que
-  culpa al interruptor de un vacío que no es suyo. No molesta y el botón de salida es el
-  correcto, pero está anotado.
+- **Un fallo confirmado el 2026-10-05** (en la T20 se dio por no visto, porque se probó
+  con un parámetro de URL equivocado): si abres un mes **realmente vacío** con la casilla
+  `Hide what does not count` puesta, la pantalla dice «Nothing left to show in …:
+  everything in this month is hidden», con «Hiding 0 movements» al lado. Culpa a la
+  casilla de un vacío que no es suyo. Pasa también en el mes en curso cuando todavía no
+  tiene datos, y la casilla se conserva al cambiar de mes, así que se llega ahí con solo
+  pulsar `Next`. Es el cabo suelto 11 de `docs/roadmap.md`.
 - Cuando llegue la feature de revisar parejas, será quien mueva la lectura de los grupos
   dudosos a la carpeta compartida: hoy la usa una sola pantalla y por eso vive con ella.
