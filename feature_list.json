@@ -253,7 +253,7 @@
       "acceptance": [
         "Existen tipos propios en src/ que reflejan la respuesta de GET /api/net-worth según ../gastos-backend/docs/api-contract.md: asOf, total, accounts (total + lista) e investments (total, products, issues), con la forma de cada producto dependiendo de su type (fund/etf/managed_portfolio, deposit, savings_account)",
         "Los importes monetarios se tipan como string decimal, nunca como number; los campos que el contrato puede devolver a null (value, marketValue, uninvestedCash, valuedAt) se tipan como nullable",
-        "Tipar otros endpoints es opcional: si se hace, el implementer lo anota en progress/implementation/ y no bloquea el cierre",
+        "Tipar otros endpoints es opcional: si se hace, el implementer lo anota en progress/implementations/ y no bloquea el cierre",
         "Un servicio HTTP tipado reutiliza src/services/http.ts (createHttp, http) y expone al menos getNetWorth()",
         "vite.config.ts incluye un proxy que redirige /api a http://localhost:3000 en desarrollo",
         "En pnpm dev la petición de patrimonio sale contra el origen del dev server (http://localhost:5173) y llega al backend por el proxy, no directamente a :3000, y no produce error de CORS",

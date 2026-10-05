@@ -45,8 +45,8 @@ la sección de la E8.
 2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
 **los 29 apuntes de depósito ya están marcados**: el histórico pasa de 446.014 / 439.372 €
 a **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90 /
-4.096,05 €**. La parte 1 de `../docs/handoff-sumas-honestas.md` está servida por la
-**feature 49 del backend** (respuestas con `excludedFromTotals`, filtros
+4.096,05 €**. Lo que se le pidió al backend para esto (el traspaso `handoff-sumas-honestas.md`, cerrado
+y borrado el 2026-10-05) lo sirve la **feature 49 del backend** (respuestas con `excludedFromTotals`, filtros
 `transfer=only|none` y `excluded=only|none`, y escritura de la marca). Y desde la **F23**
 (cerrada el 2026-09-30) ese ruido además se **esconde**: la lista y las cifras por fin
 cuentan lo mismo. **La E8, los dashboards, hereda estas cifras**, que ya son las buenas:
@@ -59,10 +59,6 @@ cuentan lo mismo. **La E8, los dashboards, hereda estas cifras**, que ya son las
   inflados por traspasos a cuentas propias de inversión sin marcar. Se corrige marcándolos
   desde el extracto, no con código (detalle en la E8).
 
-- ⚠️ **La cola de revisión esconde dos movimientos.** `GET /api/movements` con
-  `pageSize=100` devuelve 1.605 movimientos distintos de 1.607. Es un fallo de paginación
-  del backend, encargado en `../docs/handoff-paginacion-estable.md`; hasta que lo arregle,
-  sigue así (cabo 7).
 - `GET /api/investments/deposits` (feature 50 del backend) está servido y **sin usar**:
   es una de las dos features siguientes de la E8, en Patrimonio.
 
@@ -233,8 +229,9 @@ texto: la vista del histórico completo, confirmados incluidos.
 >
 > ⚠️ ~~**Las sumas que hoy enseña la pantalla están infladas por los depósitos**~~ —
 > **resuelto el 2026-09-29 por la F22**: los 29 apuntes de depósito de myinvestor
-> (285.000 €, el 58 % de la base) ya están marcados y no cuentan. La parte 1 de
-> `../docs/handoff-sumas-honestas.md` la sirvió la feature 49 del backend
+> (285.000 €, el 58 % de la base) ya están marcados y no cuentan. Lo que se le pidió
+> al backend (traspaso `handoff-sumas-honestas.md`, cerrado y borrado el 2026-10-05) lo
+> sirvió su feature 49
 > (`excludedFromTotals`, filtros `transfer=only|none` y `excluded=only|none`, y la marca
 > escribible) y la F22 es la feature del frontend que la usa. La nota fija de la pantalla,
 > que decía que las cifras estaban infladas, **la reescribió la F23** y ya no lleva
@@ -338,16 +335,15 @@ texto: la vista del histórico completo, confirmados incluidos.
 >
 > **Con la F24 la E7 queda cerrada.** No falta nada en esta etapa.
 >
-> **La parte del backend del traspaso `../docs/handoff-sumas-honestas.md` está cerrada**
-> (features 49 y 50, commits `7711063` y `a6195be`). De ahí queda **sin usar en el
+> **El traspaso `handoff-sumas-honestas.md` está cerrado entero y se borró el 2026-10-05**:
+> la parte del backend son sus features 49 y 50 (commits `7711063` y `a6195be`), y la del
+> frontend, las F22, F23 y F24. De ahí queda **sin usar en el
 > frontend** la feature 50: `GET /api/investments/deposits`, lo que ganó cada depósito,
 > que no encaja aquí sino en la **E8**.
 >
-> ⚠️ **Abierto fuera de la etapa: la paginación del backend.** `GET /api/movements` con
-> `pageSize=100` devuelve 1.605 movimientos distintos de 1.607 (dos no salen nunca y otros
-> dos salen repetidos). **La cola de revisión, que pagina de 100 en 100, esconde dos
-> movimientos** hasta que el backend lo arregle. Encargo en
-> `../docs/handoff-paginacion-estable.md`.
+> **La paginación del backend, que escondía movimientos en la cola de revisión, está
+> arreglada** (commit `f10fe8c` del backend) y comprobada contra los datos reales el
+> 2026-10-04: cabo 7, cerrado.
 
 ### E8 — Los dashboards 🟡
 
@@ -435,7 +431,7 @@ datos bancarios reales. No es urgente; es que no estaba.
 | ~~7~~ | ~~`GET /api/movements` con `pageSize=100` devuelve 1.605 movimientos distintos de 1.607: la cola de revisión esconde dos~~ | ✅ **arreglado en el backend** (commit `f10fe8c`: el orden acaba en `id` descendente) y **comprobado el 2026-10-04** contra los datos reales: la cola recorre sus 17 páginas con 1.607 ids distintos. El detalle de la medición está en el commit `d75f044` de este repositorio; el traspaso `handoff-paginacion-estable.md` se borró al cerrarse |
 | 8 | La propuesta de texto de una regla arrastra una palabra de trámite y puntuación («ANUL. /VivaGym» propone `anul. /vivagym`) y se queda corta con nombres de canal (`trans inm`, `tpv virtual`). Anotado al cerrar la F18 | sin etapa |
 | 9 | Los tests unitarios no tienen nada que haga fallar por defecto una llamada a `fetch` sin responder: el origen de jsdom coincide con el del backend real (`localhost:3000`), así que un test que olvide `mockBackend` hablaría con él. Y un fallo de red al escribir se cuenta como «no cambió nada» en las F16, F21, F22 y F24. Anotado por el reviewer | sin etapa |
-| 10 | Traspasos a cuentas propias sin pareja ni marca siguen contando en las sumas; hacen que la comparación del mes (F25) y lo ahorrado en el periodo (F26) salgan peor de lo que son | **deber del humano**: marcarlos desde el extracto (F22) |
+| 10 | Traspasos a cuentas propias sin pareja ni marca siguen contando en las sumas; hacen que la comparación del mes (F25) y lo ahorrado en el periodo (F26) salgan peor de lo que son | **deber del humano**: marcarlos desde el extracto (F22). El traspaso de las sumas dejó dicho, como fuera de su alcance, que hay cuentas propias que no están dadas de alta y que mientras no existan como cuenta sus traspasos no pueden tener pareja: es una conversación de producto, sin abrir |
 
 > Los cabos 3, 4 y 5 **no son tuyos**: son del backend. Está aquí porque bloquea bloques
 > de la vista de Patrimonio y la regla de oro del workspace dice que el backend
