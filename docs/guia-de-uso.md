@@ -119,27 +119,41 @@ con cada cuenta y cada producto.
 
 1. Abre `http://localhost:5173`. **Debes ver** que la dirección cambia a
    `/net-worth` y que arriba hay una cifra grande con la etiqueta `Net worth`.
+   -- ok
+
 2. Lee la frase bajo la cifra. **Debe** empezar por `As of` y una fecha, decir
    el total y en cuántos bancos está. Si tienes saldo en cuentas corrientes,
    acaba diciendo qué porcentaje es (`… is idle in checking accounts.`).
+   -- la fecha que pone debajo no corresponde con el ultimo import, debria poner la ultima fecha de import para saber
+      cual fue el ultimo import
+
 3. Mira la tarjeta `By type`. **Debes ver** hasta cuatro filas, cada una con su
    importe, su porcentaje y una barra: `Checking accounts`, `Savings`,
    `Market investments` y `Fixed-term deposits`. La de `Checking accounts`
    lleva la etiqueta `Idle money`.
+   -- ok
+
 4. Mira la tarjeta `By bank`. **Debes ver** una fila por banco, de mayor a
    menor importe.
+   -- ok
+
 5. Baja a `Details`. **Debes ver** una ficha por banco. Compara el importe que
    lleva la ficha de un banco en su cabecera con el de ese mismo banco en
    `By bank`: **tienen que ser iguales**.
+   -- ok
+
 6. Dentro de una ficha, mira una cuenta y un producto. Las cuentas dicen
    `As of` y una fecha. Los depósitos dicen `Matures` o `Matured` y una fecha.
    Los demás productos dicen `Valued` y una fecha.
+   -- ok
+
 7. Si hay una tarjeta `Data warnings`, léela. Solo sale cuando el backend
    avisa de algo: un producto sin valoración, una valoración antigua, o un
    depósito vencido sin cerrar. El 2026-10-05 había una: `Depósito 1 mes
    matured on 2 Oct 2026 but is not closed yet; its money may be counted
    twice.` Mientras siga ahí, la cifra grande puede estar contando ese dinero
    dos veces.
+   -- ok
 
 ### Lo que no hace o hace a medias
 
@@ -155,8 +169,11 @@ con cada cuenta y cada producto.
 
 > **Mis notas de esta prueba**
 > - Falla:
-> - Quiero cambiar:
-> - No entiendo:
+> - Quiero cambiar: me gustaria trener como referncia la ultima fecha que se hizo un import de algun archivo
+                     por regla general hare un import con todos los archivos, pero me gustaria ver la fecha 
+                     del ultimo import para saber de cuando son los datos
+> - No entiendo: el tema de las fechas que pone en varias tarjetas, lo de los depositos correcto, cuando
+                  vencen o de cuando son, pero en casi todos los sitios pone la fecha de hoy y no se para que
 
 ---
 
@@ -179,50 +196,75 @@ verás solo una frase del tipo `No movements in October 2026.` seguida de
    los botones `Previous` y `Next` con el nombre del mes en medio, y a la
    derecha el campo `Jump to month`. `Next` está apagado cuando estás en el mes
    de hoy.
+   -- ok
+
 2. Ve a agosto de 2026 con `Jump to month`. **Debes ver** primero una frase.
    El 2026-10-02 decía: `In August 2026, 2.590 € came in and 4.004 € went out:
    you spent 1.414 € more than came in.`
+   -- ok
+
 3. Bajo la frase, **debes ver** cuatro tarjetas: `Money in`, `Money out`,
    `Savings` y `Savings rate`.
+   -- ok
+
 4. En `Money in` y `Money out`, **debes ver** una etiqueta (`More than usual`,
    `Less than usual` o `About usual`) y una línea que dice cuánto por encima o
    por debajo está de tu mes habitual. El 2026-10-02, en agosto de 2026,
    `Money out` salía `More than usual`, un 34,9 % por encima de 2.967,58 €, y
    `Money in` salía `About usual`.
+   -- ok
+
 5. Bajo las tarjetas, lee la línea pequeña. **Debe** decir con cuántos meses se
    ha comparado: `Your usual month is the middle value of the previous 12
    months, worked out here from each month's totals.`
+   -- ok
+
 6. Mira la tarjeta siguiente. **Debe** decir cuánto del gasto del mes no tiene
    categoría, con el porcentaje y el número de movimientos
    (`… spending has no category yet`).
+   -- ok
+
 7. Pulsa el enlace `See the movements of August 2026`. **Debes llegar** a
    `Movements` en agosto de 2026, sin filtros. Comprueba que las tres cifras
    de arriba (`Money in`, `Money out`, `Difference`) **son las mismas** que
    las de `Overview`. Vuelve con el botón de atrás del navegador.
+   -- ok
+
 8. Ve a septiembre de 2026 (o al mes en que acaben tus datos, si ese mes no
    está completo). **Debes ver** que la frase dice que el mes
    `is incomplete`, que `Savings rate` enseña `—` con el texto
    `Not shown: the month is incomplete.`, y que no hay etiquetas de mes
    habitual: `No comparison for an incomplete month.`
+   -- ok
+
 9. Baja a la tarjeta `Month by month`. **Debes ver** 24 filas, de la más
    reciente a la más antigua. Cada fila: el nombre del mes, dos barras, y tres
    cifras (`Money in`, `Money out`, `Savings`). `Savings` sale en rojo y con
    signo menos en los meses en que salió más de lo que entró.
+   -- ok 
+
 10. En esa tarjeta, **comprueba tres marcas**: el mes que tienes arriba lleva
     `Shown above`; el mes incompleto lleva `Incomplete`, no tiene barras y en
     su lugar dice `Data ends on` y una fecha; un mes sin movimientos diría
     `No movements` (el 2026-10-05 ninguna de las 24 filas lo decía: todas
     tenían datos, así que esta marca no la vas a ver).
+   -- ok
+
 11. Lee la frase de encima de las filas. **Debe** decir lo que entró y lo que
     salió en todo el periodo. El 2026-10-04 acababa en `you spent 41.887 €
     more than came in`. Debajo, una línea dice qué mes se queda fuera de esa
     suma por estar incompleto (`… is left out: it is incomplete.`).
+   -- ok
+
 12. Pulsa el nombre de un mes de la tarjeta. **Debes ver** que la página sube,
     que ese mes pasa a ser el de arriba, que la marca `Shown above` se mueve a
     su fila, y que las 24 filas **no cambian de sitio**. El botón de atrás del
     navegador te devuelve al mes anterior.
+   -- ok
+
 13. Recarga la página. **Debes seguir** en el mismo mes: el mes va en la
     dirección (`/overview?month=2026-08`).
+    ok
 
 ### Lo que no hace o hace a medias
 
@@ -251,7 +293,7 @@ verás solo una frase del tipo `No movements in October 2026.` seguida de
 > **Mis notas de esta prueba**
 > - Falla:
 > - Quiero cambiar:
-> - No entiendo:
+> - No entiendo: hay meses que pone un gasto excesivo, quizas es lo que me dices hasta que no este todo categorizado no se ve bien, por ejemplo hay muchos meses en el año 2024 con un gasto que no es real
 
 ---
 
