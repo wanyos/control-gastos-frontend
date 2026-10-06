@@ -332,64 +332,99 @@ nombre del mes. Pulsa `Previous`.
    `Hide what does not count`, una tarjeta con cuatro datos (el número de
    movimientos, `Money in`, `Money out` y `Difference`), una nota gris, un
    botón `Select movements` y la lista por días.
+   -- ok
+
 2. Mira la lista. **Debes ver** una cabecera por día con la fecha, y en cada
    línea: el concepto, el banco y la cuenta, la categoría (o `Uncategorized`)
    y el importe. Las entradas van en verde y las salidas con signo menos.
+   -- ok
+
 3. Busca una línea con la etiqueta `Transfer`. Es uno de los dos movimientos
    de un traspaso entre tus cuentas. **Está en la lista pero no está en las
    sumas.**
+   -- ok
+
 4. Busca una línea con la etiqueta `Not counted` y el importe en gris. Es un
    movimiento marcado como que no cuenta. **Tampoco está en las sumas.** El
    2026-09-29 los 29 apuntes de depósito de la cuenta de myinvestor ya estaban
    marcados así.
+   -- la cantidad no esta en gris, pone not counted, pero al lado en verde intereses, ademas en español
+
 5. Marca la casilla `Hide what does not count`. **Debes ver** que desaparecen
    de la lista las líneas `Transfer` y `Not counted`, que a la derecha sale
    `Hiding` y un número de movimientos, y que **las tres cifras no se mueven**.
    El 2026-09-30, julio de 2026 pasaba de 93 a 79 filas. Las cifras no cambian
    porque nunca contaron esas líneas: lo que cambia es que la lista deja de
    enseñarlas.
+   -- ok
+
 6. Con la casilla puesta, pulsa `Previous`. **Debe** seguir puesta en el mes
    anterior. Recarga la página: **debe** seguir puesta. Quítala: **vuelven**
    todas las líneas.
+   -- ok
+
 7. En `Account`, elige una cuenta. **Debes ver** solo sus movimientos, las
    tres cifras recalculadas para esa cuenta, y bajo las cifras una línea que
    dice cuántos movimientos casan y con qué filtro
    (`… movements match these filters in July 2026 · Account …`).
+   -- no me gusta como esta el texto del select ni como se ponen los nombres de los bancos, es un string que repite dos veces el mismo nombre
+      Bankinter - bankinter -- 4073
+
 8. Marca `Uncategorized`. **Debes ver** solo los que no tienen categoría. Ahora
    elige una categoría en `Category`: **`Uncategorized` se desmarca sola**. Las
    dos cosas a la vez no pueden estar.
+   -- el funcionamiento es correcto, los texto del select no me gustan, aparecen siempre dos lineas repetidas de la misma categoria
+
 9. En `Search`, escribe un trozo de un concepto en minúsculas y sin tildes.
    **Debe** encontrarlo aunque el concepto esté en mayúsculas o lleve tildes.
    La búsqueda sale sola al dejar de teclear. Con una sola letra no busca.
+   -- ok
+
 10. Busca algo que no exista. **Debes ver**
     `No movements match these filters in July 2026.` con un botón
     `Clear filters`. Es una frase distinta de la del mes vacío.
+   -- ok
+
 11. Pulsa `Clear filters`. **Debes ver** el mes entero otra vez, **en el mismo
     mes** en que estabas. La casilla `Hide what does not count`, si estaba
     puesta, **sigue puesta**: `Clear filters` no la toca.
+   -- ok
+
 12. Pon un filtro, cambia de mes con `Previous`, y comprueba que el filtro
     **sigue puesto**. Pulsa atrás en el navegador: vuelves al mes anterior.
+   -- ok
+
 13. Lee la nota gris bajo las cifras. Dice de qué están hechas: que ya dejan
     fuera los traspasos emparejados y lo que marcaste, y avisa de dos cosas
     que la aplicación no puede saber. No se puede cerrar, a propósito.
+    -- esta parte no la entiendo
 
 ### Qué probar — corregir la categoría de un movimiento (escribe)
 
 14. Elige un movimiento cualquiera y **apunta su categoría actual**. Pulsa
     sobre su etiqueta de categoría. **Debes ver** que en ese mismo sitio
     aparece un desplegable, un botón `Create rule` y un botón `Close`.
+   -- ok
+
 15. Elige otra categoría en el desplegable. **Se guarda sola, sin botón de
     guardar.** **Debes ver** que la etiqueta de la línea cambia y que, bajo las
     cifras, aparece una línea verde `Categorized as` y el nombre, con un botón
     `Undo`. Las tres cifras **no cambian**: cambiar una categoría no mueve
     ninguna suma.
+   -- cambie la categoria, solo cambia la categoria en este movimiento, cambia el texto nada mas
+
 16. Pulsa `Undo`. **Debes ver** la categoría anterior en la línea y el texto
     `Change undone`, ya sin botón.
+   -- ese boton no lo veo
+
 17. Abre el editor de otra línea y pulsa `Esc` o `Close`. **Debe** cerrarse sin
     cambiar nada.
+   -- ok
+
 18. Busca una línea cuyo importe salga en gris y sin signo (un movimiento de
     tipo neutro, si tienes alguno). Su etiqueta de categoría **no se puede
     pulsar**.
+    -- el boton aparece arriba de la tabla, al dar al boton reload cambio el texto de la categoria don lo habia cambiado
 
 ### Qué probar — marcar que un movimiento no cuenta (escribe y mueve las sumas)
 
@@ -398,20 +433,30 @@ nombre del mes. Pulsa `Previous`.
     `Exclude from totals`, `Include in totals`, `Select all shown`,
     `Clear selection` y `Done`. Mientras las casillas están a la vista, las
     etiquetas de categoría **no se pueden pulsar**.
+   -- ok
+
 20. Con `Hide what does not count` quitada, marca la casilla de **un solo**
     movimiento que hoy cuente (sin etiqueta `Not counted` ni `Transfer`) y
     pulsa `Exclude from totals`. **Debes ver**:
     que la línea sigue en la lista con la etiqueta `Not counted` y el importe
     en gris; que la cifra correspondiente **baja exactamente en ese importe**;
     y una línea verde `1 movement excluded from totals` con `Undo`.
+    -- escojo un movimiento, al pulsar en exclude total, baja la cantidad con ese valor, pulso el boton reload y vuelve todo como estaba
+       cantidad en gris nunca la vi
+
 21. Pulsa `Undo`. **Debes ver** que la etiqueta desaparece, que las tres cifras
     **vuelven a ser las que apuntaste**, y el texto `1 movement back in totals`.
+    -- ok
+
 22. Marca un movimiento que ya tenga `Not counted` y pulsa
     `Exclude from totals`. **Debes ver**
     `Nothing to change: those movements are already like that.` No se envía
     nada.
+    -- ok
+
 23. Pulsa `Done`. **Debes ver** que las casillas desaparecen y la pantalla
     queda como al principio.
+    -- ok
 
 ### Qué escribe y cómo se deshace
 
@@ -472,8 +517,10 @@ veces, una por mes.
 
 > **Mis notas de esta prueba**
 > - Falla:
-> - Quiero cambiar:
-> - No entiendo:
+> - Quiero cambiar: los textos de los selets, aparecen textos repetidos, en los movimeintos aparecen igual
+> - No entiendo: hay movimientos que pone la etique not counted seguida por ejemplo de la etiqueta ocio, es un gasto
+                  transferecnias, en unas pone en verde que seran de entrada, otras en blanco que seran de salida
+                  en verde pone otros ingresos, en blanco pone uncategriced, mezcla ingles con español tambien
 
 ---
 
