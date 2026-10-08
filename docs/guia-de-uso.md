@@ -535,25 +535,42 @@ uno en uno o varios a la vez. Lo confirmado sale de esta lista.
 1. Mira el menú. **Debes ver** un número junto a `Review`: son los movimientos
    pendientes. El 2026-10-04 eran 1.607. Si no queda ninguno pendiente, no
    sale número.
+   -- ok
+
 2. Pulsa `Review`. **Debes ver** arriba cuatro datos: cuántos movimientos hay,
    `In`, `Out` y `Net`. El número de movimientos **debe ser el mismo** que el
    del menú.
+   -- ok
+
 3. Mira una fila. **Debes ver**: una casilla, el concepto, el banco con la
    cuenta y la fecha, la categoría (o `Uncategorized`), el importe, un
    desplegable de categoría, un botón `Confirm` y un botón `Create rule`.
+   -- ok
+
 4. Baja al final. **Debes ver** `Page 1 of` y el total de páginas, con
    `Previous` y `Next`. Van de 100 en 100. Pulsa `Next` y luego el botón de
    atrás del navegador: **vuelves** a la página 1.
+   -- ok
+
 5. Marca `Uncategorized`. **Debes ver** que el número de movimientos y las
    cifras de arriba cambian. El 2026-09-22 eran 1.373 sin categoría. El número
    del menú **no cambia**: cuenta todos los pendientes.
+   -- ok
+
 6. En `Search`, escribe un trozo de un concepto sin tildes y en minúsculas.
    **Debe** encontrarlo igual.
+   -- ok
+
 7. Prueba `Type` (`Expense`, `Income`, `Neutral`), `From` y `To`. La lista y
    las cifras **deben** ajustarse cada vez.
+   -- ok
+
 8. Recarga la página con filtros puestos. **Deben seguir puestos**: van en la
    dirección.
+   -- ok
+
 9. Pulsa `Clear filters`. **Vuelves** a la lista entera.
+   -- ok
 
 ### Qué probar — sobre un solo movimiento (escribe)
 
@@ -562,35 +579,53 @@ uno en uno o varios a la vez. Lo confirmado sale de esta lista.
     en la fila y, sobre la lista, una línea verde
     `1 movement categorized as` y el nombre, con un botón `Undo`. La fila
     **sigue en la lista**: categorizar no es confirmar.
+   -- ok
+
 11. Pulsa `Undo`. **Debes ver** la categoría de antes en la fila, y la línea
     verde desaparece.
+    -- ok
+
 12. **Apunta el número del menú.** Pulsa `Confirm` en esa fila. **Debes ver**
     que la fila desaparece al momento, que el número del menú **baja en uno**,
     y la línea `1 movement confirmed` con `Undo`. El 2026-09-22 esta prueba
     bajó la lista de 1.607 a 1.606.
+   -- bajo a 1606 pero no aparece la linea ni el boton undo
+
 13. Pulsa `Undo`. **Debes ver** que la fila vuelve y que el número del menú
     **sube en uno**.
+   -- no esta el boton
 
 ### Qué probar — varios a la vez (escribe)
 
 14. Marca las casillas de dos o tres filas. **Debes ver** una barra nueva con
     cuántos llevas (`3 selected`), un desplegable `Choose a category…`,
     `Apply category`, `Confirm 3 movements` y `Clear selection`.
+   -- ok
+
 15. Elige una categoría en el desplegable de la barra. **Debes ver** una frase
     del tipo `Applies to 2 of 3 selected`: dice a cuántos de los marcados se
     les puede poner. Una categoría de gasto no se aplica a un ingreso.
+   -- ok
+
 16. Pulsa `Apply category`. **Debes ver** las etiquetas cambiadas y la línea
     verde con `Undo`. Pulsa `Undo`: **cada movimiento vuelve a su categoría
     anterior**, no a una común.
+   -- ok
+
 17. Marca la casilla `Select all` de la cabecera. **Debes ver** marcadas todas
     las filas de la página. Con solo algunas marcadas, esa casilla sale con un
     guion.
+    -- ok
+
 18. Con 20 o más marcadas, pulsa `Confirm … movements` y **mira la pregunta sin
     aceptarla**: dice el número exacto y
     `It is all or nothing: either every movement changes or none of them does.`
     Pulsa `Cancel`.
+    -- ok
+
 19. Cambia de página con las casillas marcadas. **Deben soltarse**: lo marcado
     no viaja entre páginas.
+    -- ok
 
 ### Qué escribe y cómo se deshace
 
@@ -626,8 +661,11 @@ cambia ninguno.
 
 > **Mis notas de esta prueba**
 > - Falla:
-> - Quiero cambiar:
-> - No entiendo:
+> - Quiero cambiar: los nombre de banco en el select, estan duplicados
+> - No entiendo: ahora mismo hay 1607 movimientos sin confirmar, esto hay que hacerlo todos los meses?
+                  aparte me gustaria que si le doy una categoria a un movimiento y la confirmo sea para todos
+                  los movimientos igual, es decir tengo 20 movimientos que son de lo mismo, con darle la categoria
+                  a uno automaticametne se ponga para todos
 
 ---
 
