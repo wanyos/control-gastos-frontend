@@ -684,15 +684,20 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
 1. Pulsa `Rules`. **Debes ver** una lista con una fila por regla: el texto
    entre comillas, una flecha, la categoría, una etiqueta `Income` o
    `Expense`, y los botones `Edit` y `Delete`. El 2026-09-22 había 63 reglas.
+   -- ok
+
 2. Pulsa `Edit` en una regla. **Debes ver** una ventana `Edit rule` con el
    texto, y debajo, sin teclear nada, una frase que dice cuántos movimientos
    pendientes sin categoría contienen ese texto
    (`… pending movements without a category contain this text.`), con hasta
    cinco ejemplos. Pulsa `Cancel`.
+   -- ok
+
 3. Pulsa `Apply rules` y **lee la pregunta sin aceptarla**. **Debe** decir:
    `Only pending movements without a category are touched.`,
    `Confirmed and already categorized movements are never changed.` y, en
    rojo, `This can't be undone from the app.` Pulsa `Cancel`.
+   -- ok
 
 ### Qué probar — crear una regla y ver a cuántos afectaría (escribe una regla)
 
@@ -700,33 +705,51 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
    que se repita. Pulsa su `Create rule`. **Debes ver** la ventana
    `Create a rule`, con el concepto original arriba (`From …`) y un texto
    propuesto en `Text to look for`.
+   -- ok
+
 5. Mira la frase bajo el texto. **Debe** decir a cuántos pendientes sin
    categoría afectaría, con hasta cinco ejemplos y, en letra pequeña,
    `Estimate: what a pass would look at today, not what it will change.`
+   -- ok
+
 6. Cambia el texto y espera un momento. **El número debe actualizarse solo.**
+   -- ok
+
 7. Deja el texto en dos letras. **Debes ver** `Use at least 3 letters or
    digits.` y el botón `Create rule` apagado.
+   -- ok
+
 8. Escribe un texto muy general (por ejemplo, una palabra que salga en muchos
    conceptos). Si casan más de 50, **debes ver** un aviso en ámbar:
    `That is a lot — check the examples below before you save.` Avisa, pero
    **no impide guardar**.
+   -- ok
+
 9. Vuelve a un texto concreto, elige la categoría y pulsa `Create rule`.
    **Debes ver** la ventana cerrarse y, sobre la lista de `Review`, una línea
    verde con la regla creada y un botón `Apply rules now`. **El movimiento del
    que salió la regla sigue sin categoría**: crear una regla no categoriza
    nada.
+   -- ok
+
 10. Repite el paso 4 con el mismo texto. Al guardar, **debes ver**
     `Nothing was saved: another rule already uses that text.` La ventana sigue
     abierta.
+   -- ok
+
 11. Ve a `Rules`. **Debes ver** la regla nueva en la lista.
+   -- ok
 
 ### Qué probar — cambiar y borrar una regla (escribe una regla)
 
 12. Pulsa `Edit` en la regla que has creado, cambia el texto y pulsa `Save`.
     **Debes ver** el texto nuevo en la lista.
+    -- ok
+
 13. Pulsa `Delete`. **Debes ver** una pregunta que dice
     `Movements it already categorized keep their category.` Pulsa `Delete`.
     **La regla desaparece** de la lista.
+    -- ok
 
 ### Qué probar — aplicar las reglas (escribe en muchos movimientos y no se deshace)
 
@@ -742,8 +765,11 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
     les casan dos reglas de categorías distintas, y que se quedan sin
     categoría. El 2026-09-22, tras crear la regla `tulotero`, esta ventana
     dijo: 5 categorizados, 1.372 sin regla y 1 choque.
+    -- ok
+
 15. Cierra y ve a `Review`. **Debes ver**, sin recargar, que la lista, sus
     cifras y el número del menú ya están al día.
+    -- no veo que haya cambiado nada despues del paso anterior
 
 ### Qué escribe y cómo se deshace
 
@@ -760,13 +786,16 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
   corto al editar una regla (lo que ya categorizó ya no está «sin categoría»)
   y largo si otra regla casa con los mismos movimientos, porque un choque los
   deja sin categorizar.
+
 - **El texto que propone a veces es malo.** Arrastra palabras de trámite y
   puntuación (de «ANUL. /VivaGym» propone `anul. /vivagym`) y se queda flojo
   con nombres de canal (`trans inm`, `tpv virtual`). El texto se puede editar
   antes de guardar. Está anotado como pendiente, sin fecha.
+
 - **Los choques se ven, pero no se resuelven** desde la aplicación, y no se
   guardan: al cerrar la ventana desaparecen. Para volver a verlos se aplica
   otra vez, que no cambia nada de lo ya hecho.
+
 - **No se puede crear una regla en blanco** desde `Rules`.
 - No se crean, renombran ni borran categorías.
 - Si a un pendiente le quitas la categoría y hay una regla que casa con él,
@@ -780,7 +809,11 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
 > **Mis notas de esta prueba**
 > - Falla:
 > - Quiero cambiar:
-> - No entiendo:
+> - No entiendo: no termino de entender el concepto de categoria y regla, me corriges en lo que tenga mal
+                  una categoria, un gasto o ingreso esta dentro de una de las diferentes categorias que tenemos
+                  para poner un movimiento en una categoria debe estar basado en las reglas, una regla es un
+                  texto o parte de un texto que se categoriza dentro de ua categoria, por ejemplo varios textos
+                  estaran dentro de la regla vivienda
 
 ---
 
@@ -798,15 +831,19 @@ que los enlaces tú.
 1. Pulsa `Transfers`. **Debes ver** dos secciones: `Doubtful transfers` y
    `Linked pairs` con el número de parejas entre paréntesis. El 2026-10-02
    había 38 parejas y ningún grupo dudoso.
+
 2. Si no hay grupos dudosos, **debes ver** una frase que empieza por
    `No doubtful transfers.` y explica cuándo aparecerían.
+
 3. Mira una pareja. **Debes ver** dos líneas, `Money out` y `Money in`, cada
    una con el concepto, la fecha, la cuenta y el importe, y un botón `Unlink`.
+
 4. Repasa la lista buscando parejas que **no** sean un traspaso tuyo. Si el
    concepto de alguno de los dos movimientos contiene «bizum», la pareja lleva
    la etiqueta `Bizum` y la frase
    `A Bizum usually comes from another person, not from one of your accounts.`
    El 2026-10-02 ninguna de las 38 la llevaba.
+
 5. Pulsa `Unlink` en una pareja y **lee la pregunta sin aceptarla**. **Debe**
    nombrar los dos movimientos y decir
    `Both movements will count in your totals again.` y
@@ -820,14 +857,17 @@ que los enlaces tú.
 
 6. Elige una pareja y **apunta su fecha y su importe**. Abre en otra pestaña
    `Movements` en ese mes y **apunta las tres cifras**.
+
 7. En `Transfers`, pulsa `Unlink` y luego `Yes, unlink`. **Debes ver** que la
    pareja desaparece, que el número de `Linked pairs` baja en uno, y la línea
    verde `Pair unlinked. Its two movements count in your totals again.` con
    `Undo`.
+
 8. En la otra pestaña, recarga `Movements`. **Debes ver** que `Money in` y
    `Money out` han subido, cada una, exactamente en el importe de la pareja.
    El 2026-10-02, con una pareja de 1.000 € del 9 de septiembre de 2026,
    septiembre pasó de 161,82 € y 966,84 € a 1.161,82 € y 1.966,84 €.
+
 9. Vuelve a `Transfers` y pulsa `Undo`. **Debes ver** `Pair linked again.`, la
    pareja de vuelta en la lista y el número como al principio. Recarga
    `Movements`: **las tres cifras vuelven a ser las que apuntaste**.
@@ -841,8 +881,10 @@ con datos fabricados.
 10. Si hay un grupo, **debes ver** su importe y dos columnas, `Money out` y
     `Money in`, con los movimientos candidatos. Elige uno de cada columna.
     El botón `Link these two` no se enciende hasta que hay uno por columna.
+
 11. Si eliges dos de la misma cuenta, **debes ver**
     `Both movements are in the same account. Pick one from another account.`
+
 12. Pulsa `Link these two`. No pregunta. **Debes ver**
     `Linked as a transfer. These two movements no longer count in your
     totals.` con `Undo`, y la pareja nueva en `Linked pairs`.
@@ -893,10 +935,13 @@ archivos nuevos, a su lado sale un aviso con cuántos son.
 
 1. Mira la barra superior. Si hay archivos nuevos en Drive, **debes ver** un
    aviso del tipo `3 new files` junto al botón. Si no hay, no sale nada.
+
 2. Pulsa `Import`. **Debes ver** la ventana `Import from Google Drive` con el
    texto `Checking Drive for new files…`.
+
 3. Si no hay nada nuevo, **debes ver** `You're up to date` y
    `No new files in Google Drive.` Pulsa `Close`. No se ha escrito nada.
+
 4. Si hay archivos, **debes ver** la lista, agrupada por banco y por año, la
    frase `Files are moved to the processed folder in Drive once imported.` y
    dos botones: `Cancel` y uno que dice cuántos va a importar. **Hasta aquí
@@ -909,19 +954,24 @@ archivos nuevos, a su lado sale un aviso con cuántos son.
 5. Pulsa el botón de importar. **Debes ver** el texto `Importing` con el
    número de archivos y `This can take a few seconds.` Mientras importa, la
    ventana **no se puede cerrar**.
+
 6. Al terminar, **debes ver** un titular, que es uno de estos cuatro:
    `Import complete`, `Imported, with a few things to check`,
    `Partially imported` o `Nothing was imported`.
+
 7. Bajo el titular, **debes ver** cuatro contadores: `New movements`,
    `Already imported`, `Investment files updated` y `Files not imported`. Si
    entraron movimientos nuevos, una frase dice cuántos esperan tu revisión.
+
 8. Si algún archivo no entró, **debes ver** un bloque `Needs attention` con el
    motivo en inglés de cada uno. Bajo `Details` está el mensaje original del
    backend, en castellano.
+
 9. Si hay cosas que revisar, **debes ver** `Things to check` con secciones
    plegadas, cada una con su recuento: `Balance mismatches`, `Unread lines`,
    `Transfers to match`, `Category rule conflicts`. Al final, si entró algún
    archivo, `Imported files`. Ábrelas y comprueba que se entienden.
+
 10. Pulsa `Close` y comprueba, sin recargar: que el aviso de archivos nuevos
     ha bajado o ha desaparecido; que el número junto a `Review` ha subido en
     los movimientos nuevos; y que `Net Worth`, si la habías abierto antes,
@@ -946,20 +996,27 @@ probó con un archivo que ya estaba importado y dio 35 duplicados.
 - **El detalle del informe se pierde al cerrar la ventana.** No queda guardado
   en ninguna pantalla. Si quieres conservarlo, apúntalo o haz una captura
   antes de pulsar `Close`.
+
 - **No enseña todo.** Como mucho 5 líneas no leídas por archivo y 10 traspasos
   o choques de reglas; el resto solo se cuenta (`and … more`).
+
 - **No se resuelve nada desde el informe.** Los traspasos se revisan después
   en `Transfers`; los choques de reglas, a mano.
+
 - No hay progreso archivo a archivo: una fase «importando» y luego el
   resultado.
+
 - La importación no tiene límite de tiempo. Si el navegador corta una llamada
   muy larga, verás un fallo de conexión aunque el backend termine por detrás.
   El texto lo avisa: `Some files may already have been imported. Trying again
   is safe: nothing is imported twice.`
+
 - `Try again`, tras un fallo, vuelve a mirar Drive. No relanza la importación
   sola.
+
 - El aviso de archivos nuevos se mira al abrir la aplicación, al abrir la
   ventana y al terminar una importación. No se actualiza solo mientras tanto.
+
 - **El detalle de `Things to check` no se había visto con un informe real** el
   día en que se cerró (2026-09-15): solo con datos de prueba.
 
@@ -984,6 +1041,7 @@ hace que:
 
 - en `Overview`, la comparación con tu mes habitual salga torcida (el
   2026-10-02, enero de 2026 salía «53,5 % menos de lo habitual»);
+
 - en `Overview`, lo ahorrado en el periodo salga peor de lo que es (el
   2026-10-04: 41.887 € más de salida que de entrada en 23 meses).
 
@@ -996,19 +1054,28 @@ mano ese día, no un dato que la aplicación calcule.
 
 1. Abre `Overview` y baja a `Month by month`. Apunta los meses con `Money out`
    muy por encima de lo normal.
+
 2. Abre `Movements` y ve al primero de esos meses con `Jump to month`.
+
 3. En `Account`, elige la cuenta desde la que salió el dinero.
+
 4. Busca los envíos a tus propias cuentas que **no** lleven la etiqueta
    `Transfer` ni `Not counted`. Solo tú sabes cuáles son.
+
 5. Apunta las tres cifras del mes.
+
 6. Pulsa `Select movements`, marca la casilla de esos movimientos y pulsa
    `Exclude from totals`.
+
 7. Comprueba que `Money out` ha bajado exactamente en la suma de lo marcado, y
    que las líneas llevan `Not counted`. Si te has equivocado, `Undo`.
+
 8. Pulsa `Previous` o `Next` para ir al mes siguiente y repite. Las casillas
    siguen a la vista al cambiar de mes, pero lo marcado se suelta: va mes a
    mes.
+
 9. Al terminar, pulsa `Done`.
+
 10. Vuelve a `Overview`. Mira otra vez enero de 2026 y la frase del periodo:
     las dos deben haber cambiado.
 
@@ -1026,16 +1093,22 @@ categoría es donde se ve avanzar este trabajo.
 **Cómo, paso a paso.**
 
 1. Abre `Review` y marca `Uncategorized`.
+
 2. Elige un comercio que se repita y pulsa su `Create rule`. Mira en la
    ventana a cuántos afectaría y repasa los ejemplos. Ajusta el texto hasta
    que el número y los ejemplos sean los que esperas. Guarda.
+
 3. Repite con los comercios que más se repitan.
+
 4. Ve a `Rules` y pulsa `Apply rules`. Lee cuántos se categorizaron y los
    choques. Recuerda que esto no se deshace desde la aplicación.
+
 5. Lo que quede suelto, categorízalo a mano en `Review`, de uno en uno o
    marcando varios y con `Apply category`.
+
 6. Cuando un movimiento esté bien, pulsa `Confirm`. Recuerda que, pasado el
    `Undo`, no vuelve a pendiente.
+
 7. Lo que ya esté confirmado con una categoría equivocada se corrige en
    `Movements`, pulsando sobre su etiqueta de categoría.
 
@@ -1053,18 +1126,25 @@ esto existe todavía en la aplicación.
 
 - **Lo que ganó cada depósito**, en `Net Worth`. Es lo siguiente previsto. El
   backend ya lo sirve; el frontend no lo usa.
+
 - **Los gastos recurrentes.** Espera al backend.
+
 - **El reparto por categoría.** Aplazado hasta que haya más gasto
   categorizado.
+
 - **La evolución del patrimonio** y **desde cuándo hay dato** de cada
   producto, en `Net Worth`. Esperan al backend.
+
 - **Usar la aplicación desde otro sitio que no sea este ordenador**: dónde se
   sirve y cómo se controla el acceso. Sin empezar.
+
 - **Cuentas tuyas que no están dadas de alta.** Mientras no existan como
   cuenta, sus traspasos no pueden tener pareja. Es una conversación de
   producto sin abrir; mientras tanto se resuelve con el trabajo A.
+
 - **El texto que propone la ventana de reglas**, que a veces arrastra palabras
   de trámite. Anotado, sin fecha.
+
 - **Un corte de red al escribir se cuenta como «no cambió nada»** en `Review`,
   `Movements` y `Transfers`, sin comprobarlo. Anotado, sin fecha.
 - No hay página para una dirección que no existe.
