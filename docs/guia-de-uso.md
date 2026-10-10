@@ -831,23 +831,30 @@ que los enlaces tú.
 1. Pulsa `Transfers`. **Debes ver** dos secciones: `Doubtful transfers` y
    `Linked pairs` con el número de parejas entre paréntesis. El 2026-10-02
    había 38 parejas y ningún grupo dudoso.
+   -- ok
 
 2. Si no hay grupos dudosos, **debes ver** una frase que empieza por
    `No doubtful transfers.` y explica cuándo aparecerían.
+   -- ok
 
 3. Mira una pareja. **Debes ver** dos líneas, `Money out` y `Money in`, cada
    una con el concepto, la fecha, la cuenta y el importe, y un botón `Unlink`.
+   -- ok
 
 4. Repasa la lista buscando parejas que **no** sean un traspaso tuyo. Si el
    concepto de alguno de los dos movimientos contiene «bizum», la pareja lleva
    la etiqueta `Bizum` y la frase
    `A Bizum usually comes from another person, not from one of your accounts.`
    El 2026-10-02 ninguna de las 38 la llevaba.
+   -- no he visto ninguna etiqueta con bizum. De todas formas igual hay que revisar conceptos
+         una transferencia puede ser a una cuenta propia mia o a una cuenta que no sea mia
+         un bizum, nunca sera hacia alguna cuenta mia, siempre sera a una cuenta que no es mia
 
 5. Pulsa `Unlink` en una pareja y **lee la pregunta sin aceptarla**. **Debe**
    nombrar los dos movimientos y decir
    `Both movements will count in your totals again.` y
    `The next import won't pair these two again.` Pulsa `Cancel`.
+   -- ok
 
 ### Qué probar — desenlazar y volver a enlazar (escribe y mueve las sumas)
 
@@ -857,20 +864,24 @@ que los enlaces tú.
 
 6. Elige una pareja y **apunta su fecha y su importe**. Abre en otra pestaña
    `Movements` en ese mes y **apunta las tres cifras**.
+   -- ok
 
 7. En `Transfers`, pulsa `Unlink` y luego `Yes, unlink`. **Debes ver** que la
    pareja desaparece, que el número de `Linked pairs` baja en uno, y la línea
    verde `Pair unlinked. Its two movements count in your totals again.` con
    `Undo`.
+   -- ok
 
 8. En la otra pestaña, recarga `Movements`. **Debes ver** que `Money in` y
    `Money out` han subido, cada una, exactamente en el importe de la pareja.
    El 2026-10-02, con una pareja de 1.000 € del 9 de septiembre de 2026,
    septiembre pasó de 161,82 € y 966,84 € a 1.161,82 € y 1.966,84 €.
+   -- ok
 
 9. Vuelve a `Transfers` y pulsa `Undo`. **Debes ver** `Pair linked again.`, la
    pareja de vuelta en la lista y el número como al principio. Recarga
    `Movements`: **las tres cifras vuelven a ser las que apuntaste**.
+   -- ok
 
 ### Qué probar — enlazar un grupo dudoso (escribe)
 
