@@ -27,10 +27,9 @@ regla. Al proponer, di también qué **no** abarca.
 
 ## Términos aprobados
 
-_Ninguno todavía._
-
 | Término | Qué significa exactamente | Qué NO abarca | Aprobado el |
 |---|---|---|---|
+| idea de mejora | Algo que la aplicación no hace hoy y que estaría mejor si lo hiciera, o si lo hiciera de otra forma. Incluye mejoras, refactors y cambios de estructura de la aplicación (frontend o backend). Se apunta en el documento de ideas de mejora | Algo que ya existe y falla o hay que revisar (eso es un cabo suelto). Las mejoras del harness y las correcciones del humano a los agentes (eso son lecciones, `docs/lessons.md`) | 2026-10-10 |
 
 ## Propuestos, esperando respuesta
 
