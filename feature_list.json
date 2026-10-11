@@ -1236,9 +1236,62 @@
         ]
       },
       "acceptance": [],
-      "checks": [],
+      "checks": [
+        {
+          "descripcion": "En `Review`, bajo hasta el final de la lista, pulso `Confirm` en una fila y, sin subir, veo qué ha pasado y el botón para deshacerlo.",
+          "comando": "grep -qF \"Review keeps the summary and its Undo in view after confirming the last row\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Review keeps the summary and its Undo in view after confirming the last row\""
+        },
+        {
+          "descripcion": "Lo mismo al poner una categoría a una fila del final de la lista.",
+          "comando": "grep -qF \"Review keeps the summary and its Undo in view after giving a category to the last row\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Review keeps the summary and its Undo in view after giving a category to the last row\""
+        },
+        {
+          "descripcion": "En `Movements`, lo mismo al cambiar la categoría de una línea del final del mes y al marcar que un movimiento no cuenta. (al cambiar la categoría)",
+          "comando": "grep -qF \"Movements keeps the summary and its Undo in view after changing the category of the last line\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Movements keeps the summary and its Undo in view after changing the category of the last line\""
+        },
+        {
+          "descripcion": "En `Movements`, lo mismo al cambiar la categoría de una línea del final del mes y al marcar que un movimiento no cuenta. (al marcar que no cuenta: el botón `Exclude from totals` sigue arriba; se comprueba que el aviso se ve al volver a bajar)",
+          "comando": "grep -qF \"Movements keeps the summary and its Undo in view at the end of the month after excluding a line\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Movements keeps the summary and its Undo in view at the end of the month after excluding a line\""
+        },
+        {
+          "descripcion": "Si estoy arriba del todo, lo sigo viendo, como hasta ahora.",
+          "comando": "grep -qF \"at the top of the page the notice sits between the same blocks as before\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"at the top of the page the notice sits between the same blocks as before\""
+        },
+        {
+          "descripcion": "Si estoy arriba del todo, lo sigo viendo, como hasta ahora. (mientras no hay nada que avisar no se pinta nada, en las tres pantallas)",
+          "comando": "grep -qF \"paints no notice block while there is nothing to say\" src/features/review/__tests__/ReviewView.spec.ts && grep -qF \"paints no notice block while there is nothing to say\" src/features/statement/__tests__/StatementView.spec.ts && grep -qF \"paints no notice block while there is nothing to say\" src/features/transfers/__tests__/TransfersView.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewView.spec.ts src/features/statement/__tests__/StatementView.spec.ts src/features/transfers/__tests__/TransfersView.spec.ts -t \"paints no notice block while there is nothing to say\""
+        },
+        {
+          "descripcion": "Pulso deshacer desde ahí abajo y la fila vuelve a como estaba.",
+          "comando": "grep -qF \"Undo pressed from the bottom of the list puts the row back\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Undo pressed from the bottom of the list puts the row back\""
+        },
+        {
+          "descripcion": "El botón de deshacer no se confunde con uno de recargar. (lo que se puede comprobar con un comando: en los tres avisos el botón lleva la palabra `Undo`, con borde y sin icono)",
+          "comando": "grep -qF \"the Undo button shows the word Undo with a border and no icon\" src/features/review/__tests__/ActionNotice.spec.ts && grep -qF \"the Undo button shows the word Undo with a border and no icon\" src/features/statement/__tests__/StatementActionNotice.spec.ts && grep -qF \"the Undo button shows the word Undo with a border and no icon\" src/features/transfers/__tests__/TransfersActionNotice.spec.ts && pnpm exec vitest run src/features/review/__tests__/ActionNotice.spec.ts src/features/statement/__tests__/StatementActionNotice.spec.ts src/features/transfers/__tests__/TransfersActionNotice.spec.ts -t \"the Undo button shows the word Undo with a border and no icon\""
+        },
+        {
+          "descripcion": "Si lo que hice falla, el mensaje de error también lo veo desde donde estoy.",
+          "comando": "grep -qF \"a failed action shows its error in view from the bottom of the list\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"a failed action shows its error in view from the bottom of the list\""
+        },
+        {
+          "descripcion": "(añadido) Respuesta del 2026-10-11: entra también `Transfers`, que tiene el mismo aviso con `Undo` encima de la lista de parejas.",
+          "comando": "grep -qF \"Transfers keeps the summary and its Undo in view after unlinking the last pair\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Transfers keeps the summary and its Undo in view after unlinking the last pair\""
+        },
+        {
+          "descripcion": "(añadido) Respuesta del 2026-10-11: entra también el aviso de `Review` tras crear una regla (la línea verde con el botón `Apply rules now`).",
+          "comando": "grep -qF \"Review keeps the rule notice and Apply rules now in view from the bottom of the list\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Review keeps the rule notice and Apply rules now in view from the bottom of the list\""
+        },
+        {
+          "descripcion": "(añadido) No quiero que el aviso me tape la fila que estoy mirando: la fila que se acaba de cambiar queda entera por debajo del aviso.",
+          "comando": "grep -qF \"the notice does not cover the row that was just changed\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"the notice does not cover the row that was just changed\""
+        },
+        {
+          "descripcion": "(añadido) No quiero que cambie qué hace cada acción ni qué deshace el `Undo`: los archivos que deciden eso son idénticos a los del commit en que se aprobó la intención.",
+          "comando": "git diff --quiet 8f0dce6 -- src/features/review/store.ts src/features/review/actions.ts src/features/review/service.ts src/features/statement/store.ts src/features/statement/actions.ts src/features/statement/service.ts src/features/transfers/store.ts src/features/transfers/pairs.ts src/features/transfers/service.ts src/features/category-rules/store.ts src/shared/movements.ts src/shared/transfers.ts"
+        }
+      ],
       "sdd": true,
-      "status": "pending"
+      "status": "spec_ready"
     }
   ]
 }
