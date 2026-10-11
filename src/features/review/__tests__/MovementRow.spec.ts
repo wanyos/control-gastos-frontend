@@ -159,4 +159,16 @@ describe('MovementRow (R4)', () => {
     expect(wrapper.get('[data-test="movement-create-rule"]').attributes('disabled')).toBeDefined()
     expect(wrapper.get('select').attributes('disabled')).toBeDefined()
   })
+
+  it('carries the id of its movement so the notice can find it', () => {
+    const row = rowOf(EXPENSE).get('[data-test="movement-row"]')
+
+    expect(row.element.tagName).toBe('LI')
+    expect(row.attributes('data-movement-id')).toBe(String(movementOf(EXPENSE).id))
+    expect(
+      rowOf(INCOME)
+        .find(`[data-movement-id="${movementOf(INCOME).id}"]`)
+        .exists(),
+    ).toBe(true)
+  })
 })

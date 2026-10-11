@@ -62,4 +62,22 @@ describe('StatementActionNotice (R11, R14, C2)', () => {
 
     expect(notice.emitted('undo')).toHaveLength(1)
   })
+
+  it('the Undo button shows the word Undo with a border and no icon', () => {
+    const undo = mountNotice({ summary: 'Categorized as Groceries', undoable: true }).get(
+      '[data-test="statement-action-undo"]',
+    )
+
+    expect(undo.text()).toBe('Undo')
+    expect(undo.find('svg').exists()).toBe(false)
+    // The `secondary` look of BaseButton: a visible edge on a card-coloured fill. Composed
+    // at runtime: Tailwind reads the specs as text too (docs/stack.md).
+    expect(undo.classes()).toEqual(
+      expect.arrayContaining([
+        ['border', 'line', 'default'].join('-'),
+        ['bg', 'surface', 'card'].join('-'),
+      ]),
+    )
+    expect(undo.classes()).not.toContain(['bg', 'transparent'].join('-'))
+  })
 })

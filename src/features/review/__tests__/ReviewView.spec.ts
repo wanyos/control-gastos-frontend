@@ -4,6 +4,8 @@ import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { Router } from 'vue-router'
 
+import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
+
 import ReviewView from '../views/ReviewView.vue'
 import {
   APPLY_RESULT,
@@ -15,6 +17,7 @@ import {
   CATEGORY_TREE,
   EMPTY_PAGE,
   EXPENSE,
+  INCOME,
   MOVEMENTS,
   NOT_FOUND_BODY,
   PAGE_OF_THREE,
@@ -709,6 +712,109 @@ describe('ReviewView', () => {
       await flushPromises()
 
       expect(document.querySelector('[data-test="rule-preview"]')).toBeNull()
+    })
+  })
+
+  // ─── The notice under the top bar (feature 27) ───────────────────────────
+  // jsdom lays nothing out, so «in view» is the browser tests' job. Here: the block
+  // exists only with something to say, wraps the notices, and is told which row to
+  // keep clear.
+
+  describe('the block that keeps the notice under the top bar (feature 27)', () => {
+    const BLOCK = '[data-test="sticky-below-top-bar"]'
+
+    const rulesApi = (): Promise<Response> =>
+      Promise.resolve(jsonResponse(CREATED_RULE, { status: 201 }))
+
+    it('paints no notice block while there is nothing to say', async () => {
+      const { wrapper } = await mountView('/review', { movements: json(PAGE_OF_THREE) })
+
+      expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(3)
+      expect(wrapper.find(BLOCK).exists()).toBe(false)
+      expect(wrapper.find('[data-test="action-summary"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="action-error"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="rule-created-notice"]').exists()).toBe(false)
+    })
+
+    it('puts the summary and its Undo inside the block after confirming a row (R1)', async () => {
+      const queue = fakeQueue()
+      const { wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+      })
+
+      await wrapper.findAll('[data-test="movement-confirm"]')[0]?.trigger('click')
+      await flushPromises()
+
+      const block = wrapper.get(BLOCK)
+      expect(block.get('[data-test="action-summary"]').text()).toContain('1 movement confirmed')
+      expect(block.find('[data-test="action-undo"]').exists()).toBe(true)
+      expect(wrapper.findAll(BLOCK)).toHaveLength(1)
+      expect(wrapper.findAll('[data-test="action-summary"]')).toHaveLength(1)
+    })
+
+    it('holds the rule notice or the action notice, never both (R4, C5)', async () => {
+      const queue = fakeQueue()
+      const { wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi,
+      })
+
+      await wrapper.findAll('[data-test="movement-create-rule"]')[0]?.trigger('click')
+      await flushPromises()
+      document.querySelector<HTMLElement>('[data-test="rule-save"]')?.click()
+      await flushPromises()
+
+      expect(wrapper.get(BLOCK).find('[data-test="rule-created-notice"]').exists()).toBe(true)
+      expect(wrapper.get(BLOCK).find('[data-test="apply-rules-now"]').exists()).toBe(true)
+      expect(wrapper.find('[data-test="action-summary"]').exists()).toBe(false)
+
+      await wrapper.findAll('[data-test="movement-confirm"]')[1]?.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.get(BLOCK).find('[data-test="action-summary"]').exists()).toBe(true)
+      expect(wrapper.find('[data-test="rule-created-notice"]').exists()).toBe(false)
+    })
+
+    it('tells the block which row to keep clear, and none after a bulk action (R11)', async () => {
+      // Row 12 as an expense: the neutral row of the default queue takes no category.
+      const queue = fakeQueue([changed(EXPENSE, { id: 12 }), INCOME])
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+      })
+
+      await wrapper.get('[data-movement-id="12"] select').setValue('2')
+      await flushPromises()
+
+      expect(api.patches().at(-1)?.body).toEqual({ categoryId: 2 })
+      const block = wrapper.getComponent(StickyBelowTopBar)
+      expect(block.props('keepClearOf')).toBe('[data-movement-id="12"]')
+      // The selector really names the row that is still on the page.
+      expect(wrapper.findAll(block.props('keepClearOf') as string)).toHaveLength(1)
+
+      await wrapper.get('[data-test="select-all"] input').setValue(true)
+      await wrapper.get('[data-test="confirm-selected"]').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.get('[data-test="action-summary"]').text()).toContain('2 movements confirmed')
+      expect(wrapper.getComponent(StickyBelowTopBar).props('keepClearOf')).toBeNull()
+    })
+
+    it('puts the sentence of a failed action inside the block (R5)', async () => {
+      const queue = fakeQueue()
+      const { wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: json(VALIDATION_ERROR_BODY, 400),
+      })
+
+      await wrapper.findAll('[data-test="movement-confirm"]')[0]?.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.get(BLOCK).find('[data-test="action-error"]').exists()).toBe(true)
+      expect(wrapper.findAll('[data-test="action-error"]')).toHaveLength(1)
+      expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(3)
     })
   })
 })

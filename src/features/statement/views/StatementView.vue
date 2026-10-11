@@ -35,15 +35,18 @@
       :ambiguous-groups="store.ambiguousGroups"
     />
 
-    <!-- Between the figures and the list, fixed: what the last write did, with its Undo
-         (R11, decisions.md 🔴 4). -->
-    <StatementActionNotice
-      :summary="store.actionNotice"
-      :error="store.actionMessage"
-      :undoable="store.canUndo"
-      :busy="store.isActing"
-      @undo="store.undo()"
-    />
+    <!-- Between the figures and the list: what the last write did, with its Undo
+         (R11, decisions.md 🔴 4). Since feature 27 it stays in view under the top bar on
+         a scrolled page; the block has an opaque background, so it must not exist empty. -->
+    <StickyBelowTopBar v-if="hasNotice" :keep-clear-of="touchedRow">
+      <StatementActionNotice
+        :summary="store.actionNotice"
+        :error="store.actionMessage"
+        :undoable="store.canUndo"
+        :busy="store.isActing"
+        @undo="store.undo()"
+      />
+    </StickyBelowTopBar>
 
     <!-- The selection mode of the F22: off, a single button; on, the bar. It sits in
          the same place either way, so turning it on does not push the figures (🔴 1). -->
@@ -120,7 +123,7 @@
       @clear="onFilters({ ...EMPTY_FILTERS })"
       @show-everything="onToggleNoise(false)"
       @edit="store.openEditor"
-      @categorize="(id, categoryId) => store.categorize(id, categoryId)"
+      @categorize="onCategorize"
       @create-rule="onCreateRule"
       @close-editor="store.closeEditor()"
       @toggle="store.toggleSelected"
@@ -178,6 +181,7 @@ import { useCategoryRulesStore } from '@/features/category-rules/store'
 import type { NewRule } from '@/features/category-rules/types'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
+import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 
 import { STATEMENT_BULK_THRESHOLD, findCategoryName } from '../actions'
 import ExcludeConfirmDialog from '../components/ExcludeConfirmDialog.vue'
@@ -256,6 +260,21 @@ const scope = computed(() => {
   })
 })
 
+// ─── The notice of the last write (feature 27) ─────────────────────────────
+
+/** The two sources the notice reads; nothing new is stored in the store. */
+const hasNotice = computed(() => Boolean(store.actionNotice) || Boolean(store.actionMessage))
+
+/** `[data-movement-id="<id>"]` of the single line just acted on; null after a batch. */
+const touchedRow = ref<string | null>(null)
+
+const rowSelector = (id: number): string => `[data-movement-id="${id}"]`
+
+function onCategorize(id: number, categoryId: number | null): void {
+  touchedRow.value = rowSelector(id)
+  void store.categorize(id, categoryId)
+}
+
 // ─── Rules from a line (feature 21: R16, R17) ──────────────────────────────
 // The dialog of the F17 as it is. A rule is born from a line, but creating it writes
 // nothing on that movement and applies nothing by itself: that is the F17's own gesture.
@@ -264,6 +283,7 @@ const scope = computed(() => {
 const ruling = ref<Movement | null>(null)
 
 function onCreateRule(movement: Movement): void {
+  touchedRow.value = rowSelector(movement.id)
   rules.saveMessage = null
   ruling.value = movement
 }
@@ -313,6 +333,7 @@ const asking = ref<{ excluded: boolean; count: number } | null>(null)
  * the store answers it with `Nothing to change` and sends nothing (R3).
  */
 function askOrWrite(excluded: boolean): void {
+  touchedRow.value = null
   const count = store.idsToChange(excluded).length
   if (count >= STATEMENT_BULK_THRESHOLD) {
     asking.value = { excluded, count }

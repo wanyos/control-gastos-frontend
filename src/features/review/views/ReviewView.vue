@@ -30,19 +30,23 @@
       @clear="store.clearSelection()"
     />
 
-    <RuleCreatedNotice
-      v-if="rules.lastCreated"
-      :rule="rules.lastCreated"
-      @apply="rules.openApply()"
-    />
+    <!-- Only while there is something to say: the block has an opaque background, so
+         it must not exist empty (feature 27). -->
+    <StickyBelowTopBar v-if="hasNotice" :keep-clear-of="touchedRow">
+      <RuleCreatedNotice
+        v-if="rules.lastCreated"
+        :rule="rules.lastCreated"
+        @apply="rules.openApply()"
+      />
 
-    <ActionNotice
-      v-else
-      :summary="store.lastAction?.summary"
-      :error="store.actionMessage"
-      :busy="store.isActing"
-      @undo="onUndo"
-    />
+      <ActionNotice
+        v-else
+        :summary="store.lastAction?.summary"
+        :error="store.actionMessage"
+        :busy="store.isActing"
+        @undo="onUndo"
+      />
+    </StickyBelowTopBar>
 
     <p v-if="store.notice" class="text-sm text-ink-muted" data-test="review-notice">
       {{ store.notice }}
@@ -145,6 +149,7 @@ import { useCategoryRulesStore } from '@/features/category-rules/store'
 import type { NewRule } from '@/features/category-rules/types'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
+import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 
 import { BULK_CONFIRM_THRESHOLD, eligibleForCategory, findCategory } from '../actions'
 import ActionNotice from '../components/ActionNotice.vue'
@@ -165,6 +170,19 @@ const store = useReviewStore()
 const rules = useCategoryRulesStore()
 
 const listTop = ref<HTMLElement | null>(null)
+
+/** Same three sources the two notices read today; nothing new is stored in the store. */
+const hasNotice = computed(
+  () =>
+    rules.lastCreated !== null ||
+    Boolean(store.lastAction?.summary) ||
+    Boolean(store.actionMessage),
+)
+
+/** `[data-movement-id="<id>"]` of the single row just acted on; null after a bulk action. */
+const touchedRow = ref<string | null>(null)
+
+const rowSelector = (id: number): string => `[data-movement-id="${id}"]`
 
 function syncFromRoute(): void {
   const { filters, page } = fromRouteQuery(route.query)
@@ -234,6 +252,7 @@ function askOrRun(action: 'confirm' | 'category', count: number): void {
 }
 
 function run(action: 'confirm' | 'category'): Promise<void> {
+  touchedRow.value = null
   rules.dismissCreated()
   if (action === 'confirm') return store.confirmSelected()
   return store.categorizeSelected(choice.value === 'none' ? null : Number(choice.value))
@@ -256,6 +275,7 @@ const onApplyCategory = (): void => askOrRun('category', eligibleCount.value)
 const ruling = ref<Movement | null>(null)
 
 function onCreateRule(movement: Movement): void {
+  touchedRow.value = rowSelector(movement.id)
   rules.saveMessage = null
   ruling.value = movement
 }
@@ -290,11 +310,13 @@ async function onSaveRule(rule: NewRule): Promise<void> {
 
 /** The newest notice wins: a queue action puts the rule one away (design.md §7). */
 function onConfirmOne(id: number): void {
+  touchedRow.value = rowSelector(id)
   rules.dismissCreated()
   void store.confirmOne(id)
 }
 
 function onCategorizeOne(id: number, categoryId: number | null): void {
+  touchedRow.value = rowSelector(id)
   rules.dismissCreated()
   void store.categorizeOne(id, categoryId)
 }

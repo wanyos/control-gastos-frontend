@@ -43,4 +43,22 @@ describe('TransfersActionNotice (R6, R7, R12, R13)', () => {
         .attributes('disabled'),
     ).toBeDefined()
   })
+
+  it('the Undo button shows the word Undo with a border and no icon', () => {
+    const undo = noticeOf({ summary: 'Pair unlinked.', undoable: true }).get(
+      '[data-test="transfers-action-undo"]',
+    )
+
+    expect(undo.text()).toBe('Undo')
+    expect(undo.find('svg').exists()).toBe(false)
+    // The `secondary` look of BaseButton: a visible edge on a card-coloured fill. Composed
+    // at runtime: Tailwind reads the specs as text too (docs/stack.md).
+    expect(undo.classes()).toEqual(
+      expect.arrayContaining([
+        ['border', 'line', 'default'].join('-'),
+        ['bg', 'surface', 'card'].join('-'),
+      ]),
+    )
+    expect(undo.classes()).not.toContain(['bg', 'transparent'].join('-'))
+  })
 })

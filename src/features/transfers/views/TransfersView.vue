@@ -2,13 +2,18 @@
   <div class="flex flex-col gap-6" data-test="transfers-view">
     <h1 class="font-display text-lg font-bold tracking-[-0.01em] text-ink-strong">Transfers</h1>
 
-    <TransfersActionNotice
-      :summary="store.notice.summary"
-      :error="store.notice.error"
-      :undoable="store.notice.undo !== null"
-      :busy="store.busy"
-      @undo="store.undo()"
-    />
+    <!-- Only while there is something to say: the block has an opaque background, so
+         it must not exist empty. No row to keep clear: linking and unlinking take what
+         was touched out of its list (feature 27). -->
+    <StickyBelowTopBar v-if="store.notice.summary || store.notice.error">
+      <TransfersActionNotice
+        :summary="store.notice.summary"
+        :error="store.notice.error"
+        :undoable="store.notice.undo !== null"
+        :busy="store.busy"
+        @undo="store.undo()"
+      />
+    </StickyBelowTopBar>
 
     <!-- Doubtful first: it is the only part that asks for action (decisions.md 🔴 4). -->
     <section class="flex flex-col gap-3" data-test="doubtful-section">
@@ -119,6 +124,7 @@ import { computed, onMounted } from 'vue'
 
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
+import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 
 import AmbiguousGroupList from '../components/AmbiguousGroupList.vue'
 import TransferPairList from '../components/TransferPairList.vue'

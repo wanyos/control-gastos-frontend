@@ -3,6 +3,7 @@
     class="flex items-center gap-3 rounded-md border-l-2 px-3 py-2.5 hover:bg-surface-sunken"
     :class="selected ? 'border-brand bg-surface-sunken' : 'border-transparent'"
     data-test="movement-row"
+    :data-movement-id="movement.id"
   >
     <BaseCheckbox
       class="w-6 shrink-0"

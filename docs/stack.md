@@ -322,11 +322,16 @@ feature #8; ver *Iconos (Lucide)*.
   único del paquete que significa «información», y el que se retira era justo la alarma
   que la feature viene a quitar.
 - **Feature #24:** `Link2`, la entrada `Transfers` de la barra lateral (no se usaba con
-  otro significado). El aviso de la pantalla reutiliza `Undo2`.
+  otro significado). El aviso de la pantalla reutiliza `Undo2` (hasta la feature #27,
+  que lo retira).
 - **Feature #25:** ninguno nuevo. `Overview` conserva `LayoutDashboard`, y la pantalla
   reutiliza las flechas de `MonthNav`.
 - **Feature #26:** ninguno nuevo. Los 24 meses de debajo del mes no llevan iconos: la
   leyenda de las barras son dos puntos de color (`bg-chart-8` y `bg-chart-5`).
+- **Feature #27:** ninguno nuevo, y **sale** `Undo2`: el botón `Undo` de `Review`,
+  `Movements` y `Transfers` pasa a ser la palabra sola con borde (variante `secondary`
+  de `BaseButton`), porque con la flecha curva se leyó como un botón de recargar. Ningún
+  archivo de `src/` importa ya `Undo2`.
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,
@@ -508,7 +513,7 @@ concretas, cada spec registra `await page.route('**/api/**', route => route.abor
 y encima declara las llamadas que sí espera (las rutas posteriores ganan). Motivo:
 el proxy de `vite.config.ts` reenvía `/api` al backend real de `:3000`, así que una
 llamada no prevista **saldría de verdad** — con la red, se aborta y el test se pone
-rojo, que es lo que queremos ver. La cumplen los **once** specs de `e2e/`; el smoke
+rojo, que es lo que queremos ver. La cumplen los **doce** specs de `e2e/`; el smoke
 `app-boot.spec.ts` la incorporó en la higiene del 2026-09-23 (era el único que le
 faltaba) sin que ninguna llamada nueva apareciera: sus tres rutas ya lo cubrían.
 El sexto es `e2e/statement.spec.ts` (feature #19, el extracto mes a mes): de
@@ -557,6 +562,22 @@ lee la frase de lo ahorrado, cuenta 24 filas, comprueba la fila marcada, la del 
 incompleto y las de los meses sin movimientos, pulsa enero de 2026 y comprueba la URL,
 que la navegación de mes vuelve a estar a la vista y que «atrás» regresa. El test del mes
 posterior al último dato cuenta ahora 27 lecturas de la pantalla, no 2.
+
+El duodécimo es `e2e/action-notice-in-view.spec.ts` (feature #27, la frase de la última
+acción a la vista con la página bajada) y es el único que mide **posiciones**: jsdom no
+sabe dónde queda nada en la ventana. Trae sus propias respuestas imitadas, con listas
+largas para que la página tenga recorrido (64 filas en `Review`, 66 líneas en
+`Movements` y 24 parejas en `Transfers`, en la ventana de 1280×720 de `Desktop
+Chrome`), y **escribe**: `PATCH` de un movimiento y en bloque, `POST
+/api/category-rules`, y `DELETE` y `POST` de `/api/transfers`, todos contestados por
+`page.route`. Su primera ruta aborta cualquier `/api` no prevista y apunta método y
+ruta en una lista que cada test comprueba vacía al acabar. Su función `expectInView`
+afirma tres cosas de un elemento, midiendo dentro del navegador con `evaluate` (que no
+desplaza la página; un `click` de Playwright sí la desplazaría hasta el elemento y
+taparía justo el fallo que se busca): su rectángulo está entero dentro de la ventana, su
+borde superior no queda por encima del borde inferior de la barra superior, y
+`document.elementFromPoint` en su centro devuelve un elemento suyo. **`toBeInViewport`
+solo no vale** para esto: da por visto un elemento que está detrás de la barra superior.
 
 Desde la feature #15 la **barra lateral** pide `GET /api/movements` (el recuento de
 pendientes, `pageSize=1`) también al montar y en todas las rutas, así que el smoke

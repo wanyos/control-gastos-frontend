@@ -2,6 +2,8 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 
+import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
+
 import TransfersView from '../views/TransfersView.vue'
 import {
   AMBIGUOUS,
@@ -249,5 +251,62 @@ describe('TransfersView', () => {
     for (const message of BACKEND_MESSAGES) {
       expect(document.body.textContent).not.toContain(message)
     }
+  })
+
+  // --- The notice under the top bar (feature 27) ---
+  // jsdom lays nothing out, so «in view» is the browser tests' job.
+
+  describe('the block that keeps the notice under the top bar (feature 27)', () => {
+    const BLOCK = '[data-test="sticky-below-top-bar"]'
+
+    it('paints no notice block while there is nothing to say', async () => {
+      const { wrapper } = await mountView({
+        pairs: json(FOUR_PAIRS),
+        ambiguous: json(ambiguous(GROUP_OF_3)),
+      })
+
+      expect(wrapper.findAll('[data-test="transfer-pair"]')).toHaveLength(4)
+      expect(wrapper.find(BLOCK).exists()).toBe(false)
+      expect(wrapper.find('[data-test="transfers-action-summary"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="transfers-action-error"]').exists()).toBe(false)
+    })
+
+    it('puts the summary and its Undo inside the block after unlinking, with no row to keep clear (R3)', async () => {
+      let current: { pairs: unknown[] } = FOUR_PAIRS
+      const { wrapper } = await mountView({
+        pairs: () => json(current)(),
+        unlink: () => {
+          current = { pairs: [GOOD_1, GOOD_2, GOOD_3] }
+          return noContent()
+        },
+      })
+
+      await wrapper.findAll('[data-test="pair-unlink"]')[2]?.trigger('click')
+      at('[data-test="unlink-continue"]')?.click()
+      await flushPromises()
+
+      const block = wrapper.get(BLOCK)
+      expect(block.get('[data-test="transfers-action-summary"]').text()).toContain('Pair unlinked.')
+      expect(block.find('[data-test="transfers-action-undo"]').exists()).toBe(true)
+      expect(wrapper.findAll(BLOCK)).toHaveLength(1)
+      expect(wrapper.getComponent(StickyBelowTopBar).props('keepClearOf')).toBeUndefined()
+      // Still between the title and the first section.
+      expect(block.element.previousElementSibling?.tagName).toBe('H1')
+      expect(block.element.nextElementSibling?.matches('[data-test="doubtful-section"]')).toBe(true)
+    })
+
+    it('puts the sentence of a failed write inside the block (R5)', async () => {
+      const { wrapper } = await mountView({
+        pairs: json(FOUR_PAIRS),
+        unlink: json(NOT_FOUND_BODY, 404),
+      })
+
+      await wrapper.findAll('[data-test="pair-unlink"]')[0]?.trigger('click')
+      at('[data-test="unlink-continue"]')?.click()
+      await flushPromises()
+
+      expect(wrapper.get(BLOCK).find('[data-test="transfers-action-error"]').exists()).toBe(true)
+      expect(wrapper.findAll('[data-test="transfers-action-error"]')).toHaveLength(1)
+    })
   })
 })

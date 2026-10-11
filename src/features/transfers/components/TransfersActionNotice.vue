@@ -9,13 +9,12 @@
     {{ summary }}
     <BaseButton
       v-if="undoable"
-      variant="ghost"
+      variant="secondary"
       size="sm"
       :disabled="busy"
       data-test="transfers-action-undo"
       @click="emit('undo')"
     >
-      <template #icon><Undo2 :size="14" aria-hidden="true" /></template>
       Undo
     </BaseButton>
   </p>
@@ -25,11 +24,11 @@
 // One fixed line over the lists: what the last write did, with an Undo that has no
 // countdown — it lives until the next write or until you leave the screen — or why a
 // write failed. Never both at once: the error wins.
+// The Undo is the bare word in a bordered button: with an icon it read as a reload
+// (feature 27). Staying in view on a scrolled page is the view's job, not this one's.
 //
 // Copied from `statement/components/StatementActionNotice.vue` so this feature imports
 // nothing from another one (C5).
-import { Undo2 } from '@lucide/vue'
-
 import BaseButton from '@/shared/components/BaseButton.vue'
 
 defineProps<{

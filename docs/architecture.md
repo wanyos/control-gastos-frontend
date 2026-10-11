@@ -151,7 +151,10 @@ src/
                           # BaseButton, BaseSpinner, BaseDialog (feature #13);
                           # BaseInput, BaseSelect, BaseCheckbox (feature #15;
                           # BaseSelect.labelHidden y BaseCheckbox indeterminate/disabled/ariaLabel, #16;
-                          # BaseInput.type admite 'month', #19)
+                          # BaseInput.type admite 'month', #19);
+                          # StickyBelowTopBar (feature #27): un `div` con `position: sticky`
+                          # que deja lo que envuelve justo debajo de la barra superior
+                          # cuando la página está bajada
     config.ts             # AppConfig tipada + loadConfig() + singleton appConfig (feature #2)
     errors.ts             # AppError y subtipos (ApiError.apiCode desde la #13), toAppError, formatError…
     validation.ts         # createValidators(context): guardas de respuestas de la API (feature #13)
@@ -174,6 +177,41 @@ src/
 > Un `src/stores/` global se reintroduciría solo para estado verdaderamente
 > transversal (p. ej. sesión); lo demás va por feature.
 
+> **La frase de la última acción se ve con la página bajada (feature #27).** En `Review`,
+> `Movements` y `Transfers`, la línea que dice qué hizo la última acción, con su botón
+> `Undo`, o por qué falló, va envuelta en `shared/components/StickyBelowTopBar.vue`. En
+> `Review` envuelve también la línea de la regla recién creada (`RuleCreatedNotice`, con
+> `Apply rules now`), que sigue sin salir a la vez que la otra. Ese componente es un
+> `div` con `position: sticky`, `top` igual al alto de la barra superior
+> (`--topbar-h`), el fondo de la página (`bg-surface-app`, opaco) y el nivel
+> `--z-sticky`: el mismo de la barra superior, por encima de las etiquetas de día del
+> extracto y por debajo de los diálogos (`--z-modal`). Con la página arriba del todo está
+> en el flujo, entre los mismos dos bloques que antes; con la página bajada se queda con
+> su borde superior en el borde inferior de la barra superior. No tiene estado ni sabe qué
+> envuelve: cada pantalla lo pinta con un `v-if` solo mientras hay algo que decir, porque
+> con fondo opaco no puede existir vacío. Los cuatro componentes que envuelve
+> (`ActionNotice`, `StatementActionNotice`, `TransfersActionNotice` y
+> `RuleCreatedNotice`) siguen siendo uno por pantalla, y **ningún** `store.ts`,
+> `service.ts`, `actions.ts` ni `pairs.ts` cambió: qué hace cada acción y qué deshace
+> el `Undo` es lo de antes.
+> Recibe una prop opcional, `keepClearOf`: el selector CSS de la única fila sobre la que
+> se acaba de actuar (`[data-movement-id="<id>"]`, atributo que llevan `MovementRow` y
+> `StatementRow` desde esta feature). Al montarse, cada vez que esa prop cambia y cada vez
+> que Vue vuelve a pintar lo que envuelve (`onUpdated`: una segunda acción sobre la misma
+> fila cambia la frase pero no la prop), espera a que Vue actualice el DOM y a un
+> `requestAnimationFrame`, y si la fila está en la página, empieza por encima del borde
+> inferior del `div` y no queda entera por encima de él, sube la página esa diferencia,
+> redondeada hacia arriba a píxeles enteros, con `window.scrollBy`. Se redondea porque
+> las filas miden píxeles con decimales y Chromium deja la página en un píxel entero: sin
+> redondear, la fila quedaba tapada menos de un píxel. Varias de esas causas en el mismo
+> instante dan una sola medida. No escucha el evento `scroll`. La prop es estado de la vista, no del store: `ReviewView` la escribe al
+> confirmar una fila, al cambiarle la categoría y al abrir desde ella el diálogo de regla;
+> `StatementView`, al cambiar la categoría de una línea y al abrir desde ella el diálogo
+> de regla. Las dos la ponen a `null` en las acciones sobre varias filas.
+> `TransfersView` no la pasa: enlazar y desenlazar quitan de su lista lo que se tocó. El
+> botón `Undo` de los tres avisos es la palabra sola en la
+> variante `secondary` de `BaseButton`, sin icono.
+>
 > **El mes de un vistazo solo lee, y calcula una única cifra (feature #25).**
 > `features/overview/` no manda ni un `POST`, `PATCH` o `DELETE`: sus cuatro lecturas son
 > `GET /api/movements` (`service.ts` no acepta método ni cuerpo; eran tres hasta la
@@ -224,7 +262,9 @@ src/
 > petición. No importa de ninguna otra feature ni ninguna importa de ella: el aviso con
 > `Undo` y el diálogo de confirmación están **copiados** del extracto, y lo único
 > compartido son las dos rutas de `shared/transfers.ts`, que `statement/service.ts`
-> re-exporta con el nombre que ya tenía.
+> re-exporta con el nombre que ya tenía. (Desde la feature #27 el aviso sigue copiado,
+> pero lo que lo deja a la vista con la página bajada es común:
+> `shared/components/StickyBelowTopBar.vue`.)
 >
 > **El interruptor del ruido no escribe (feature #23).** Es de **solo lectura**: cambia
 > la pregunta que se le hace a `GET /api/movements` —`excluded=none` y `transfer=none`
@@ -255,7 +295,9 @@ src/
 > vocabulario de una pantalla (la fila, el selector de la fila, el aviso de deshacer)
 > está **copiado** a propósito —`StatementRow`, `RowCategoryEditor`,
 > `StatementActionNotice`— para no atar dos pantallas por cuatro `v-if`. El único que
-> monta su vista sigue siendo el router, en `/movements`.
+> monta su vista sigue siendo el router, en `/movements`. Desde la feature #27 el aviso
+> de deshacer sigue copiado; lo que lo deja a la vista con la página bajada no es
+> vocabulario de ninguna pantalla y vive en `shared/components/StickyBelowTopBar.vue`.
 
 > **Dependencias nuevas de la feature #15.** `AppSidebar.vue` (shared) monta
 > `ReviewCountBadge` de `features/review`, igual que `AppShell` monta `ImportButton`.

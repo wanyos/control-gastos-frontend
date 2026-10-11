@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 import { formatMoney } from '@/shared/money'
 
 import StatementView from '../views/StatementView.vue'
@@ -1002,6 +1003,119 @@ describe('StatementView', () => {
       expect(wrapper.find('[data-test="statement-ambiguous-note"]').exists()).toBe(false)
       expect(wrapper.get('[data-test="statement-totals-note"]').text()).not.toMatch(/\d/)
       expect(wrapper.find('[data-test="statement-error"]').exists()).toBe(false)
+    })
+  })
+
+  // --- The notice under the top bar (feature 27) ---
+  // jsdom lays nothing out, so «in view» is the browser tests' job. Here: the block
+  // exists only with something to say, wraps the notice, and is told which line to
+  // keep clear.
+
+  describe('the block that keeps the notice under the top bar (feature 27)', () => {
+    const BLOCK = '[data-test="sticky-below-top-bar"]'
+    const GROCERIES_EXPENSE = changed(EXPENSE, { categoryId: 2, category: GROCERIES })
+
+    type View = Awaited<ReturnType<typeof mountView>>['wrapper']
+
+    const categorizeFirst = async (wrapper: View) => {
+      await wrapper.findAll('[data-test="statement-row-category-button"]')[0]?.trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-test="row-category-editor"] select').setValue('2')
+      await flushPromises()
+    }
+
+    const excludeFirst = async (wrapper: View) => {
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await wrapper.findAll('[data-test="statement-row-select"] input')[0]?.setValue(true)
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+    }
+
+    it('paints no notice block while there is nothing to say', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+      })
+
+      expect(wrapper.findAll('[data-test="statement-row"]')).toHaveLength(5)
+      expect(wrapper.find(BLOCK).exists()).toBe(false)
+      expect(wrapper.find('[data-test="statement-action-summary"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="statement-action-error"]').exists()).toBe(false)
+    })
+
+    it('puts the summary and its Undo inside the block after a category change (R2)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(GROCERIES_EXPENSE),
+      })
+
+      await categorizeFirst(wrapper)
+
+      const block = wrapper.get(BLOCK)
+      expect(block.get('[data-test="statement-action-summary"]').text()).toContain(
+        'Categorized as Groceries',
+      )
+      expect(block.find('[data-test="statement-action-undo"]').exists()).toBe(true)
+      expect(wrapper.findAll(BLOCK)).toHaveLength(1)
+      expect(wrapper.findAll('[data-test="statement-action-summary"]')).toHaveLength(1)
+    })
+
+    it('tells the block which line to keep clear, and none after a batch (R11)', async () => {
+      const month = fakeMonth()
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: month.movements,
+        patch: json(GROCERIES_EXPENSE),
+        bulkPatch: month.bulkPatch,
+      })
+
+      await categorizeFirst(wrapper)
+
+      expect(api.patches().at(-1)?.path).toBe('/api/movements/10')
+      const block = wrapper.getComponent(StickyBelowTopBar)
+      expect(block.props('keepClearOf')).toBe('[data-movement-id="10"]')
+      // The selector really names the line that is still on the page.
+      expect(wrapper.findAll(block.props('keepClearOf') as string)).toHaveLength(1)
+
+      await excludeFirst(wrapper)
+
+      expect(wrapper.get('[data-test="statement-action-summary"]').text()).toContain(
+        '1 movement excluded from totals',
+      )
+      expect(wrapper.getComponent(StickyBelowTopBar).props('keepClearOf')).toBeNull()
+    })
+
+    it('puts the sentence of a failed write inside the block (R5)', async () => {
+      const { wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(VALIDATION_ERROR_BODY, 400),
+      })
+
+      await categorizeFirst(wrapper)
+
+      expect(wrapper.get(BLOCK).find('[data-test="statement-action-error"]').exists()).toBe(true)
+      expect(wrapper.findAll('[data-test="statement-action-error"]')).toHaveLength(1)
+    })
+
+    it('sits right before the selection button or bar, which stay where they were (C6)', async () => {
+      const month = fakeMonth()
+      const { wrapper } = await mountView('/movements?month=2026-09', {
+        movements: month.movements,
+        patch: json(GROCERIES_EXPENSE),
+        bulkPatch: month.bulkPatch,
+      })
+      const afterBlock = () => wrapper.get(BLOCK).element.nextElementSibling
+      const beforeBlock = () => wrapper.get(BLOCK).element.previousElementSibling
+
+      await categorizeFirst(wrapper)
+
+      expect(beforeBlock()?.querySelector('[data-test="statement-totals-in"]')).not.toBeNull()
+      expect(afterBlock()?.querySelector('[data-test="statement-start-selecting"]')).not.toBeNull()
+      expect(wrapper.get('[data-test="statement-start-selecting"]').text()).toBe('Select movements')
+
+      await excludeFirst(wrapper)
+
+      expect(afterBlock()?.matches('[data-test="statement-selection-bar"]')).toBe(true)
+      expect(afterBlock()?.querySelector('[data-test="statement-exclude"]')).not.toBeNull()
+      expect(afterBlock()?.querySelector('[data-test="statement-include"]')).not.toBeNull()
     })
   })
 })

@@ -2,6 +2,7 @@
   <li
     class="flex items-center gap-3 rounded-md px-3 py-2.5 hover:bg-surface-sunken"
     data-test="statement-row"
+    :data-movement-id="movement.id"
   >
     <!-- Only while the selection mode is on: off, the statement reads as a month and
          93 checkboxes would undo that (R4, decisions.md 🔴 1). -->

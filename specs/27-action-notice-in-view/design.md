@@ -94,6 +94,11 @@ const props = defineProps<{
      `window.scrollBy({ top: -overlap })`.
   Nada más mueve la página. No hay escucha de `scroll`: si el usuario mueve la página
   después, el bloque pasa por encima de las filas igual que la barra superior.
+- **Corrección (2026-10-11, tras el Lote B).** Dos cambios sobre lo de arriba, por dos
+  fallos vistos en Chromium: la medida se hace también cada vez que Vue vuelve a pintar
+  el contenido del slot (`onUpdated`), porque una segunda acción sobre la misma fila no
+  cambia `keepClearOf`; y a `scrollBy` se le pasa `-Math.ceil(overlap)`, porque Chromium
+  deja la página en un píxel entero y con `-overlap` la fila quedaba tapada 0,0625 px.
 - **Riesgo conocido, sin comprobar.** Al aparecer el aviso con la página bajada, el
   documento crece por encima de la ventana. No se ha medido si Chromium compensa el
   desplazamiento (lo que se llama *scroll anchoring*) antes o después del

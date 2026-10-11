@@ -9,13 +9,12 @@
     {{ summary }}
     <BaseButton
       v-if="undoable"
-      variant="ghost"
+      variant="secondary"
       size="sm"
       :disabled="busy"
       data-test="statement-action-undo"
       @click="emit('undo')"
     >
-      <template #icon><Undo2 :size="14" aria-hidden="true" /></template>
       Undo
     </BaseButton>
   </p>
@@ -26,12 +25,12 @@
 // Undo that has NO countdown — it lives until the next write, until the month or a
 // filter changes, or until you leave the screen (decisions.md 🔴 4) — or why a write
 // failed. Never both at once: the error wins.
+// The Undo is the bare word in a bordered button: with an icon it read as a reload
+// (feature 27). Staying in view on a scrolled page is the view's job, not this one's.
 //
 // Copied from `review/components/ActionNotice.vue` (design §7.3) so the statement keeps
 // importing nothing from another feature; the one difference is `undoable`: after an
 // undo the sentence stays and the button goes, because nothing is redone.
-import { Undo2 } from '@lucide/vue'
-
 import BaseButton from '@/shared/components/BaseButton.vue'
 
 defineProps<{

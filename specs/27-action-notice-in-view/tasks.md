@@ -11,9 +11,9 @@
 Archivos: `src/shared/components/StickyBelowTopBar.vue`, `src/shared/components/__tests__/StickyBelowTopBar.spec.ts`, `src/features/review/components/ActionNotice.vue`, `src/features/review/components/MovementRow.vue`, `src/features/review/views/ReviewView.vue`, `src/features/review/__tests__/ActionNotice.spec.ts`, `src/features/review/__tests__/MovementRow.spec.ts`, `src/features/review/__tests__/ReviewView.spec.ts`, `src/features/statement/components/StatementActionNotice.vue`, `src/features/statement/components/StatementRow.vue`, `src/features/statement/views/StatementView.vue`, `src/features/statement/__tests__/StatementActionNotice.spec.ts`, `src/features/statement/__tests__/StatementRow.spec.ts`, `src/features/statement/__tests__/StatementView.spec.ts`, `src/features/transfers/components/TransfersActionNotice.vue`, `src/features/transfers/views/TransfersView.vue`, `src/features/transfers/__tests__/TransfersActionNotice.spec.ts`, `src/features/transfers/__tests__/TransfersView.spec.ts`, `src/assets/theme-dark.css`
 Depende de: —
 
-- [ ] T1 — `StickyBelowTopBar.vue` (design §3): el `div` con sus clases, el slot y la
+- [x] T1 — `StickyBelowTopBar.vue` (design §3): el `div` con sus clases, el slot y la
   prop `keepClearOf`. Cubre: R1–R5, R9, R10.
-- [ ] T2 — `StickyBelowTopBar.spec.ts`: (a) **«renders its slot inside a block that
+- [x] T2 — `StickyBelowTopBar.spec.ts`: (a) **«renders its slot inside a block that
   sticks below the top bar on the page background»**: el slot está dentro y el `div`
   lleva `sticky`, el `top` de la barra superior, el fondo de la página y el nivel
   `--z-sticky`. Las clases se componen en el test, no se escriben literales (el escaneo
@@ -25,20 +25,20 @@ Depende de: —
   nada, con la fila ya por debajo (`top` 120) y con la fila entera por encima del bloque
   (`bottom` 40), `scrollBy` no se llama; (d) al cambiar `keepClearOf` vuelve a medir.
   Cubre: R9, R10, R11.
-- [ ] T3 — Los tres `*ActionNotice.vue` (design §5): `Undo` en `secondary`, sin icono,
+- [x] T3 — Los tres `*ActionNotice.vue` (design §5): `Undo` en `secondary`, sin icono,
   sin `import { Undo2 }`; comentario de cabecera al día. Cubre: R8, C4.
-- [ ] T4 — En **los tres** `*ActionNotice.spec.ts`, un test con este nombre exacto:
+- [x] T4 — En **los tres** `*ActionNotice.spec.ts`, un test con este nombre exacto:
   **«the Undo button shows the word Undo with a border and no icon»**: el botón no
   contiene ningún `svg`, su texto es `Undo` y lleva las clases de borde y fondo de la
   variante `secondary`. Los tests que ya hay en esos tres archivos pasan; si alguno
   afirmaba el icono o `ghost`, se corrige y se dice cuál en el informe. Cubre: R8, C4.
-- [ ] T5 — `MovementRow.vue` y `StatementRow.vue`: `:data-movement-id="movement.id"` en
+- [x] T5 — `MovementRow.vue` y `StatementRow.vue`: `:data-movement-id="movement.id"` en
   el `<li>` raíz. Un test en cada `*Row.spec.ts`: **«carries the id of its movement so
   the notice can find it»**. Cubre: R11.
-- [ ] T6 — `ReviewView.vue` (design §4): `StickyBelowTopBar` con `v-if="hasNotice"`
+- [x] T6 — `ReviewView.vue` (design §4): `StickyBelowTopBar` con `v-if="hasNotice"`
   alrededor de los dos avisos, que siguen en `v-if` / `v-else`; `touchedRow`. Cubre:
   R1, R4, R5, R11, R12, C1, C2, C5.
-- [ ] T7 — `ReviewView.spec.ts`: (a) **«paints no notice block while there is nothing to
+- [x] T7 — `ReviewView.spec.ts`: (a) **«paints no notice block while there is nothing to
   say»**: recién cargada, no existe `[data-test="sticky-below-top-bar"]`; (b) tras
   confirmar una fila, `action-summary` y `action-undo` están dentro del bloque; (c) con
   una regla recién creada, dentro del bloque está `rule-created-notice` y **no**
@@ -46,15 +46,15 @@ Depende de: —
   fila 12, el bloque recibe `keepClearOf` = `[data-movement-id="12"]`; tras una acción
   en bloque, `null`; (e) tras un fallo, `action-error` está dentro del bloque. Los tests
   que ya hay pasan sin tocar sus aserciones. Cubre: R1, R4, R5, R11, R12, C5.
-- [ ] T8 — `StatementView.vue` y `StatementView.spec.ts`: lo mismo que T6 y T7 (a), (b),
+- [x] T8 — `StatementView.vue` y `StatementView.spec.ts`: lo mismo que T6 y T7 (a), (b),
   (d) y (e) con `statement-action-summary`, `statement-action-undo` y
   `statement-action-error`; el test (a) lleva el mismo nombre literal. Además: el bloque
   es hermano anterior de `statement-selection-bar` / `statement-start-selecting`, que no
   cambian (C6). Cubre: R2, R5, R11, R12, C6.
-- [ ] T9 — `TransfersView.vue` y `TransfersView.spec.ts`: lo mismo que T7 (a), (b) y (e)
+- [x] T9 — `TransfersView.vue` y `TransfersView.spec.ts`: lo mismo que T7 (a), (b) y (e)
   con `transfers-action-*`; el test (a) lleva el mismo nombre literal; el bloque no
   recibe `keepClearOf`. Cubre: R3, R5, R12.
-- [ ] T10 — `pnpm test:unit` entero y `pnpm type-check`. Si `theme-dark.spec.ts` pide un
+- [x] T10 — `pnpm test:unit` entero y `pnpm type-check`. Si `theme-dark.spec.ts` pide un
   par de colores sin medir, añadir su línea `contrast:` en `theme-dark.css`; si no, ese
   archivo no se toca. Pegar las dos salidas en el informe. Cubre: C4, C8.
 
@@ -62,46 +62,46 @@ Depende de: —
 Archivos: `e2e/action-notice-in-view.spec.ts`, `docs/architecture.md`, `docs/stack.md`
 Depende de: Lote A
 
-- [ ] T11 — `e2e/action-notice-in-view.spec.ts`: red de seguridad (`**/api/**` abortado
+- [x] T11 — `e2e/action-notice-in-view.spec.ts`: red de seguridad (`**/api/**` abortado
   y apuntado en una lista que debe acabar vacía), respuestas imitadas con listas largas
   (≥ 60 filas en `Review` y en `Movements`, ≥ 20 parejas en `Transfers`) y la función
   `expectInView` de design §7. Antes de cada acción «desde abajo» el test baja hasta el
   final y afirma que `window.scrollY` es mayor que 0. Cubre: R1–R7.
-- [ ] T12 — Tests de `Review`, con estos nombres exactos: **«Review keeps the summary and
+- [x] T12 — Tests de `Review`, con estos nombres exactos: **«Review keeps the summary and
   its Undo in view after confirming the last row»** (`1 movement confirmed` y
   `action-undo`, los dos con `expectInView`); **«Review keeps the summary and its Undo in
   view after giving a category to the last row»**; **«Review keeps the rule notice and
   Apply rules now in view from the bottom of the list»** (crear la regla desde la última
   fila). Cubre: R1, R4.
-- [ ] T13 — Tests de `Movements`: **«Movements keeps the summary and its Undo in view
+- [x] T13 — Tests de `Movements`: **«Movements keeps the summary and its Undo in view
   after changing the category of the last line»**; **«Movements keeps the summary and its
   Undo in view at the end of the month after excluding a line»** (activar la selección,
   marcar la última línea, pulsar `Exclude from totals`, volver a bajar hasta el final:
   `1 movement excluded from totals` y `statement-action-undo` con `expectInView`).
   Cubre: R2, C6.
-- [ ] T14 — **«Transfers keeps the summary and its Undo in view after unlinking the last
+- [x] T14 — **«Transfers keeps the summary and its Undo in view after unlinking the last
   pair»**. Cubre: R3.
-- [ ] T15 — **«at the top of the page the notice sits between the same blocks as
+- [x] T15 — **«at the top of the page the notice sits between the same blocks as
   before»**: en las tres pantallas, con `scrollY` 0 y tras una acción sobre la primera
   fila, el aviso está por debajo del bloque que hoy tiene encima (`ReviewFilterBar` o
   `ReviewActionBar`; `MonthTotals`; el título `Transfers`) y por encima del que tiene
   debajo, sin solaparse con ninguno, y su borde superior queda **por debajo** de los
   60 px (no está pegado). Cubre: R6.
-- [ ] T16 — **«Undo pressed from the bottom of the list puts the row back»**: en `Review`
+- [x] T16 — **«Undo pressed from the bottom of the list puts the row back»**: en `Review`
   (confirmar la última fila, `Undo`, la fila vuelve y el cuerpo del `PATCH` es el
   contrario) y en `Movements` (categoría de la última línea, `Undo`, vuelve la de
   antes); tras el `Undo`, `scrollY` sigue siendo mayor que 0. Cubre: R7, C1.
-- [ ] T17 — **«a failed action shows its error in view from the bottom of the list»**: el
+- [x] T17 — **«a failed action shows its error in view from the bottom of the list»**: el
   `PATCH` (y el `DELETE` de `Transfers`) responde con error; `action-error`,
   `statement-action-error` y `transfers-action-error` con `expectInView`. Cubre: R5.
-- [ ] T18 — **«the notice does not cover the row that was just changed»**: en `Review` y
+- [x] T18 — **«the notice does not cover the row that was just changed»**: en `Review` y
   en `Movements`, bajar hasta dejar el borde superior de una fila a la altura del borde
   inferior de la barra superior, cambiarle la categoría y afirmar que el borde superior
   de esa fila queda ≥ el borde inferior del aviso. Cubre: R9, R11.
-- [ ] T19 — **«an open dialog paints over the notice»**: con un aviso pegado en `Review`,
+- [x] T19 — **«an open dialog paints over the notice»**: con un aviso pegado en `Review`,
   abrir el diálogo de nueva regla desde una fila; `document.elementFromPoint` en el
   centro del aviso no devuelve un elemento del aviso. Cubre: R10.
-- [ ] T20 — `pnpm test:e2e --project=chromium` entero: los once archivos que ya había
+- [x] T20 — `pnpm test:e2e --project=chromium` entero: los once archivos que ya había
   pasan **sin tocarlos**. Pegar la salida en el informe. Cubre: C1, C4.
-- [ ] T21 — `docs/architecture.md` y `docs/stack.md` (design §8). Cubre: C8.
-- [ ] T22 — `./init.sh` completo y `./init.sh --checks 27`. Pegar las dos salidas.
+- [x] T21 — `docs/architecture.md` y `docs/stack.md` (design §8). Cubre: C8.
+- [x] T22 — `./init.sh` completo y `./init.sh --checks 27`. Pegar las dos salidas.

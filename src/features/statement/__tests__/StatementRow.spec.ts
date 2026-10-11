@@ -260,4 +260,16 @@ describe('StatementRow (R9, R10)', () => {
       expect(marked.classes()).not.toContain('text-positive')
     })
   })
+
+  it('carries the id of its movement so the notice can find it', () => {
+    const row = mountRow(EXPENSE).get('[data-test="statement-row"]')
+
+    expect(row.element.tagName).toBe('LI')
+    expect(row.attributes('data-movement-id')).toBe(String(parse(EXPENSE).id))
+    expect(
+      mountRow(INCOME)
+        .find(`[data-movement-id="${parse(INCOME).id}"]`)
+        .exists(),
+    ).toBe(true)
+  })
 })
