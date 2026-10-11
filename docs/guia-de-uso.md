@@ -946,17 +946,21 @@ archivos nuevos, a su lado sale un aviso con cuántos son.
 
 1. Mira la barra superior. Si hay archivos nuevos en Drive, **debes ver** un
    aviso del tipo `3 new files` junto al botón. Si no hay, no sale nada.
+   -- ok
 
 2. Pulsa `Import`. **Debes ver** la ventana `Import from Google Drive` con el
    texto `Checking Drive for new files…`.
+   -- ok
 
 3. Si no hay nada nuevo, **debes ver** `You're up to date` y
    `No new files in Google Drive.` Pulsa `Close`. No se ha escrito nada.
+   -- ok
 
 4. Si hay archivos, **debes ver** la lista, agrupada por banco y por año, la
    frase `Files are moved to the processed folder in Drive once imported.` y
    dos botones: `Cancel` y uno que dice cuántos va a importar. **Hasta aquí
    solo se ha leído.** Pulsa `Cancel` si no quieres importar.
+   -- ok
 
 ### Qué probar — importar de verdad (escribe y no se deshace)
 
@@ -1065,15 +1069,20 @@ mano ese día, no un dato que la aplicación calcule.
 
 1. Abre `Overview` y baja a `Month by month`. Apunta los meses con `Money out`
    muy por encima de lo normal.
+   --ok
 
 2. Abre `Movements` y ve al primero de esos meses con `Jump to month`.
+   -- ok
 
 3. En `Account`, elige la cuenta desde la que salió el dinero.
+   -- ok
 
 4. Busca los envíos a tus propias cuentas que **no** lleven la etiqueta
    `Transfer` ni `Not counted`. Solo tú sabes cuáles son.
+   
 
 5. Apunta las tres cifras del mes.
+   
 
 6. Pulsa `Select movements`, marca la casilla de esos movimientos y pulsa
    `Exclude from totals`.
