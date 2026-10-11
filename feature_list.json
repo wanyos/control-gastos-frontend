@@ -1202,6 +1202,43 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 27,
+      "name": "action-notice-in-view",
+      "title": "El aviso de lo último que hice y su Undo se ven desde donde estoy",
+      "intent": {
+        "que_quiero": "Cuando hago algo que escribe en `Review` o en `Movements` (poner una categoría, confirmar, marcar que un movimiento no cuenta), quiero ver lo que acaba de pasar y poder deshacerlo sin moverme de donde estoy. Hoy esa línea y su botón `Undo` salen arriba del todo, encima de la lista: si he bajado por la página, no los veo. Y quiero reconocer el botón de deshacer como lo que es.",
+        "por_que": "Porque en la revisión confirmé un movimiento con la página bajada, no vi ni la línea ni el `Undo`, y pensé que no existían: el movimiento se quedó confirmado sin que yo pudiera deshacerlo. En `Movements` me pasó parecido: el botón estaba arriba de la tabla y lo tomé por un botón de recargar.",
+        "como_se_que_esta_bien": [
+          "En `Review`, bajo hasta el final de la lista, pulso `Confirm` en una fila y, sin subir, veo qué ha pasado y el botón para deshacerlo.",
+          "Lo mismo al poner una categoría a una fila del final de la lista.",
+          "En `Movements`, lo mismo al cambiar la categoría de una línea del final del mes y al marcar que un movimiento no cuenta.",
+          "Si estoy arriba del todo, lo sigo viendo, como hasta ahora.",
+          "Pulso deshacer desde ahí abajo y la fila vuelve a como estaba.",
+          "El botón de deshacer no se confunde con uno de recargar.",
+          "Si lo que hice falla, el mensaje de error también lo veo desde donde estoy."
+        ],
+        "que_no_quiero": [
+          "No quiero que cambie qué hace cada acción ni qué deshace el `Undo`: solo dónde se ve.",
+          "No quiero que el `Undo` dure más ni menos que ahora.",
+          "No quiero tocar el backend.",
+          "No quiero que el aviso me tape la fila que estoy mirando."
+        ],
+        "delego_en_agente": [
+          "Cómo se consigue que se vea: que la línea se quede fija en un borde de la pantalla al bajar, que salga junto a la fila tocada, o de otra forma.",
+          "Qué se hace con el icono o el texto del botón para que no parezca recargar.",
+          "Si se hace con una sola pieza común a las pantallas o una por pantalla."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-10-11: sí entra también `Transfers`, que tiene el mismo aviso con `Undo` encima de la lista de parejas.",
+          "Del 2026-10-11: sí entra también el aviso de `Review` tras crear una regla (la línea verde con el botón `Apply rules now`)."
+        ]
+      },
+      "acceptance": [],
+      "checks": [],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
