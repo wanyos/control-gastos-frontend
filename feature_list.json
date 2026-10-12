@@ -1370,6 +1370,46 @@
       ],
       "sdd": false,
       "status": "done"
+    },
+    {
+      "id": 29,
+      "name": "statement-readable",
+      "title": "Movements se entiende de un vistazo",
+      "intent": {
+        "que_quiero": "Que al mirar la lista de `Movements` distinga sin pensar tres cosas: qué movimientos cuentan en las sumas y cuáles no, qué es una entrada y qué es una salida, y qué tiene categoría y qué no. Que la explicación de qué incluyen las cifras se lea en un momento. Y que un mes sin movimientos diga que no tiene movimientos, esté como esté la casilla.",
+        "por_que": "Porque hoy tengo que fiarme de etiquetas pequeñas y de colores que no sé qué significan. Si no distingo lo que cuenta de lo que no, no puedo comprobar las cifras de arriba mirando la lista de abajo, que es para lo que sirve esta pantalla.",
+        "como_se_que_esta_bien": [
+          "Un movimiento que no cuenta en las sumas (marcado por mí, o uno de los dos de un traspaso emparejado) se distingue a simple vista de uno que sí cuenta, sin tener que leer su etiqueta.",
+          "Su importe no se confunde con el de un movimiento normal.",
+          "Sé por qué una etiqueta de categoría tiene el color que tiene, o todas tienen el mismo.",
+          "Un movimiento sin categoría se distingue de uno que la tiene.",
+          "Entiendo qué quiere decir una línea que lleva `Not counted` y una categoría a la vez.",
+          "Leo la explicación de debajo de las cifras y sé qué incluyen y qué no.",
+          "Abro un mes sin movimientos con la casilla puesta y la pantalla dice que ese mes no tiene movimientos, no que están escondidos.",
+          "Abro un mes en el que todo lo que hay está escondido por la casilla y la pantalla sí dice que está escondido, con la forma de enseñarlo."
+        ],
+        "que_no_quiero": [
+          "No quiero que cambie ninguna cifra ni qué movimientos cuentan.",
+          "No quiero tocar el backend.",
+          "No quiero cambiar los nombres de las categorías.",
+          "No quiero que cambie cómo se marca o se desmarca un movimiento.",
+          "No quiero cambiar el idioma de la aplicación en esta feature."
+        ],
+        "delego_en_agente": [
+          "Cómo se distingue lo que no cuenta: atenuando toda la línea, tachando el importe, o de otra forma.",
+          "Qué colores quedan y con qué significado, cuidando que se lean bien sobre el fondo oscuro.",
+          "Cómo queda redactada la explicación de debajo de las cifras."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-10-12: las etiquetas de categoría, todas iguales y sin color; el verde se queda solo en el importe, que ya dice si entra o sale (opción A).",
+          "Del 2026-10-12: la explicación de debajo de las cifras, una frase corta siempre a la vista y el resto plegado para abrirlo si quiere (opción A).",
+          "Del 2026-10-12: le parece bien que un movimiento que no cuenta enseñe su categoría."
+        ]
+      },
+      "acceptance": [],
+      "checks": [],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
