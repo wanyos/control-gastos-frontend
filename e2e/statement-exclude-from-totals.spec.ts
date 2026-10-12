@@ -7,8 +7,8 @@ import type { Page, Request } from '@playwright/test'
 // not foreseen, so no PATCH ever reaches the real backend on :3000 and no real movement
 // is taken out of anybody's figures by this suite.
 
-/** Feature 23: the note was rewritten whole and no longer carries a single digit. */
-const NOTE_START = 'These figures already leave out what does not count'
+/** The first words of the sentence always in sight under the figures (feature 29). */
+const NOTE_START = 'These figures leave out the movements labelled'
 
 const BANKINTER = {
   id: 1,

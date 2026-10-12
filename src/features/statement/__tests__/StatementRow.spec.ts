@@ -2,13 +2,23 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import { parseCategories } from '@/shared/categories'
+import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { parseMovement } from '@/shared/movements'
 import type { Movement } from '@/shared/movements'
 import { createValidators } from '@/shared/validation'
 import { formatMoney } from '@/shared/money'
 
 import StatementRow from '../components/StatementRow.vue'
-import { CATEGORIES, EXPENSE, INCOME, NEUTRAL, TRANSFER, excluded, movement } from './fixtures'
+import {
+  CATEGORIES,
+  EXPENSE,
+  EXPENSE_SAME_DAY,
+  INCOME,
+  NEUTRAL,
+  TRANSFER,
+  excluded,
+  movement,
+} from './fixtures'
 
 const checks = createValidators('test')
 const parse = (raw: Record<string, unknown>): Movement => parseMovement(checks, raw, 'movement')
@@ -221,46 +231,214 @@ describe('StatementRow (R9, R10)', () => {
   })
 
   describe('a movement that does not count in the figures (R8, R9)', () => {
-    it('carries the `Not counted` badge, with its reason', () => {
+    it('carries the `Not counted` label, with its reason', () => {
       const row = mountRow(excluded(EXPENSE))
 
-      const badge = row.get('[data-test="statement-row-excluded"]')
-      expect(badge.text()).toBe('Not counted')
-      expect(badge.attributes('title')).toBe("Not counted in this month's figures")
+      const label = row.get('[data-test="statement-row-excluded"]')
+      expect(label.text()).toBe('Not counted')
+      expect(label.attributes('title')).toBe("Not counted in this month's figures")
     })
 
-    it('has no badge at all when it is not marked', () => {
+    it('has no such label at all when it is not marked', () => {
       expect(mountRow(EXPENSE).find('[data-test="statement-row-excluded"]').exists()).toBe(false)
     })
 
-    it('lives next to the Transfer badge, both at once', () => {
+    it('lives next to the Transfer label, both at once', () => {
       const row = mountRow(excluded(TRANSFER))
 
       expect(row.find('[data-test="statement-row-transfer"]').exists()).toBe(true)
       expect(row.find('[data-test="statement-row-excluded"]').exists()).toBe(true)
     })
 
-    it('greys the amount out without changing it, and adds no other marking (🔴 2)', () => {
+    // Feature 29 replaced the decision of the F22 («only the ink goes quiet, no
+    // strikethrough»): the amount is crossed out and faint. The figure, the sign and
+    // the row itself are still the same.
+    it('crosses the amount out without changing it, and paints no coloured row', () => {
       const plain = mountRow(EXPENSE).get('[data-test="statement-row-amount"]')
       const marked = mountRow(excluded(EXPENSE)).get('[data-test="statement-row-amount"]')
 
       expect(marked.text()).toBe(plain.text())
-      expect(marked.classes()).toContain('text-ink-muted')
+      expect(marked.classes()).toContain('text-ink-faint')
+      expect(marked.classes()).toContain('line-through')
       expect(plain.classes()).toContain('text-ink-strong')
-      // No coloured row, no strikethrough, no side stripe.
+      expect(plain.classes()).not.toContain('line-through')
+      // No coloured row and no side stripe: the row is the same as an unmarked one.
       const row = mountRow(excluded(EXPENSE))
       expect(row.get('[data-test="statement-row"]').classes().join(' ')).toBe(
         mountRow(EXPENSE).get('[data-test="statement-row"]').classes().join(' '),
       )
-      expect(marked.classes().join(' ')).not.toContain('line-through')
     })
 
-    it('greys an income out too, sign and figure untouched', () => {
+    it('crosses an income out too, sign and figure untouched', () => {
       const marked = mountRow(excluded(INCOME)).get('[data-test="statement-row-amount"]')
 
       expect(marked.text()).toBe(formatMoney('1200.00'))
-      expect(marked.classes()).toContain('text-ink-muted')
+      expect(marked.classes()).toContain('text-ink-faint')
+      expect(marked.classes()).toContain('line-through')
       expect(marked.classes()).not.toContain('text-positive')
+    })
+  })
+
+  // --- What counts and what does not, at a glance (feature 29) ---
+
+  describe('telling apart what counts, what does not and what has no category', () => {
+    const AMOUNT = '[data-test="statement-row-amount"]'
+    const DESCRIPTION = '[data-test="statement-row-description"]'
+    const CATEGORY = '[data-test="statement-row-category"]'
+    const ACCOUNT = '[data-test="statement-row-account"]'
+    const TRANSFER_LABEL = '[data-test="statement-row-transfer"]'
+    const EXCLUDED_LABEL = '[data-test="statement-row-excluded"]'
+
+    /** An income that is one of the two movements of a paired transfer. */
+    const INCOME_TRANSFER = movement({ ...INCOME, id: 16, transferId: 'tr_2026_09_04_2' })
+    /** A paired transfer that still has its category. */
+    const TRANSFER_WITH_CATEGORY = movement({ ...EXPENSE, id: 17, transferId: 'tr_2026_09_11_3' })
+
+    it('crosses out the amount and greys the description of a marked movement and of a paired transfer', () => {
+      for (const raw of [excluded(EXPENSE), excluded(INCOME), TRANSFER, INCOME_TRANSFER]) {
+        const row = mountRow(raw)
+
+        expect(row.get(AMOUNT).classes()).toContain('text-ink-faint')
+        expect(row.get(AMOUNT).classes()).toContain('line-through')
+        expect(row.get(DESCRIPTION).classes()).toContain('text-ink-muted')
+        expect(row.get(DESCRIPTION).classes()).not.toContain('text-ink-strong')
+      }
+
+      // What counts keeps the look it had: no strikethrough, its own colour (R3).
+      const expense = mountRow(EXPENSE)
+      expect(expense.get(AMOUNT).classes()).not.toContain('line-through')
+      expect(expense.get(AMOUNT).classes()).toContain('text-ink-strong')
+      expect(expense.get(DESCRIPTION).classes()).toContain('text-ink-strong')
+      expect(expense.get(DESCRIPTION).classes()).not.toContain('text-ink-muted')
+
+      const income = mountRow(INCOME)
+      expect(income.get(AMOUNT).classes()).not.toContain('line-through')
+      expect(income.get(AMOUNT).classes()).toContain('text-positive')
+      expect(income.get(DESCRIPTION).classes()).toContain('text-ink-strong')
+
+      const neutral = mountRow(NEUTRAL)
+      expect(neutral.get(AMOUNT).classes()).not.toContain('line-through')
+      expect(neutral.get(AMOUNT).classes()).toContain('text-ink-muted')
+    })
+
+    it('never paints the amount of a movement that does not count in green or in white', () => {
+      for (const raw of [excluded(INCOME), INCOME_TRANSFER]) {
+        expect(mountRow(raw).get(AMOUNT).classes()).not.toContain('text-positive')
+      }
+      for (const raw of [excluded(EXPENSE), TRANSFER]) {
+        expect(mountRow(raw).get(AMOUNT).classes()).not.toContain('text-ink-strong')
+      }
+      // And the figure is still the one the bank reported, sign included.
+      expect(mountRow(excluded(INCOME)).get(AMOUNT).text()).toBe(formatMoney('1200.00'))
+      expect(mountRow(TRANSFER).get(AMOUNT).text()).toBe(formatMoney('-500.00'))
+    })
+
+    it('gives every category the same label look for income and for expense', () => {
+      for (const props of [{}, { selectable: true }]) {
+        const income = mountRow(INCOME, props).get(CATEGORY)
+        const expense = mountRow(EXPENSE, props).get(CATEGORY)
+
+        expect(income.text()).toBe('Salary')
+        expect(expense.text()).toBe('Food')
+        expect(income.classes().join(' ')).toBe(expense.classes().join(' '))
+        for (const label of [income, expense]) {
+          expect(label.classes()).not.toContain('text-brand')
+          expect(label.classes()).not.toContain('bg-brand-subtle')
+          expect(label.classes()).toContain('bg-surface-sunken')
+        }
+      }
+      // Pressable or not, it is the same label.
+      expect(mountRow(EXPENSE).get(CATEGORY).classes().join(' ')).toBe(
+        mountRow(EXPENSE, { selectable: true }).get(CATEGORY).classes().join(' '),
+      )
+    })
+
+    it('draws the Uncategorized label with a dashed outline and no fill', () => {
+      const withCategory = mountRow(EXPENSE).get(CATEGORY).classes().join(' ')
+
+      // A button (an expense), not a button (selection mode) and a neutral movement.
+      const rows = [
+        mountRow(EXPENSE_SAME_DAY),
+        mountRow(EXPENSE_SAME_DAY, { selectable: true }),
+        mountRow(NEUTRAL),
+      ]
+      expect(rows[0]?.find('[data-test="statement-row-category-button"]').exists()).toBe(true)
+      expect(rows[1]?.find('[data-test="statement-row-category-button"]').exists()).toBe(false)
+
+      for (const row of rows) {
+        const label = row.get(CATEGORY)
+
+        expect(label.text()).toBe('Uncategorized')
+        expect(label.classes()).toContain('border-dashed')
+        expect(label.classes()).toContain('border-line-default')
+        expect(label.classes()).toContain('text-ink-muted')
+        expect(label.classes().filter((name) => name.startsWith('bg-'))).toEqual([])
+        expect(label.classes().join(' ')).not.toBe(withCategory)
+      }
+    })
+
+    it('keeps the category on a movement that does not count', () => {
+      const marked = mountRow(excluded(EXPENSE))
+
+      expect(marked.get(CATEGORY).text()).toBe('Food')
+      expect(marked.get(EXCLUDED_LABEL).text()).toBe('Not counted')
+
+      const paired = mountRow(TRANSFER_WITH_CATEGORY)
+      expect(paired.get(CATEGORY).text()).toBe('Food')
+      expect(paired.get(TRANSFER_LABEL).text()).toBe('Transfer')
+
+      // Without a category it still says so, next to the label of why it is left out.
+      const bare = mountRow(excluded(EXPENSE_SAME_DAY))
+      expect(bare.get(CATEGORY).text()).toBe('Uncategorized')
+      expect(bare.get(EXCLUDED_LABEL).text()).toBe('Not counted')
+    })
+
+    it('writes Transfer and Not counted under the description next to the account', () => {
+      const row = mountRow(excluded(TRANSFER))
+      const line = row.get(ACCOUNT).element.parentElement
+
+      expect(line?.tagName).toBe('P')
+      // Under the description: the paragraph right after it, in the same block.
+      expect(row.get(DESCRIPTION).element.nextElementSibling).toBe(line)
+
+      const transfer = row.get(TRANSFER_LABEL)
+      const notCounted = row.get(EXCLUDED_LABEL)
+      expect(transfer.element.parentElement).toBe(line)
+      expect(notCounted.element.parentElement).toBe(line)
+      // After the account, in this order.
+      expect([...(line?.children ?? [])].map((child) => child.getAttribute('data-test'))).toEqual([
+        'statement-row-account',
+        'statement-row-transfer',
+        'statement-row-excluded',
+      ])
+      expect(transfer.text()).toBe('Transfer')
+      expect(notCounted.text()).toBe('Not counted')
+
+      // Plain words, not badges: the only badge of the line is its category.
+      const badges = row.findAllComponents(BaseBadge).map((badge) => badge.element)
+      expect(badges).not.toContain(transfer.element)
+      expect(badges).not.toContain(notCounted.element)
+      for (const label of [transfer, notCounted]) {
+        expect(label.element.tagName).toBe('SPAN')
+        expect(label.classes()).not.toContain('rounded-pill')
+        expect(label.classes().filter((name) => name.startsWith('bg-'))).toEqual([])
+      }
+
+      expect(transfer.attributes('title')).toBe(
+        "Paired transfer: not counted in this month's figures",
+      )
+      expect(transfer.attributes('aria-label')).toBe(
+        "Paired transfer: not counted in this month's figures",
+      )
+      expect(notCounted.attributes('title')).toBe("Not counted in this month's figures")
+      expect(notCounted.attributes('aria-label')).toBe("Not counted in this month's figures")
+
+      // Each one only when its own condition holds, as before.
+      const plain = mountRow(EXPENSE)
+      expect(plain.find(TRANSFER_LABEL).exists()).toBe(false)
+      expect(plain.find(EXCLUDED_LABEL).exists()).toBe(false)
+      expect(mountRow(TRANSFER).find(EXCLUDED_LABEL).exists()).toBe(false)
+      expect(mountRow(excluded(EXPENSE)).find(TRANSFER_LABEL).exists()).toBe(false)
     })
   })
 

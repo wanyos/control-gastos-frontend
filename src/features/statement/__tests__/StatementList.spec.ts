@@ -51,6 +51,63 @@ describe('StatementList (R8, R11, R13)', () => {
     expect(list.findAll('[data-test="statement-load-more"]')).toHaveLength(0)
   })
 
+  it('says nothing is shown and offers Show everything while the reason is unknown', async () => {
+    const list = mountList({
+      days: [],
+      pagination: empty.pagination,
+      shown: 0,
+      emptyState: 'unknown',
+    })
+
+    const block = list.get('[data-test="statement-nothing-shown"]')
+    expect(block.get('[data-test="statement-empty-line"]').text()).toBe(
+      'Nothing to show in September 2026 while "Hide what does not count" is ticked.',
+    )
+    expect(block.get('[data-test="statement-show-everything"]').text()).toBe('Show everything')
+    expect(list.find('[data-test="statement-empty-clear"]').exists()).toBe(false)
+    // It is neither of the two sentences it cannot affirm yet.
+    expect(list.find('[data-test="statement-empty"]').exists()).toBe(false)
+    expect(list.find('[data-test="statement-nothing-left"]').exists()).toBe(false)
+    expect(list.find('[data-test="statement-no-matches"]').exists()).toBe(false)
+    expect(list.findAll('[data-test="statement-row"]')).toHaveLength(0)
+
+    await block.get('[data-test="statement-show-everything"]').trigger('click')
+
+    expect(list.emitted('show-everything')).toHaveLength(1)
+    expect(list.emitted('clear')).toBeUndefined()
+
+    // With filters on, it is still the same sentence and the same button.
+    const filtered = mountList({
+      days: [],
+      pagination: empty.pagination,
+      shown: 0,
+      emptyState: 'unknown',
+      filtered: true,
+    })
+    expect(filtered.get('[data-test="statement-nothing-shown"]').text()).toBe(block.text())
+  })
+
+  it('keeps Show everything off the empty month and off the filters with no matches', () => {
+    for (const emptyState of ['month', 'noMatches'] as const) {
+      const list = mountList({ days: [], pagination: empty.pagination, shown: 0, emptyState })
+
+      expect(list.find('[data-test="statement-show-everything"]').exists()).toBe(false)
+      expect(list.find('[data-test="statement-nothing-shown"]').exists()).toBe(false)
+    }
+    const hidden = mountList({
+      days: [],
+      pagination: empty.pagination,
+      shown: 0,
+      emptyState: 'nothingLeft',
+    })
+    expect(
+      hidden
+        .get('[data-test="statement-nothing-left"]')
+        .find('[data-test="statement-show-everything"]')
+        .exists(),
+    ).toBe(true)
+  })
+
   it('offers Load more only when the month does not fit in one page (R13)', () => {
     expect(mountList().find('[data-test="statement-load-more"]').exists()).toBe(false)
 

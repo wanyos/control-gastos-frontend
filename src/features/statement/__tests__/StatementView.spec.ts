@@ -28,6 +28,7 @@ import {
   excluded,
   fakeMonth,
   json,
+  jsonResponse,
   mockApi,
   movement as rawMovement,
   networkDown,
@@ -299,8 +300,9 @@ describe('StatementView', () => {
       )
       expect(wrapper.find('[data-test="statement-totals-note"]').exists()).toBe(true)
       // Feature 23: the note no longer names a month nor carries a single digit (R14).
-      expect(wrapper.get('[data-test="statement-totals-note"]').text()).toContain(
-        'These figures already leave out what does not count',
+      // Feature 29: its first sentence is the one always in sight.
+      expect(wrapper.get('[data-test="statement-totals-line"]').text()).toBe(
+        'These figures leave out the movements labelled "Transfer" or "Not counted".',
       )
       expect(wrapper.get('[data-test="statement-totals-note"]').text()).not.toMatch(/\d/)
     })
@@ -953,6 +955,180 @@ describe('StatementView', () => {
       expect(router.currentRoute.value.query).toEqual({ month: '2026-09', q: 'transferencia' })
     })
 
+    // ─── An empty list with the checkbox on (feature 29) ───────────────────
+    describe('a month where the list comes out empty with the checkbox on', () => {
+      /** The read without hiding: one row asked for, `total` movements counted. */
+      const countOf = (total: number) =>
+        json({
+          ...EMPTY_MONTH_PAGE,
+          pagination: { page: 1, pageSize: 1, total, totalPages: total },
+        })
+
+      /** The month answers `total: 0`; the read without hiding answers what it is told. */
+      const emptyWith = (count: () => Promise<Response>): Answers => ({
+        movements: (query) => (query.get('pageSize') === '1' ? count() : json(EMPTY_MONTH_PAGE)()),
+      })
+
+      const exists = (wrapper: Awaited<ReturnType<typeof mountView>>['wrapper'], name: string) =>
+        wrapper.find(`[data-test="${name}"]`).exists()
+
+      it('an empty month opened with the checkbox on says it has no movements', async () => {
+        const { api, wrapper } = await mountView(
+          '/movements?month=2026-10&hide=true',
+          emptyWith(countOf(0)),
+        )
+
+        expect(api.queries()).toEqual([
+          'from=2026-10-01&to=2026-10-31&excluded=none&transfer=none&page=1&pageSize=200',
+          'from=2026-10-01&to=2026-10-31&page=1&pageSize=1',
+        ])
+        expect(wrapper.get('[data-test="statement-empty"]').text()).toBe(
+          'No movements in October 2026.',
+        )
+        expect(exists(wrapper, 'statement-nothing-left')).toBe(false)
+        expect(exists(wrapper, 'statement-nothing-shown')).toBe(false)
+        expect(exists(wrapper, 'statement-show-everything')).toBe(false)
+        expect(exists(wrapper, 'statement-empty-clear')).toBe(false)
+        expect(exists(wrapper, 'statement-hidden-count')).toBe(false)
+        expect(wrapper.text()).not.toContain('Hiding')
+        expect(wrapper.text()).not.toContain('hidden')
+        // The checkbox itself is still there, and still ticked.
+        expect(box(wrapper).element.checked).toBe(true)
+      })
+
+      it('a month whose movements are all hidden says so and offers Show everything', async () => {
+        const { router, wrapper } = await mountView(
+          '/movements?month=2026-10&hide=true',
+          emptyWith(countOf(3)),
+        )
+
+        const block = wrapper.get('[data-test="statement-nothing-left"]')
+        expect(block.text()).toContain('Nothing left to show in October 2026')
+        expect(block.text()).toContain('everything in this month is hidden')
+        expect(exists(wrapper, 'statement-empty')).toBe(false)
+        expect(exists(wrapper, 'statement-nothing-shown')).toBe(false)
+        expect(wrapper.get('[data-test="statement-hidden-count"]').text()).toBe(
+          'Hiding 3 movements',
+        )
+        expect(wrapper.get('[data-test="statement-show-everything"]').text()).toBe(
+          'Show everything',
+        )
+
+        await wrapper.get('[data-test="statement-show-everything"]').trigger('click')
+        await flushPromises()
+
+        expect(router.currentRoute.value.query).toEqual({ month: '2026-10' })
+        expect(router.currentRoute.value.query.hide).toBeUndefined()
+        expect(box(wrapper).element.checked).toBe(false)
+      })
+
+      it('with filters and the checkbox on a month where nothing matches blames the filters', async () => {
+        const { router, wrapper } = await mountView(
+          '/movements?month=2026-10&hide=true&q=alquiler',
+          emptyWith(countOf(0)),
+        )
+
+        const block = wrapper.get('[data-test="statement-no-matches"]')
+        expect(block.get('[data-test="statement-empty-line"]').text()).toBe(
+          'No movements match these filters in October 2026.',
+        )
+        expect(block.get('[data-test="statement-empty-clear"]').text()).toBe('Clear filters')
+        expect(exists(wrapper, 'statement-show-everything')).toBe(false)
+        expect(exists(wrapper, 'statement-nothing-left')).toBe(false)
+        expect(exists(wrapper, 'statement-nothing-shown')).toBe(false)
+        expect(exists(wrapper, 'statement-hidden-count')).toBe(false)
+
+        await block.get('[data-test="statement-empty-clear"]').trigger('click')
+        await flushPromises()
+
+        // The filters go and the checkbox stays, as `Clear filters` always did (C5).
+        expect(router.currentRoute.value.query).toEqual({ month: '2026-10', hide: 'true' })
+      })
+
+      it('says nothing is shown without blaming the checkbox when the second read fails', async () => {
+        const { router, wrapper } = await mountView(
+          '/movements?month=2026-10&hide=true',
+          emptyWith(networkDown),
+        )
+
+        const block = wrapper.get('[data-test="statement-nothing-shown"]')
+        expect(block.get('[data-test="statement-empty-line"]').text()).toBe(
+          'Nothing to show in October 2026 while "Hide what does not count" is ticked.',
+        )
+        expect(block.get('[data-test="statement-show-everything"]').text()).toBe('Show everything')
+        expect(exists(wrapper, 'statement-empty')).toBe(false)
+        expect(exists(wrapper, 'statement-nothing-left')).toBe(false)
+        expect(exists(wrapper, 'statement-hidden-count')).toBe(false)
+        // The failure of that read paints no error, as in the F23.
+        expect(exists(wrapper, 'statement-error')).toBe(false)
+
+        await block.get('[data-test="statement-show-everything"]').trigger('click')
+        await flushPromises()
+
+        expect(router.currentRoute.value.query).toEqual({ month: '2026-10' })
+      })
+
+      it('says the same while the second read has not answered yet, then what it learns', async () => {
+        const late = deferred()
+        const { wrapper } = await mountView(
+          '/movements?month=2026-10&hide=true',
+          emptyWith(late.answer),
+        )
+
+        expect(
+          wrapper
+            .get('[data-test="statement-nothing-shown"]')
+            .get('[data-test="statement-empty-line"]')
+            .text(),
+        ).toBe('Nothing to show in October 2026 while "Hide what does not count" is ticked.')
+        expect(exists(wrapper, 'statement-show-everything')).toBe(true)
+        expect(exists(wrapper, 'statement-hidden-count')).toBe(false)
+
+        late.resolve(jsonResponse(EMPTY_MONTH_PAGE))
+        await flushPromises()
+
+        expect(exists(wrapper, 'statement-nothing-shown')).toBe(false)
+        expect(wrapper.get('[data-test="statement-empty"]').text()).toBe(
+          'No movements in October 2026.',
+        )
+        expect(exists(wrapper, 'statement-show-everything')).toBe(false)
+      })
+
+      it('keeps Hiding 0 movements in a month that does have movements', async () => {
+        const { wrapper } = await mountView('/movements?month=2026-09&hide=true', {
+          movements: (query) =>
+            query.get('pageSize') === '1' ? countOf(4)() : json(HIDDEN_MONTH_PAGE)(),
+        })
+
+        expect(wrapper.findAll('[data-test="statement-row"]')).toHaveLength(4)
+        expect(wrapper.get('[data-test="statement-hidden-count"]').text()).toBe(
+          'Hiding 0 movements',
+        )
+      })
+
+      it('asks the backend for nothing new to tell an empty month from a hidden one', async () => {
+        const on = await mountView('/movements?month=2026-10&hide=true', emptyWith(countOf(0)))
+
+        expect(on.api.queries()).toEqual([
+          'from=2026-10-01&to=2026-10-31&excluded=none&transfer=none&page=1&pageSize=200',
+          'from=2026-10-01&to=2026-10-31&page=1&pageSize=1',
+        ])
+        expect(on.api.calls.filter((call) => call.path === '/api/movements')).toHaveLength(2)
+        expect(on.api.methods()).toEqual(['GET'])
+        on.wrapper.unmount()
+        vi.restoreAllMocks()
+
+        const off = await mountView('/movements?month=2026-10', emptyWith(countOf(0)))
+
+        expect(off.api.queries()).toEqual(['from=2026-10-01&to=2026-10-31&page=1&pageSize=200'])
+        expect(off.api.calls.filter((call) => call.path === '/api/movements')).toHaveLength(1)
+        expect(off.api.methods()).toEqual(['GET'])
+        expect(off.wrapper.get('[data-test="statement-empty"]').text()).toBe(
+          'No movements in October 2026.',
+        )
+      })
+    })
+
     it('`Clear filters` empties the bar and leaves the switch ON (C5)', async () => {
       const { router, wrapper } = await mountView(
         '/movements?month=2026-09&hide=true&account=1&q=luz',
@@ -982,9 +1158,14 @@ describe('StatementView', () => {
         ambiguous: json(ambiguousGroups(2)),
       })
 
-      expect(wrapper.get('[data-test="statement-totals-note"]').text()).toContain(
-        '2 groups look like transfers but could not be paired automatically.',
-      )
+      // Feature 29: folded with the rest of the note, inside its <details>.
+      expect(
+        wrapper
+          .get('[data-test="statement-totals-note"]')
+          .get('[data-test="statement-totals-more"]')
+          .get('[data-test="statement-ambiguous-note"]')
+          .text(),
+      ).toBe('2 groups look like transfers but could not be paired automatically.')
 
       await box(wrapper).setValue(true)
       await flushPromises()

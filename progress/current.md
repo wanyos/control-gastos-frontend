@@ -3,8 +3,10 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** F29 `statement-readable` (SDD). Spec aprobado por el humano el 2026-10-12. Dos lotes encadenados; Lote A lanzado.
+- **Feature en curso:** ninguna. La F29 quedó cerrada el 2026-10-12.
 - **Nivel de consumo:** medio (todos los subagentes en `opus`).
 
-Lo que seguía vivo al cerrar la F26 está en `docs/roadmap.md`: el plan de la E8 en su
-sección, y los cabos sueltos 7 a 10 en la tabla «Cabos sueltos con dueño».
+Lo que sigue vivo está en `docs/roadmap.md` (tabla «Cabos sueltos con dueño») y, para las
+ideas de mejora de la aplicación, en `../docs/ideas-de-mejora.md`. De los arreglos de
+pantalla acordados tras la revisión del humano quedan uno (el cabo 26: `Review` tras
+aplicar las reglas) y, después, el caso A de `progress/explorations/fiabilidad-de-los-datos.md`.

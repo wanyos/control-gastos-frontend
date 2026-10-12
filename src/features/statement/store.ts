@@ -71,6 +71,12 @@ export const useStatementStore = defineStore('statement', () => {
    * switch is off or when that extra read failed, and then nothing is painted (R9).
    */
   const hiddenCount = ref<number | null>(null)
+  /**
+   * How many movements the month (with its filters) has when nothing is hidden: the
+   * `pagination.total` of the read `loadHiddenCount` already makes. Null while the
+   * checkbox is off, while that read has not answered, and after it failed.
+   */
+  const totalWithoutHiding = ref<number | null>(null)
   /** Null while never loaded, or when the last load of a month failed. */
   const result = ref<MovementPage | null>(null)
   /** The movements of pages 2..n the user brought with `Load more`, in order (R13). */
@@ -158,6 +164,7 @@ export const useStatementStore = defineStore('statement', () => {
     page.value = 0
     // A stale number would say how much of ANOTHER month is hidden (R7).
     hiddenCount.value = null
+    totalWithoutHiding.value = null
     // A new month or a new filter is a new context: the open editor and the Undo of
     // the last write go with it (R13), and so does the selection — a ticked id that is
     // no longer on screen would be a trap (feature 22, R7). The selection MODE stays
@@ -204,15 +211,19 @@ export const useStatementStore = defineStore('statement', () => {
   async function loadHiddenCount(run: number, client?: HttpClient): Promise<void> {
     if (!hideNoise.value) {
       hiddenCount.value = null
+      totalWithoutHiding.value = null
       return
     }
     try {
       const all = await getMovements(hiddenCountQuery(month.value, filters.value), client)
       if (run !== loadRun) return
       hiddenCount.value = Math.max(all.pagination.total - (result.value?.pagination.total ?? 0), 0)
+      // Kept as it came: it tells an empty month from one whose rows are all hidden.
+      totalWithoutHiding.value = all.pagination.total
     } catch {
       if (run !== loadRun) return
       hiddenCount.value = null
+      totalWithoutHiding.value = null
     }
   }
 
@@ -566,6 +577,7 @@ export const useStatementStore = defineStore('statement', () => {
     filters,
     hideNoise,
     hiddenCount,
+    totalWithoutHiding,
     ambiguousGroups,
     result,
     extra,

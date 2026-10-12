@@ -40,6 +40,8 @@
    painted in --positive, which only reaches 3.95 on --surface-hover.
    contrast: --positive on --surface-sunken >= 4.5 (income amount on a hovered review row)
    contrast: --ink-faint on --surface-sunken >= 3 (uncategorized dot on a hovered row)
+   contrast: --ink-faint on --surface-sunken >= 4.5 (statement: amount of a movement left out of the figures, hovered row)
+   contrast: --border-default on --surface-sunken >= 3 (statement: dashed edge of the Uncategorized label, hovered row)
    contrast: --ink-muted on --surface-sunken >= 4.5 (Details: original backend message in an issue row)
    contrast: --ink-strong on --surface-sunken >= 4.5 (import report: figures and headings inside a report row)
    contrast: --brand on --surface-sunken >= 3 (left edge of a selected review row)

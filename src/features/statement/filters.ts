@@ -216,3 +216,8 @@ export function nothingLeftLine(month: MonthKey, hasFilters: boolean): string {
     ? `Nothing left to show in ${label}: what these filters match is hidden.`
     : `Nothing left to show in ${label}: everything in this month is hidden.`
 }
+
+/** Nothing on screen with the checkbox on, and no way yet to know why (feature 29, R14). */
+export function nothingShownLine(month: MonthKey): string {
+  return `Nothing to show in ${formatMonthLabel(month)} while "Hide what does not count" is ticked.`
+}

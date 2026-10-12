@@ -1310,6 +1310,91 @@ describe('useStatementStore', () => {
       expect(store.hiddenCount).toBe(1)
     })
 
+    // Feature 29: the count read already carries the total of the month with nothing
+    // hidden; the store keeps it so the view can tell an empty month from a hidden one.
+    it('keeps the total of the month without hiding from the read it already makes', async () => {
+      let countAnswer: () => Promise<Response> = json(COUNT_PAGE)
+      const api = mockApi({
+        movements: (query) => {
+          if (query.get('pageSize') === '1') return countAnswer()
+          return json(query.get('excluded') === 'none' ? HIDDEN_MONTH_PAGE : MONTH_PAGE)()
+        },
+      })
+      const store = useStatementStore()
+
+      // Checkbox off: one read, and nothing is known nor asked.
+      await store.show('2026-09')
+      expect(store.totalWithoutHiding).toBeNull()
+      expect(api.queries()).toHaveLength(1)
+
+      // Checkbox on: it is the `pagination.total` of the SECOND answer, as it came.
+      await store.show('2026-09', EMPTY_FILTERS, true)
+      expect(api.queries()).toHaveLength(3)
+      expect(api.queries().at(-1)).toBe('from=2026-09-01&to=2026-09-30&page=1&pageSize=1')
+      expect(store.totalWithoutHiding).toBe(COUNT_PAGE.pagination.total)
+      expect(store.totalWithoutHiding).toBe(5)
+      expect(store.result?.pagination.total).toBe(4)
+      expect(store.hiddenCount).toBe(1)
+
+      // An empty month answers zero, which is a number and not «unknown».
+      countAnswer = json({
+        ...EMPTY_MONTH_PAGE,
+        pagination: { ...COUNT_PAGE.pagination, total: 0 },
+      })
+      await store.show('2026-08', EMPTY_FILTERS, true)
+      expect(store.totalWithoutHiding).toBe(0)
+
+      // Changing the month blanks it until the read of the new month answers.
+      const late = deferred()
+      countAnswer = late.answer
+      const loading = store.show('2026-07', EMPTY_FILTERS, true)
+      expect(store.totalWithoutHiding).toBeNull()
+      late.resolve(jsonResponse(COUNT_PAGE))
+      await loading
+      expect(store.totalWithoutHiding).toBe(5)
+
+      // A failure of that read leaves it unknown, and paints no error.
+      countAnswer = networkDown
+      await store.show('2026-06', EMPTY_FILTERS, true)
+      expect(store.totalWithoutHiding).toBeNull()
+      expect(store.hiddenCount).toBeNull()
+      expect(store.error).toBeNull()
+
+      // Back on, then the checkbox off again: null, with no second read.
+      countAnswer = json(COUNT_PAGE)
+      await store.show('2026-06', EMPTY_FILTERS, true)
+      expect(store.totalWithoutHiding).toBe(5)
+      const readsBefore = api.queries().length
+      await store.show('2026-06', EMPTY_FILTERS, false)
+      expect(store.totalWithoutHiding).toBeNull()
+      expect(api.queries()).toHaveLength(readsBefore + 1)
+      expect(api.methods()).toEqual(['GET'])
+    })
+
+    it('drops the total without hiding of a month nobody is looking at any more', async () => {
+      const late = deferred()
+      mockApi({
+        movements: (query) => {
+          if (query.get('pageSize') === '1') {
+            return query.get('from') === '2026-07-01' ? late.answer() : json(COUNT_PAGE)()
+          }
+          return json(HIDDEN_MONTH_PAGE)()
+        },
+      })
+      const store = useStatementStore()
+
+      const stale = store.show('2026-07', EMPTY_FILTERS, true)
+      await store.show('2026-09', EMPTY_FILTERS, true)
+      expect(store.totalWithoutHiding).toBe(5)
+      late.resolve(
+        jsonResponse({ ...COUNT_PAGE, pagination: { ...COUNT_PAGE.pagination, total: 77 } }),
+      )
+      await stale
+
+      expect(store.month).toBe('2026-09')
+      expect(store.totalWithoutHiding).toBe(5)
+    })
+
     it('with the switch off a marked row stays exactly where it was (F22, R9)', async () => {
       const month = fakeMonth()
       mockApi({ movements: (query) => month.movements(query), bulkPatch: month.bulkPatch })

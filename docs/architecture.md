@@ -100,12 +100,15 @@ src/
                           # NoiseSwitch (#23: el interruptor del ruido y el `Hiding N`)
       views/              # StatementView (ruta /movements)
       store.ts            # useStatementStore: mes, página del mes, carga, error, Load more,
-                          # filtros (#20), editor abierto, escritura y deshacer (#21)
+                          # filtros (#20), editor abierto, escritura y deshacer (#21);
+                          # `totalWithoutHiding`: cuántos movimientos tiene el mes sin
+                          # esconder nada, tomado de la lectura que ya hacía `hiddenCount` (#29)
       months.ts           # todo lo puro del mes: rango, salto, URL, agrupación por día y textos
       filters.ts          # los cuatro filtros ↔ querystring de la API y de la URL (#20);
                           # el interruptor `hideNoise` (`hide=true` en la URL, `excluded=none`
                           # y `transfer=none` en la API), `hiddenCountQuery`,
-                          # `hiddenCountLine` y `nothingLeftLine` (#23)
+                          # `hiddenCountLine` y `nothingLeftLine` (#23); `nothingShownLine`,
+                          # la frase de la lista vacía mientras no se sabe por qué (#29)
       actions.ts          # filtro de categoría, textos del aviso y de los errores, puras (#21)
       service.ts          # setMovementCategory: PATCH /api/movements/:id con solo `categoryId` (#21);
                           # setMovementsExcluded: PATCH /api/movements con solo ids y

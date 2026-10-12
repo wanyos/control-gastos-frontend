@@ -10,6 +10,7 @@ import {
   monthQuery,
   noMatchesLine,
   nothingLeftLine,
+  nothingShownLine,
   toRouteQuery,
 } from '../filters'
 import type { StatementFilters } from '../filters'
@@ -340,6 +341,19 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
       expect(nothingLeftLine('2026-07', false)).toBe(
         'Nothing left to show in July 2026: everything in this month is hidden.',
       )
+    })
+
+    it('names the month and the checkbox when nothing is shown and the reason is unknown', () => {
+      expect(nothingShownLine('2026-10')).toBe(
+        'Nothing to show in October 2026 while "Hide what does not count" is ticked.',
+      )
+      expect(nothingShownLine('2026-07')).toBe(
+        'Nothing to show in July 2026 while "Hide what does not count" is ticked.',
+      )
+      // It affirms neither of the two things it cannot know yet (R14).
+      for (const claim of ['No movements', 'hidden', 'Nothing left']) {
+        expect(nothingShownLine('2026-10')).not.toContain(claim)
+      }
     })
   })
 })

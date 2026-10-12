@@ -7,8 +7,8 @@ import type { Page, Request } from '@playwright/test'
 // foresee, so nothing ever reaches the real backend on :3000 and no write can leak out.
 // Every test ends asserting that the only method of the whole session was GET.
 
-/** The fixed note, whose first words never change and which carries no digit (R14). */
-const NOTE_START = 'These figures already leave out what does not count'
+/** The first words of the sentence always in sight under the figures (feature 29). */
+const NOTE_START = 'These figures leave out the movements labelled'
 
 const BANKINTER = {
   id: 1,
@@ -299,6 +299,45 @@ test('a search that only matches hidden rows names both causes and gives the way
   expect(watch.consoleErrors).toEqual([])
 })
 
+test('an empty month with the checkbox on says it has no movements', async ({ page }) => {
+  const watch = await prepare(page)
+  // Both reads of this month answer zero: the month with the checkbox on, and the read
+  // without hiding (`pageSize=1`, no status). The sidebar's count keeps its own answer.
+  await page.route('**/api/movements*', (route) => {
+    const query = new URL(route.request().url()).searchParams
+    if (query.get('status') !== null) return route.fallback()
+    return route.fulfill({
+      json: {
+        ...EMPTY_PAGE,
+        pagination: { ...EMPTY_PAGE.pagination, pageSize: Number(query.get('pageSize')) },
+      },
+    })
+  })
+
+  await page.goto(`/movements?month=${currentMonth()}&hide=true`)
+
+  await expect(page.getByTestId('statement-noise-switch').locator('input')).toBeChecked()
+  // Waited for first: until the second read answers, the screen cannot know why (R14).
+  await expect(page.getByTestId('statement-empty')).toContainText('No movements in')
+  await expect(page.getByTestId('statement-show-everything')).toHaveCount(0)
+  await expect(page.getByText('Show everything')).toHaveCount(0)
+  await expect(page.getByTestId('statement-nothing-left')).toHaveCount(0)
+  await expect(page.getByTestId('statement-nothing-shown')).toHaveCount(0)
+  await expect(page.getByTestId('statement-hidden-count')).toHaveCount(0)
+  await expect(page.getByText('Hiding')).toHaveCount(0)
+
+  // Nothing new was asked to tell the two cases apart: the month and the read it already made.
+  const reads = watch.requests
+    .map((request) => new URL(request.url()))
+    .filter((url) => url.pathname === '/api/movements' && url.searchParams.get('status') === null)
+  expect(reads.map((url) => url.searchParams.get('pageSize'))).toEqual(['200', '1'])
+  expect(reads[0]?.search).toContain('excluded=none&transfer=none')
+  expect(reads[1]?.search).not.toContain('excluded')
+  expect(onlyGet(watch)).toEqual(['GET'])
+  expect(watch.pageErrors).toEqual([])
+  expect(watch.consoleErrors).toEqual([])
+})
+
 test('the note is permanent, carries the live sentence and nothing else numeric', async ({
   page,
 }) => {
@@ -306,8 +345,20 @@ test('the note is permanent, carries the live sentence and nothing else numeric'
   await page.goto('/movements')
 
   const note = page.getByTestId('statement-totals-note')
-  await expect(note).toContainText(NOTE_START)
-  await expect(note).toContainText('2 groups look like transfers but could not be paired')
+  const more = page.getByTestId('statement-totals-more')
+  const doubtful = page.getByTestId('statement-ambiguous-note')
+  // One sentence in sight; the rest, the live sentence included, folded until opened.
+  await expect(page.getByTestId('statement-totals-line')).toBeVisible()
+  await expect(page.getByTestId('statement-totals-line')).toContainText(NOTE_START)
+  await expect(more).toHaveJSProperty('open', false)
+  await expect(doubtful).toBeHidden()
+
+  await more.locator('summary').click()
+
+  await expect(more).toHaveJSProperty('open', true)
+  await expect(doubtful).toBeVisible()
+  await expect(doubtful).toContainText('2 groups look like transfers but could not be paired')
+  await expect(more.locator('li')).toHaveCount(6)
   await expect(note.locator('button')).toHaveCount(0)
   // The doubtful groups are read ONCE per session, whatever the month does (R15).
   await page.getByTestId('statement-prev').click()
@@ -326,8 +377,17 @@ test('with no doubtful group the note keeps only its fixed text', async ({ page 
   await page.goto('/movements')
 
   const note = page.getByTestId('statement-totals-note')
-  await expect(note).toContainText(NOTE_START)
+  const more = page.getByTestId('statement-totals-more')
+  await expect(page.getByTestId('statement-totals-line')).toContainText(NOTE_START)
+  await expect(more).toHaveJSProperty('open', false)
+  await expect(more.locator('summary')).toHaveText('More about what counts')
   await expect(page.getByTestId('statement-ambiguous-note')).toHaveCount(0)
+
+  await more.locator('summary').click()
+
+  // Opened, it is the five fixed sentences and no more; folded or not, not one digit.
+  await expect(more.locator('li')).toHaveCount(5)
+  await expect(more.locator('li').first()).toBeVisible()
   expect(await note.textContent()).not.toMatch(/\d/)
   expect(watch.consoleErrors).toEqual([])
 })

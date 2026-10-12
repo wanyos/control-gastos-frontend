@@ -23,7 +23,7 @@
          does not make the tile grow or jump (design §6). -->
     <NoiseSwitch
       :model-value="store.hideNoise"
-      :hidden-count="store.hiddenCount"
+      :hidden-count="store.totalWithoutHiding === 0 ? null : store.hiddenCount"
       @change="onToggleNoise"
     />
 
@@ -315,13 +315,16 @@ async function onSaveRule(rule: NewRule): Promise<void> {
 }
 
 /**
- * Nothing on screen has three different reasons, and the switch's one comes first: when
- * it is on, what is missing may be the filters, may be what is hidden, and the sentence
- * has to name both (R12).
+ * Nothing on screen with the switch on is only blamed on the switch when the month has
+ * something without it: the total of the read without hiding says so. Zero there is an
+ * empty month (or filters with no matches) like with the switch off, and while that
+ * total is unknown the sentence affirms neither (feature 29, R12, R13, R14).
  */
-const emptyState = computed<'month' | 'noMatches' | 'nothingLeft'>(() => {
-  if (store.hideNoise) return 'nothingLeft'
-  return hasActiveFilters(store.filters) ? 'noMatches' : 'month'
+const emptyState = computed<'month' | 'noMatches' | 'nothingLeft' | 'unknown'>(() => {
+  const withoutCheckbox = hasActiveFilters(store.filters) ? 'noMatches' : 'month'
+  if (!store.hideNoise) return withoutCheckbox
+  if (store.totalWithoutHiding === null) return 'unknown'
+  return store.totalWithoutHiding === 0 ? withoutCheckbox : 'nothingLeft'
 })
 
 // ─── Marking movements as not counted (feature 22: R5, R13, R14) ───────────

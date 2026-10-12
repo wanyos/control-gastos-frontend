@@ -6,8 +6,8 @@ import type { Page, Request } from '@playwright/test'
 // aborts anything it did not foresee, so nothing ever reaches the real backend on
 // :3000 and no write can leak out.
 
-/** Feature 23: the note was rewritten whole and no longer carries a single digit. */
-const NOTE_START = 'These figures already leave out what does not count'
+/** The first words of the sentence always in sight under the figures (feature 29). */
+const NOTE_START = 'These figures leave out the movements labelled'
 
 const BANKINTER = {
   id: 1,
@@ -211,6 +211,110 @@ test('opens on the current month with its figures, its note and its days', async
   await expect(page.getByTestId('statement-row-transfer')).toHaveCount(1)
   expect(statementQueries(watch)).toHaveLength(1)
   expect(statementQueries(watch)[0]).toContain('from=')
+
+  expect(watch.requests.every((request) => request.method() === 'GET')).toBe(true)
+  expect(watch.pageErrors).toEqual([])
+  expect(watch.consoleErrors).toEqual([])
+})
+
+test('a movement that does not count is crossed out, greyed and labelled under its description', async ({
+  page,
+}) => {
+  const watch = await prepare(page)
+  const month = currentMonth()
+  const FOOD = { id: 1, name: 'Food', kind: 'expense', parentId: null }
+  // One of each: a paired transfer leg, a movement marked by hand that keeps its category,
+  // and an expense and an income that count.
+  await page.route('**/api/movements*', (route) => {
+    const query = new URL(route.request().url()).searchParams
+    if (query.get('pageSize') === '1') return route.fallback()
+    return route.fulfill({
+      json: {
+        movements: [
+          movement(20, `${month}-09`, { transferId: 'tr_7', description: 'TRASPASO A MYINVESTOR' }),
+          movement(21, `${month}-09`, {
+            type: 'income',
+            amount: '312.80',
+            description: 'DEVOLUCION FIANZA',
+            excludedFromTotals: true,
+            categoryId: 1,
+            category: FOOD,
+          }),
+          movement(22, `${month}-06`, { categoryId: 1, category: FOOD }),
+          movement(23, `${month}-06`, { type: 'income', amount: '1200.00', description: 'NOMINA' }),
+        ],
+        pagination: { page: 1, pageSize: 200, total: 4, totalPages: 1 },
+        totals: { income: '1200.00', expense: '45.37', net: '1154.63' },
+      },
+    })
+  })
+
+  await page.goto('/movements')
+  const rows = page.getByTestId('statement-row')
+  await expect(rows).toHaveCount(4)
+
+  // What each alias of the theme paints, read from the page itself.
+  const alias = (name: string) =>
+    page.evaluate((variable) => {
+      const probe = document.createElement('span')
+      probe.style.color = `var(${variable})`
+      document.body.append(probe)
+      const color = getComputedStyle(probe).color
+      probe.remove()
+      return color
+    }, name)
+  const look = (row: number, part: string) =>
+    rows
+      .nth(row)
+      .getByTestId(part)
+      .evaluate((el) => {
+        const computed = getComputedStyle(el)
+        return {
+          color: computed.color,
+          line: computed.textDecorationLine,
+          background: computed.backgroundColor,
+        }
+      })
+  const [inkFaint, inkMuted, inkStrong, positive, sunken] = await Promise.all(
+    ['--ink-faint', '--ink-muted', '--ink-strong', '--positive', '--surface-sunken'].map(alias),
+  )
+
+  // Left out, by the app or by hand, expense or income: the same faint, crossed-out amount.
+  for (const row of [0, 1]) {
+    expect(await look(row, 'statement-row-amount')).toMatchObject({
+      color: inkFaint,
+      line: 'line-through',
+    })
+    expect((await look(row, 'statement-row-description')).color).toBe(inkMuted)
+  }
+  // What counts keeps its colour and is never crossed out.
+  expect(await look(2, 'statement-row-amount')).toMatchObject({ color: inkStrong, line: 'none' })
+  expect(await look(3, 'statement-row-amount')).toMatchObject({ color: positive, line: 'none' })
+  expect((await look(2, 'statement-row-description')).color).toBe(inkStrong)
+  expect(new Set([inkFaint, inkMuted, inkStrong, positive]).size).toBe(4)
+
+  // `Transfer` and `Not counted` are read under the description, on the account's line.
+  for (const [row, label, text] of [
+    [0, 'statement-row-transfer', 'Transfer'],
+    [1, 'statement-row-excluded', 'Not counted'],
+  ] as const) {
+    const word = rows.nth(row).getByTestId(label)
+    await expect(word).toBeVisible()
+    await expect(word).toHaveText(text)
+    expect((await look(row, label)).color).toBe(inkMuted)
+    const description = await rows.nth(row).getByTestId('statement-row-description').boundingBox()
+    const account = await rows.nth(row).getByTestId('statement-row-account').boundingBox()
+    const box = await word.boundingBox()
+    expect(box!.y).toBeGreaterThanOrEqual(description!.y + description!.height)
+    expect(Math.abs(box!.y - account!.y)).toBeLessThan(2)
+    expect(box!.x).toBeGreaterThan(account!.x + account!.width)
+  }
+  // The category of a movement that does not count is still there to read.
+  await expect(rows.nth(1).getByTestId('statement-row-category')).toHaveText('Food')
+
+  // With the mouse over a line, the row takes the sunken surface.
+  await rows.nth(2).hover()
+  await expect(rows.nth(2)).toHaveCSS('background-color', sunken!)
 
   expect(watch.requests.every((request) => request.method() === 'GET')).toBe(true)
   expect(watch.pageErrors).toEqual([])

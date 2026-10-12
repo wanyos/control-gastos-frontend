@@ -21,37 +21,36 @@
 
     <div class="min-w-0 flex-1">
       <p
-        class="truncate text-sm font-semibold text-ink-strong"
+        class="truncate text-sm font-semibold"
+        :class="isLeftOut ? 'text-ink-muted' : 'text-ink-strong'"
         data-test="statement-row-description"
       >
         {{ movement.description }}
       </p>
+      <!-- `Transfer` and `Not counted` are words next to the account, not badges: the
+           only thing shaped like a label in a line is its category (feature 29, R5). -->
       <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
         <span data-test="statement-row-account">{{ accountName }}</span>
+        <span
+          v-if="movement.transferId"
+          class="font-semibold"
+          :title="TRANSFER_HINT"
+          :aria-label="TRANSFER_HINT"
+          data-test="statement-row-transfer"
+        >
+          Transfer
+        </span>
+        <span
+          v-if="movement.excludedFromTotals"
+          class="font-semibold"
+          :title="EXCLUDED_HINT"
+          :aria-label="EXCLUDED_HINT"
+          data-test="statement-row-excluded"
+        >
+          Not counted
+        </span>
       </p>
     </div>
-
-    <BaseBadge
-      v-if="movement.transferId"
-      size="sm"
-      tone="neutral"
-      :title="TRANSFER_HINT"
-      :aria-label="TRANSFER_HINT"
-      data-test="statement-row-transfer"
-    >
-      Transfer
-    </BaseBadge>
-
-    <BaseBadge
-      v-if="movement.excludedFromTotals"
-      size="sm"
-      tone="neutral"
-      :title="EXCLUDED_HINT"
-      :aria-label="EXCLUDED_HINT"
-      data-test="statement-row-excluded"
-    >
-      Not counted
-    </BaseBadge>
 
     <RowCategoryEditor
       v-if="editing"
@@ -76,23 +75,35 @@
       @click="emit('edit')"
     >
       <BaseBadge
+        v-if="movement.category"
         size="sm"
-        :tone="movement.category ? 'brand' : 'neutral'"
+        tone="neutral"
         data-test="statement-row-category"
       >
-        {{ movement.category?.name ?? 'Uncategorized' }}
+        {{ movement.category.name }}
       </BaseBadge>
+      <span v-else :class="UNCATEGORIZED_CLASS" data-test="statement-row-category">
+        Uncategorized
+      </span>
     </button>
 
     <BaseBadge
-      v-else
+      v-else-if="movement.category"
       size="sm"
       tone="neutral"
       :title="NEUTRAL_HINT"
       data-test="statement-row-category"
     >
-      {{ movement.category?.name ?? 'Uncategorized' }}
+      {{ movement.category.name }}
     </BaseBadge>
+    <span
+      v-else
+      :class="UNCATEGORIZED_CLASS"
+      :title="NEUTRAL_HINT"
+      data-test="statement-row-category"
+    >
+      Uncategorized
+    </span>
 
     <span
       class="w-28 shrink-0 text-right font-mono text-sm font-semibold tabular-nums"
@@ -108,6 +119,7 @@
 // One line of the statement. Same layout as the review row, and since feature 21 it
 // carries ONE control: its category badge, which becomes the editor in its own place
 // when pressed (R2, R3). Nothing else about the movement can be touched from here (C1).
+// Since feature 29 every category badge is neutral: the green lives only in the amount.
 // Feature 22 adds a SECOND control, and only while the selection mode is on: a
 // checkbox. In that mode the category badge stops being a button, so one click can
 // never mean two things (R6); the badge is still there, just not pressable.
@@ -158,6 +170,17 @@ const canCategorize = computed(() => props.movement.type !== 'neutral')
 /** Why a paired transfer is visible here but missing from the month's figures (R10). */
 const TRANSFER_HINT = "Paired transfer: not counted in this month's figures"
 
+/** Left out of the month's figures: marked by the user, or one of a paired transfer. */
+const isLeftOut = computed(
+  () => props.movement.excludedFromTotals || props.movement.transferId !== null,
+)
+
+// No category is said with the shape, not with a colour: dashed edge and no fill, in
+// the measures of a `size="sm"` badge. Local on purpose: BaseBadge is shared with
+// Review and has no variant without a background (feature 29, R7).
+const UNCATEGORIZED_CLASS =
+  'inline-flex items-center whitespace-nowrap rounded-pill border border-dashed border-line-default px-[7px] py-[2px] text-2xs leading-[1.4] font-semibold text-ink-muted'
+
 // Full literal class names: Tailwind scans source as text (docs/stack.md).
 const CATEGORY_FILLS = [
   'bg-chart-1',
@@ -186,10 +209,9 @@ const amount = computed(() =>
 )
 
 const amountClass = computed(() => {
-  // A marked movement keeps its amount, its sign and its place: only the ink goes
-  // quiet. No coloured background, no strikethrough and no side stripe — with
-  // myinvestor filtered nearly every row of the month is marked (🔴 2, R8, R9).
-  if (props.movement.excludedFromTotals) return 'text-ink-muted'
+  // What is left out keeps its amount, its sign and its place: crossed out and faint,
+  // never green nor white (feature 29, R1).
+  if (isLeftOut.value) return 'text-ink-faint line-through'
   if (props.movement.type === 'income') return 'text-positive'
   return props.movement.type === 'neutral' ? 'text-ink-muted' : 'text-ink-strong'
 })

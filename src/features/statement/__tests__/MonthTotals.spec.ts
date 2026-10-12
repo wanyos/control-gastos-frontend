@@ -60,25 +60,82 @@ describe('MonthTotals (R5, R6, R7)', () => {
   // The note the F19 wrote said the figures were inflated beyond repair and quoted July
   // 2026 in euros. Both claims died the day the deposits were marked, so the F23
   // rewrote it whole: no hand-written number survives, and the only live figure is the
-  // one the backend counts itself.
+  // one the backend counts itself. Feature 29 reworded it: one sentence in sight and the
+  // rest folded in a <details>.
   describe('the permanent note (R14, R15)', () => {
     const note = () => mountTotals().get('[data-test="statement-totals-note"]')
 
-    /** The fixed text, letter by letter: it is the heart of the feature (design §8). */
-    const FIXED_NOTE =
-      'These figures already leave out what does not count: the two legs of a paired ' +
-      'transfer, and everything you marked as not counted. Both stay in the list — turn ' +
-      'on "Hide what does not count" to read the month without them. Two things no count ' +
-      'can tell you: a transfer of yours whose other leg was never imported still counts ' +
-      'as money in and out until you mark it, and a pair the app detected may not be a ' +
-      'transfer at all.'
+    /** The sentence always in sight, letter by letter (feature 29, R8). */
+    const FIGURES_LINE =
+      'These figures leave out the movements labelled "Transfer" or "Not counted".'
+
+    /** The folded sentences, in order and letter by letter (feature 29, R10). */
+    const MORE_LINES = [
+      'They stay in the list, with the amount crossed out. Tick "Hide what does not count" to take them off the list.',
+      '"Transfer" is put by the app on the two movements of a transfer between your accounts. "Not counted" is put by you.',
+      'A movement that is left out keeps its category: the category says what it was, the label says it is not in the sums.',
+      'If only one of the two movements of a transfer was imported, it still counts until you mark it as "Not counted".',
+      'The app can pair two movements that are not a transfer. Unlink them in "Transfers".',
+    ]
+
+    const AMBIGUOUS_TWO = '2 groups look like transfers but could not be paired automatically.'
+
+    /** Everything the note says when no group is doubtful, in the order it is read. */
+    const FIXED_TEXTS = [FIGURES_LINE, 'More about what counts', ...MORE_LINES]
+
+    const items = (ambiguousGroups?: number | null) =>
+      mountTotals(ambiguousGroups === undefined ? {} : { ambiguousGroups })
+        .get('[data-test="statement-totals-more"]')
+        .findAll('li')
+
+    it('shows one sentence and keeps the rest folded until it is opened', () => {
+      const totals = mountTotals()
+
+      // The sentence in sight, inside the note and outside the folded part (R8).
+      const line = note().get('[data-test="statement-totals-line"]')
+      expect(line.text()).toBe(FIGURES_LINE)
+      expect(line.element.closest('details')).toBeNull()
+
+      // The rest: a native <details>, closed, with its summary (R9).
+      const more = note().get('[data-test="statement-totals-more"]')
+      expect(more.element.tagName).toBe('DETAILS')
+      expect(more.attributes('open')).toBeUndefined()
+      expect((more.element as HTMLDetailsElement).open).toBe(false)
+      expect(more.findAll('summary')).toHaveLength(1)
+      expect(more.get('summary').text()).toBe('More about what counts')
+      expect(totals.findAll('details')).toHaveLength(1)
+
+      // Five sentences, each in its own list item, in order (R10).
+      expect(items().map((item) => item.text())).toEqual(MORE_LINES)
+      expect(more.findAll('ul')).toHaveLength(1)
+
+      // The doubtful groups are the sixth item, and only with a count above zero (R11).
+      const withGroups = items(2)
+      expect(withGroups.map((item) => item.text())).toEqual([...MORE_LINES, AMBIGUOUS_TWO])
+      expect(withGroups.at(-1)?.attributes('data-test')).toBe('statement-ambiguous-note')
+      for (const none of [null, 0]) {
+        expect(items(none)).toHaveLength(5)
+        expect(
+          mountTotals({ ambiguousGroups: none })
+            .find('[data-test="statement-ambiguous-note"]')
+            .exists(),
+        ).toBe(false)
+      }
+    })
 
     it('is the fixed text, word for word (R14)', () => {
-      expect(note().text()).toBe(FIXED_NOTE)
+      const texts = [
+        note().get('[data-test="statement-totals-line"]').text(),
+        note().get('summary').text(),
+        ...items().map((item) => item.text()),
+      ]
+
+      expect(texts).toEqual(FIXED_TEXTS)
     })
 
     it('carries no figure of any kind: not one digit (R14)', () => {
       expect(note().text()).not.toMatch(/\d/)
+      for (const text of FIXED_TEXTS) expect(text).not.toMatch(/\d/)
     })
 
     it('no longer says the figures are inflated, nor names a month (R14)', () => {
@@ -101,12 +158,11 @@ describe('MonthTotals (R5, R6, R7)', () => {
     it('says what the figures are made of, how to read the month clean, and what no count knows', () => {
       const text = note().text()
 
-      expect(text).toContain('already leave out what does not count')
-      expect(text).toContain('the two legs of a paired transfer')
-      expect(text).toContain('everything you marked as not counted')
-      expect(text).toContain('turn on "Hide what does not count"')
-      expect(text).toContain('whose other leg was never imported')
-      expect(text).toContain('a pair the app detected may not be a transfer at all')
+      expect(text).toContain('leave out the movements labelled "Transfer" or "Not counted"')
+      expect(text).toContain('Tick "Hide what does not count" to take them off the list')
+      expect(text).toContain('keeps its category')
+      expect(text).toContain('If only one of the two movements of a transfer was imported')
+      expect(text).toContain('The app can pair two movements that are not a transfer')
     })
 
     describe('the only live figure (R15)', () => {
@@ -114,7 +170,8 @@ describe('MonthTotals (R5, R6, R7)', () => {
         mountTotals({ ambiguousGroups }).get('[data-test="statement-totals-note"]')
 
       it('is absent while the count is unknown or the read failed', () => {
-        expect(noteWith(null).text()).toBe(FIXED_NOTE)
+        expect(noteWith(null).text()).toBe(note().text())
+        expect(noteWith(null).text()).not.toContain('could not be paired automatically')
         expect(
           mountTotals({ ambiguousGroups: null })
             .find('[data-test="statement-ambiguous-note"]')
@@ -123,7 +180,8 @@ describe('MonthTotals (R5, R6, R7)', () => {
       })
 
       it('is absent with zero groups, and no error is painted', () => {
-        expect(noteWith(0).text()).toBe(FIXED_NOTE)
+        expect(noteWith(0).text()).toBe(note().text())
+        expect(noteWith(0).text()).not.toContain('could not be paired automatically')
         expect(
           mountTotals({ ambiguousGroups: 0 })
             .find('[data-test="statement-ambiguous-note"]')
@@ -137,15 +195,21 @@ describe('MonthTotals (R5, R6, R7)', () => {
         ).toBe('1 group looks like a transfer but could not be paired automatically.')
       })
 
-      it('is one sentence in plural with three, in the same paragraph, after the fixed text', () => {
+      it('is one sentence in plural with three, folded with the rest, after the fixed text', () => {
         const text = noteWith(3).text()
 
         expect(text).toContain(
           '3 groups look like transfers but could not be paired automatically.',
         )
-        expect(text.indexOf('These figures already leave out')).toBeLessThan(
+        expect(text.indexOf(MORE_LINES[4] ?? '')).toBeGreaterThan(-1)
+        expect(text.indexOf(MORE_LINES[4] ?? '')).toBeLessThan(
           text.indexOf('3 groups look like transfers'),
         )
+        expect(
+          noteWith(3)
+            .get('[data-test="statement-ambiguous-note"]')
+            .element.closest('[data-test="statement-totals-more"]'),
+        ).not.toBeNull()
       })
 
       it('is the ONLY digit the note ever shows', () => {
@@ -164,7 +228,8 @@ describe('MonthTotals (R5, R6, R7)', () => {
 
     it('is shown with the month, not behind a hover or a tooltip', () => {
       expect(mountTotals().find('[data-test="statement-totals-note"]').exists()).toBe(true)
-      expect(note().text().length).toBeGreaterThan(200)
+      expect(note().get('[data-test="statement-totals-line"]').isVisible()).toBe(true)
+      expect(note().get('summary').attributes('title')).toBeUndefined()
     })
   })
   describe('the scope line of the filters (feature 20, R5, R6)', () => {

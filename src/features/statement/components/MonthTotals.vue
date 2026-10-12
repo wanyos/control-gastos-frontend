@@ -41,18 +41,31 @@
            talks about a whole month and does not change a word. -->
       <p v-if="scope" class="text-sm text-ink-muted" data-test="statement-scope">{{ scope }}</p>
 
-      <!-- Permanent on purpose: no close button, no tooltip (decisions.md 🔴 2). Since
-           the F23 it is no longer an amber warning: the figures are not inflated any
-           more, so it is a grey note that says what they are made of. -->
-      <p class="flex items-start gap-2 text-xs text-ink-muted" data-test="statement-totals-note">
+      <!-- Permanent on purpose: no close button (decisions.md 🔴 2 of the F19). Since
+           feature 29 one sentence is always in sight and the rest is folded in a native
+           <details>, closed on every visit: nothing is stored (R8, R9). -->
+      <div class="flex items-start gap-2 text-xs text-ink-muted" data-test="statement-totals-note">
         <Info :size="14" class="mt-0.5 shrink-0" aria-hidden="true" />
-        <span>
-          {{ FIGURES_NOTE }}
-          <template v-if="ambiguousGroups !== null && ambiguousGroups > 0">
-            <span data-test="statement-ambiguous-note">{{ ambiguousNote(ambiguousGroups) }}</span>
-          </template>
-        </span>
-      </p>
+        <div class="flex flex-col gap-1">
+          <p data-test="statement-totals-line">{{ FIGURES_LINE }}</p>
+          <details data-test="statement-totals-more">
+            <summary
+              class="w-fit cursor-pointer rounded-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              {{ MORE_SUMMARY }}
+            </summary>
+            <ul class="mt-1 flex list-disc flex-col gap-1 pl-4">
+              <li v-for="line in MORE_LINES" :key="line">{{ line }}</li>
+              <li
+                v-if="ambiguousGroups !== null && ambiguousGroups > 0"
+                data-test="statement-ambiguous-note"
+              >
+                {{ ambiguousNote(ambiguousGroups) }}
+              </li>
+            </ul>
+          </details>
+        </div>
+      </div>
     </div>
   </BaseCard>
 </template>
@@ -63,11 +76,9 @@
 // (R5, R7). Nothing here is ever derived from the movements on screen; `toCents` is
 // only used to learn the sign of the difference.
 //
-// Feature 23 rewrote the permanent note underneath. The old one said the figures were
-// inflated beyond repair and quoted July 2026 in euros; both stopped being true the day
-// the deposits were marked. The new one carries no hand-written number at all: what no
-// count can know goes in words, and the single live figure is the one the backend counts
-// itself, `ambiguousCount`, read once per session (R14, R15, design §8).
+// Feature 23 rewrote the permanent note underneath: it carries no hand-written number at
+// all, and the single live figure is the one the backend counts itself, `ambiguousCount`,
+// read once per session. Feature 29 reworded it and folded all but its first sentence.
 import { computed } from 'vue'
 import { Info } from '@lucide/vue'
 
@@ -78,27 +89,29 @@ import { movementCountLine } from '../months'
 import type { Pagination, Totals } from '../types'
 
 /**
- * The only piece of the screen that says what these figures are made of, so it is
- * always visible and cannot be dismissed (R14). It carries NO figure of any kind — not
- * of a month, not of movements, not of transfers: a number written by hand is exactly
- * what made the F19's note expire the day the deposits were marked (design §8). What
- * no count can know is said in words; the one number the backend counts itself comes
- * below, in `ambiguousNote` (kept local: `<script setup>` cannot export, and the text
- * belongs to the note it is read with).
+ * The one sentence always in sight (feature 29, R8). It names the two labels the user
+ * reads in the list, and carries NO figure of any kind: a number written by hand is
+ * what made the F19's note expire.
  */
-const FIGURES_NOTE =
-  'These figures already leave out what does not count: the two legs of a paired ' +
-  'transfer, and everything you marked as not counted. Both stay in the list — turn ' +
-  'on "Hide what does not count" to read the month without them. Two things no count ' +
-  'can tell you: a transfer of yours whose other leg was never imported still counts ' +
-  'as money in and out until you mark it, and a pair the app detected may not be a ' +
-  'transfer at all.'
+const FIGURES_LINE = 'These figures leave out the movements labelled "Transfer" or "Not counted".'
+
+const MORE_SUMMARY = 'More about what counts'
+
+/** The folded rest, in this order and word for word (feature 29, R10). No digit either. */
+const MORE_LINES = [
+  'They stay in the list, with the amount crossed out. Tick "Hide what does not count" to take them off the list.',
+  '"Transfer" is put by the app on the two movements of a transfer between your accounts. "Not counted" is put by you.',
+  'A movement that is left out keeps its category: the category says what it was, the label says it is not in the sums.',
+  'If only one of the two movements of a transfer was imported, it still counts until you mark it as "Not counted".',
+  'The app can pair two movements that are not a transfer. Unlink them in "Transfers".',
+] as const
 
 /**
  * The only live figure of the note (R15), and it is not «the transfers you have left to
  * mark»: a movement with no candidate at all — a transfer whose other leg was never
- * imported — is not listed as doubtful by the backend, which is why the sentence above
- * also says it in words. Absent with zero groups, and absent when the read failed.
+ * imported — is not listed as doubtful by the backend, which is why the fourth folded
+ * sentence says it in words. Absent with zero groups, and absent when the read failed.
+ * Kept local: `<script setup>` cannot export, and the text belongs to the note.
  */
 const ambiguousNote = (groups: number): string =>
   groups === 1

@@ -337,15 +337,20 @@ nombre del mes. Pulsa `Previous`.
 2. Mira la lista. **Debes ver** una cabecera por día con la fecha, y en cada
    línea: el concepto, el banco y la cuenta, la categoría (o `Uncategorized`)
    y el importe. Las entradas van en verde y las salidas con signo menos.
+   Las etiquetas de categoría son todas grises, sea entrada o salida; la de
+   `Uncategorized` se distingue por el borde a rayas y porque no tiene fondo.
    -- ok
 
-3. Busca una línea con la etiqueta `Transfer`. Es uno de los dos movimientos
+3. Busca una línea que lleve la palabra `Transfer` bajo el concepto, junto a
+   la cuenta, y el importe tachado y en gris. Es uno de los dos movimientos
    de un traspaso entre tus cuentas. **Está en la lista pero no está en las
    sumas.**
    -- ok
 
-4. Busca una línea con la etiqueta `Not counted` y el importe en gris. Es un
-   movimiento marcado como que no cuenta. **Tampoco está en las sumas.** El
+4. Busca una línea que lleve `Not counted` bajo el concepto, junto a la
+   cuenta, y el importe tachado y en gris. Es un
+   movimiento marcado como que no cuenta. **Tampoco está en las sumas.** Su
+   etiqueta de categoría sigue a la derecha: dice qué fue el movimiento. El
    2026-09-29 los 29 apuntes de depósito de la cuenta de myinvestor ya estaban
    marcados así.
    -- la cantidad no esta en gris, pone not counted, pero al lado en verde intereses, ademas en español
@@ -394,9 +399,14 @@ nombre del mes. Pulsa `Previous`.
     **sigue puesto**. Pulsa atrás en el navegador: vuelves al mes anterior.
    -- ok
 
-13. Lee la nota gris bajo las cifras. Dice de qué están hechas: que ya dejan
-    fuera los traspasos emparejados y lo que marcaste, y avisa de dos cosas
-    que la aplicación no puede saber. No se puede cerrar, a propósito.
+13. Lee la nota gris bajo las cifras. A la vista hay una sola frase:
+    `These figures leave out the movements labelled "Transfer" or "Not counted".`
+    Debajo, pulsa `More about what counts`: **se abren** cinco frases más. Dicen
+    que esos movimientos siguen en la lista con el importe tachado, quién pone
+    `Transfer` y quién `Not counted`, que un movimiento que no cuenta conserva
+    su categoría, y avisan de dos cosas que la aplicación no puede saber. Esa
+    parte sale plegada cada vez que entras. La nota no se puede cerrar, a
+    propósito.
     -- esta parte no la entiendo
 
 ### Qué probar — corregir la categoría de un movimiento (escribe)
@@ -421,7 +431,7 @@ nombre del mes. Pulsa `Previous`.
     cambiar nada.
    -- ok
 
-18. Busca una línea cuyo importe salga en gris y sin signo (un movimiento de
+18. Busca una línea cuyo importe salga en gris, sin tachar y sin signo (un movimiento de
     tipo neutro, si tienes alguno). Su etiqueta de categoría **no se puede
     pulsar**.
     -- el boton aparece arriba de la tabla, al dar al boton reload cambio el texto de la categoria don lo habia cambiado
@@ -436,15 +446,15 @@ nombre del mes. Pulsa `Previous`.
    -- ok
 
 20. Con `Hide what does not count` quitada, marca la casilla de **un solo**
-    movimiento que hoy cuente (sin etiqueta `Not counted` ni `Transfer`) y
+    movimiento que hoy cuente (sin `Not counted` ni `Transfer` bajo el concepto) y
     pulsa `Exclude from totals`. **Debes ver**:
-    que la línea sigue en la lista con la etiqueta `Not counted` y el importe
-    en gris; que la cifra correspondiente **baja exactamente en ese importe**;
+    que la línea sigue en la lista, ahora con `Not counted` bajo el concepto y
+    el importe tachado y en gris; que la cifra correspondiente **baja exactamente en ese importe**;
     y una línea verde `1 movement excluded from totals` con `Undo`.
     -- escojo un movimiento, al pulsar en exclude total, baja la cantidad con ese valor, pulso el boton reload y vuelve todo como estaba
        cantidad en gris nunca la vi
 
-21. Pulsa `Undo`. **Debes ver** que la etiqueta desaparece, que las tres cifras
+21. Pulsa `Undo`. **Debes ver** que `Not counted` desaparece y el importe deja de estar tachado, que las tres cifras
     **vuelven a ser las que apuntaste**, y el texto `1 movement back in totals`.
     -- ok
 
@@ -488,7 +498,8 @@ veces, una por mes.
   como que no cuenta. Lo marcas siempre tú, y también los movimientos nuevos
   de depósito cada vez que importes.
 - **Un traspaso tuyo cuyo otro movimiento nunca se importó sigue contando**
-  como entrada o salida hasta que lo marques. La nota gris lo avisa.
+  como entrada o salida hasta que lo marques. La nota gris lo avisa, dentro de
+  `More about what counts`.
 - **No se puede marcar desde `Review`**, solo desde aquí.
 - **Filtrar por una categoría no incluye sus subcategorías.** El backend busca
   la categoría exacta.
@@ -499,16 +510,20 @@ veces, una por mes.
 - **Crear una regla desde aquí no ofrece aplicarla.** Para aplicarla hay que ir
   a `Rules`.
 - La frase que la nota gris añade a veces sobre grupos que parecen traspasos y
-  no se pudieron emparejar se lee **una sola vez**, la primera vez que abres
+  no se pudieron emparejar está dentro de `More about what counts`, la última:
+  no se ve hasta que lo abres. Se lee **una sola vez**, la primera vez que abres
   `Movements` después de cargar la página. Si arreglas algo en `Transfers`, no
   cambia hasta que recargues. Si no hay ninguno, la frase no sale.
-- **Fallo conocido** (comprobado el 2026-10-05): si abres un mes sin ningún
-  movimiento con la casilla `Hide what does not count` puesta, la pantalla dice
-  `Hiding 0 movements` y `Nothing left to show in October 2026: everything in
-  this month is hidden.`, como si la casilla lo hubiera vaciado. Te pasará en
-  el mes en curso mientras no tenga datos, porque la casilla se conserva al
-  cambiar de mes. El botón `Show everything` quita la casilla. Está apuntado
-  en `docs/roadmap.md`, cabo suelto 11.
+- **Un mes sin nada en la lista con la casilla `Hide what does not count`
+  puesta** dice una de tres cosas. Si el mes no tiene ningún movimiento:
+  `No movements in October 2026.`, sin botón y sin `Hiding 0 movements`. Si
+  los tiene y están todos escondidos: `Nothing left to show in October 2026:
+  everything in this month is hidden.`, con el botón `Show everything`, que
+  quita la casilla. Y durante el instante en que la pantalla aún no sabe cuál
+  de los dos casos es, o si esa comprobación falla:
+  `Nothing to show in October 2026 while "Hide what does not count" is ticked.`,
+  también con `Show everything`. Puedes ver cambiar la frase al cargar. Hasta
+  el 2026-10-12 la pantalla decía siempre que todo estaba escondido.
 - `Load more` solo aparece si un mes tiene más de 200 movimientos. El
   2026-09-26 tu mes más cargado tenía 93.
 - Si una escritura falla por un corte de red, la pantalla dice
