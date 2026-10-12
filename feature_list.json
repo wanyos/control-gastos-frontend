@@ -1527,7 +1527,8 @@
         }
       ],
       "sdd": true,
-      "status": "spec_ready"
+      "status": "blocked",
+      "blocked_by": "Espera a la parte 1 de `../docs/handoff-reglas-aplicadas.md` (backend): que `POST /api/category-rules/apply` devuelva qué movimientos categorizó. Decidido por el humano el 2026-10-12. Al desbloquear, el spec se rehace para leer esa lista en vez de comparar antes y después."
     }
   ]
 }

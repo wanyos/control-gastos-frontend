@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** F30 `rules-applied-result` (SDD). Sale del cabo suelto 26. Intención aprobada por el humano el 2026-10-12; `spec-author` lanzado.
+- **Feature en curso:** ninguna. La F30 `rules-applied-result` está `blocked` desde el 2026-10-12: el humano aprobó su hoja de decisiones pero prefirió que el backend devuelva qué movimientos categoriza; espera a la parte 1 de `../docs/handoff-reglas-aplicadas.md`.
 - **Nivel de consumo:** medio (todos los subagentes en `opus`).
 
 Lo que sigue vivo está en `docs/roadmap.md` (tabla «Cabos sueltos con dueño») y, para las
