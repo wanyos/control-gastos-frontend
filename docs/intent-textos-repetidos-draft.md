@@ -30,7 +30,7 @@ salga una sola vez.
 ## Por qué lo quiero
 
 Porque el texto repetido estorba al leer: en una lista de cien movimientos, el
-nombre del banco dos veces en cada línea es ruido, y en el desplegable no sé si
+nombre del banco dos veces en cada línea sobra, y en el desplegable no sé si
 las dos líneas iguales son dos categorías distintas.
 
 ## Cómo sabré que está bien
