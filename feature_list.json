@@ -1492,9 +1492,42 @@
         ]
       },
       "acceptance": [],
-      "checks": [],
+      "checks": [
+        {
+          "descripcion": "Aplico las reglas y, al cerrar la ventana, veo cuántos movimientos se han categorizado sin tener que acordarme del número. (el recorrido entero en el navegador, con el backend simulado: aplicar en `Rules`, cerrar la ventana, ver el número, y seguir viéndolo al ir a `Review`)",
+          "comando": "grep -qF \"the result of applying stays in view from Rules to Review\" e2e/category-rules.spec.ts && pnpm test:e2e --project=chromium e2e/category-rules.spec.ts -g \"the result of applying stays in view from Rules to Review\""
+        },
+        {
+          "descripcion": "Desde ahí puedo ver la lista de los movimientos que se acaban de categorizar, cada uno con la categoría que le han puesto.",
+          "comando": "grep -qF \"works out which movements the pass categorized from the reads before and after\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"works out which movements the pass categorized from the reads before and after\" && grep -qF \"lists each categorized movement with the category it was given\" src/features/category-rules/__tests__/LastApplyReport.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/LastApplyReport.spec.ts -t \"lists each categorized movement with the category it was given\""
+        },
+        {
+          "descripcion": "Si no se ha categorizado ninguno, me lo dice con esas palabras.",
+          "comando": "grep -qF \"says no movements were categorized when the pass categorized none\" src/features/category-rules/__tests__/LastApplyReport.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/LastApplyReport.spec.ts -t \"says no movements were categorized when the pass categorized none\""
+        },
+        {
+          "descripcion": "Sin aplicar nada, en `Review` veo cuántos pendientes siguen sin categoría.",
+          "comando": "grep -qF \"shows how many pending movements have no category without applying anything\" src/features/review/__tests__/ReviewView.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewView.spec.ts -t \"shows how many pending movements have no category without applying anything\""
+        },
+        {
+          "descripcion": "Si recargo la página, lo que veo sigue siendo verdad: no me enseña como «recién categorizado» algo que ya no lo es. (tras recargar no queda nada del resultado ni nada guardado en el navegador; y una lista que no cuadra con el número del backend no se enseña)",
+          "comando": "grep -qF \"a new page load starts with no result and writes nothing to the browser storage\" src/features/category-rules/__tests__/store.spec.ts && grep -qF \"keeps no list when it does not add up to the number the server gave\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"a new page load starts with no result and writes nothing to the browser storage\" && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"keeps no list when it does not add up to the number the server gave\""
+        },
+        {
+          "descripcion": "(añadido) No quiero que aplicar las reglas confirme nada: al aplicar sale una sola escritura, la de aplicar, y todo lo demás son lecturas.",
+          "comando": "grep -qF \"applying sends one POST without a body and no other write\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"applying sends one POST without a body and no other write\""
+        },
+        {
+          "descripcion": "(añadido) Si no se pueden leer los pendientes antes de aplicar, las reglas no se aplican y no cambia nada.",
+          "comando": "grep -qF \"sends no POST when the pending movements cannot be read first\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"sends no POST when the pending movements cannot be read first\""
+        },
+        {
+          "descripcion": "(añadido) Lo que dejó la feature 27 en `Review` sigue igual: aplicar las reglas sigue borrando el `Undo` y las casillas marcadas, y lo nuevo no se mete en la línea que se queda bajo la barra de arriba.",
+          "comando": "grep -qF \"a rules pass still clears the Undo and the ticked rows\" src/features/review/__tests__/store.spec.ts && pnpm exec vitest run src/features/review/__tests__/store.spec.ts -t \"a rules pass still clears the Undo and the ticked rows\" && grep -qF \"draws the result of the rules pass outside the block that sticks under the top bar\" src/features/review/__tests__/ReviewView.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewView.spec.ts -t \"draws the result of the rules pass outside the block that sticks under the top bar\""
+        }
+      ],
       "sdd": true,
-      "status": "pending"
+      "status": "spec_ready"
     }
   ]
 }
