@@ -1459,6 +1459,42 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 30,
+      "name": "rules-applied-result",
+      "title": "Ver qué cambió al aplicar las reglas",
+      "intent": {
+        "que_quiero": "Que después de aplicar las reglas pueda ver qué movimientos se han categorizado, no solo cuántos. Y que, sin haber aplicado nada, pueda saber de un vistazo cuánto me queda sin categoría.",
+        "por_que": "Porque aplicar las reglas cambia cientos de movimientos de golpe y no se puede deshacer desde la aplicación. Si no veo cuáles ha tocado, no puedo comprobar que mis reglas hacen lo que yo creía, y me entero de una regla mala cuando ya lleva meses categorizando mal.",
+        "como_se_que_esta_bien": [
+          "Aplico las reglas y, al cerrar la ventana, veo cuántos movimientos se han categorizado sin tener que acordarme del número.",
+          "Desde ahí puedo ver la lista de los movimientos que se acaban de categorizar, cada uno con la categoría que le han puesto.",
+          "Si no se ha categorizado ninguno, me lo dice con esas palabras.",
+          "Sin aplicar nada, en `Review` veo cuántos pendientes siguen sin categoría.",
+          "Si recargo la página, lo que veo sigue siendo verdad: no me enseña como «recién categorizado» algo que ya no lo es."
+        ],
+        "que_no_quiero": [
+          "No quiero que aplicar las reglas confirme nada: categorizar no es confirmar.",
+          "No quiero un botón de deshacer la aplicación de las reglas en esta feature.",
+          "No quiero que cambie qué movimientos tocan las reglas (solo pendientes sin categoría).",
+          "No quiero tocar el backend, si se puede hacer sin él. Si no se puede, quiero saberlo antes de empezar."
+        ],
+        "delego_en_agente": [
+          "De dónde sale la lista de lo recién categorizado. Hoy el backend, al aplicar, devuelve cuántos categorizó pero no cuáles. Hay que ver si se puede saber cuáles sin tocarlo (por ejemplo, comparando lo que había sin categoría antes y después), y si no se puede, decírmelo.",
+          "Dónde se enseña: en `Review`, en `Rules`, o en la propia ventana.",
+          "Cuánto tiempo sigue a la vista: hasta que salgo de la pantalla, hasta la siguiente acción, o de otra forma."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-10-12: de momento le basta con verlo justo después de aplicar; poder volver otro día a ver qué categorizó la última aplicación queda fuera.",
+          "Del 2026-10-12: lo que categorizan las reglas al importar queda fuera, para una revisión posterior.",
+          "Del 2026-10-12: sí, la lista de choques (movimientos a los que les casan dos reglas de categorías distintas) sigue a la vista igual que la de lo categorizado."
+        ]
+      },
+      "acceptance": [],
+      "checks": [],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }

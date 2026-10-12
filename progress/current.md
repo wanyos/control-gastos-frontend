@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** ninguna. La F29 quedó cerrada el 2026-10-12.
+- **Feature en curso:** F30 `rules-applied-result` (SDD). Sale del cabo suelto 26. Intención aprobada por el humano el 2026-10-12; `spec-author` lanzado.
 - **Nivel de consumo:** medio (todos los subagentes en `opus`).
 
 Lo que sigue vivo está en `docs/roadmap.md` (tabla «Cabos sueltos con dueño») y, para las
