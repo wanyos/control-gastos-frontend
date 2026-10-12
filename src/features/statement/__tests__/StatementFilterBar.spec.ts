@@ -65,9 +65,34 @@ describe('StatementFilterBar (R2, R7, R9, R11, R15)', () => {
 
     expect(options.map((option) => option.text())).toEqual([
       'All accounts',
-      'Bankinter · bankinter ···0236',
-      'MyInvestor · myinvestor ···6789',
+      'Bankinter ···0236',
+      'MyInvestor ···6789',
     ])
+  })
+
+  it('names each account as the bank and its last four digits, without repeating the bank', () => {
+    const labels = barOf()
+      .get('[data-test="filter-account"] select')
+      .findAll('option')
+      .map((option) => option.text())
+
+    expect(labels).toEqual(['All accounts', 'Bankinter ···0236', 'MyInvestor ···6789'])
+    expect(labels.join(' ')).not.toContain('bankinter')
+    expect(labels.join(' ')).not.toContain('myinvestor')
+  })
+
+  it('tells two accounts of the same bank apart in the select (feature 28)', () => {
+    const twoOfOneBank = parseAccounts([
+      { ...ACCOUNTS[0], id: 7, iban: 'ES5521009316072841950381' },
+      { ...ACCOUNTS[0], id: 8, iban: 'ES1721004428716309582246' },
+    ])
+
+    const labels = barOf({}, { accounts: twoOfOneBank })
+      .get('[data-test="filter-account"] select')
+      .findAll('option')
+      .map((option) => option.text())
+
+    expect(labels).toEqual(['All accounts', 'Bankinter ···0381', 'Bankinter ···2246'])
   })
 
   it('keeps the account the URL chose even when the list no longer holds it', () => {
@@ -81,9 +106,11 @@ describe('StatementFilterBar (R2, R7, R9, R11, R15)', () => {
   it('lists the categories as a tree, roots pickable too (R14)', () => {
     const select = barOf().get('[data-test="filter-category"] select')
 
-    expect(select.findAll('optgroup').map((group) => group.attributes('label'))).toEqual([
+    // Salary has no children: a loose option, with no group title (feature 28).
+    expect(select.findAll('optgroup').map((group) => group.attributes('label'))).toEqual(['Food'])
+    expect(select.findAll('optgroup option').map((option) => option.text())).toEqual([
       'Food',
-      'Salary',
+      'Groceries',
     ])
     expect(select.findAll('option').map((option) => option.text())).toEqual([
       'All categories',

@@ -18,12 +18,15 @@
       >
         <option value="">{{ categories === null ? UNAVAILABLE : PLACEHOLDER }}</option>
         <option value="none">Remove category</option>
-        <optgroup v-for="root in categories ?? []" :key="root.id" :label="root.name">
-          <option :value="String(root.id)">{{ root.name }}</option>
-          <option v-for="child in root.children" :key="child.id" :value="String(child.id)">
-            {{ child.name }}
-          </option>
-        </optgroup>
+        <template v-for="root in categories ?? []" :key="root.id">
+          <optgroup v-if="root.children.length > 0" :label="root.name">
+            <option :value="String(root.id)">{{ root.name }}</option>
+            <option v-for="child in root.children" :key="child.id" :value="String(child.id)">
+              {{ child.name }}
+            </option>
+          </optgroup>
+          <option v-else :value="String(root.id)">{{ root.name }}</option>
+        </template>
       </BaseSelect>
     </div>
 

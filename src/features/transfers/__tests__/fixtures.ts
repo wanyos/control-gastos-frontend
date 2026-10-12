@@ -10,24 +10,24 @@ import { vi } from 'vitest'
 // The doubtful groups are fabricated: the real data had none.
 
 const BANKINTER = {
-  id: 19532,
-  iban: 'ES0000000000000000002314',
+  id: 8127,
+  iban: 'ES0000000000000000006182',
   bank: 'bankinter',
-  alias: 'bankinter ···2314',
+  alias: 'bankinter ···6182',
   type: 'checking',
 }
 const N26 = {
-  id: 14788,
-  iban: 'DE00000000000000004136',
+  id: 6205,
+  iban: 'DE00000000000000007719',
   bank: 'n26',
-  alias: 'n26 ···4136',
+  alias: 'n26 ···7719',
   type: 'checking',
 }
 const OPENBANK = {
-  id: 16563,
-  iban: 'ES0000000000000000004073',
+  id: 7318,
+  iban: 'ES0000000000000000003954',
   bank: 'openbank',
-  alias: 'openbank ···4073',
+  alias: 'openbank ···3954',
   type: 'checking',
 }
 

@@ -8,6 +8,7 @@
 
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
+import { bankLabel } from '@/shared/banks'
 import { createValidators } from '@/shared/validation'
 
 export const ACCOUNTS_PATH = '/api/accounts'
@@ -20,6 +21,20 @@ export interface AccountSummary {
   alias: string
   /** Open text: a new account type must not blank the list. */
   type: string
+}
+
+/**
+ * How the screens name an account: the readable bank and the last four digits
+ * of its IBAN (feature 28). The backend `alias` already carries the bank slug, so it is
+ * not used: painting both repeated the bank.
+ *
+ * An IBAN that does not end in four digits (too short, or cut) gives the bank alone:
+ * `···` followed by something that is not the end of an account number would mislead.
+ */
+export function accountLabel(account: { bank: string; iban: string }): string {
+  const bank = bankLabel(account.bank)
+  const lastFour = account.iban.replace(/\s/g, '').slice(-4)
+  return /^\d{4}$/.test(lastFour) ? `${bank} ···${lastFour}` : bank
 }
 
 const accountChecks = createValidators(`GET ${ACCOUNTS_PATH}`)

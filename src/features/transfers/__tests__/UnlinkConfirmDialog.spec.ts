@@ -28,8 +28,8 @@ describe('UnlinkConfirmDialog (R5)', () => {
 
     expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Unlink this pair?')
     expect(textOf('[data-test="unlink-confirm-leg"]')).toEqual([
-      flat(`Money out · ${formatDate('2025-06-30')} · n26 ···4136 · ${formatMoney('100.00')}`),
-      flat(`Money in · ${formatDate('2025-06-27')} · openbank ···4073 · ${formatMoney('100.00')}`),
+      flat(`Money out · ${formatDate('2025-06-30')} · N26 ···7719 · ${formatMoney('100.00')}`),
+      flat(`Money in · ${formatDate('2025-06-27')} · Openbank ···3954 · ${formatMoney('100.00')}`),
     ])
     expect(textOf('[data-test="unlink-confirm-consequence"]')).toEqual([
       'Both movements will count in your totals again.',

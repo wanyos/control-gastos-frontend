@@ -92,6 +92,21 @@ describe('RuleDialog (R2, R3, R4, R6, R8)', () => {
     wrapper.unmount()
   })
 
+  it('offers a category without subcategories once, with no group title (feature 28)', () => {
+    const wrapper = open()
+
+    const field = categoryField()
+    const groups = [...field.querySelectorAll('optgroup')]
+    expect(groups.map((group) => group.getAttribute('label'))).toEqual(['Supermercado'])
+    expect(
+      [...groups[0]!.querySelectorAll('option')].map((one) => one.textContent?.trim()),
+    ).toEqual(['Supermercado', 'Fruteria'])
+    const labels = [...field.querySelectorAll('option')].map((one) => one.textContent?.trim())
+    expect(labels.filter((label) => label === 'Suministros')).toHaveLength(1)
+    expect(labels.filter((label) => label === 'Supermercado')).toHaveLength(1)
+    wrapper.unmount()
+  })
+
   it('offers only income categories for an income movement (R3)', () => {
     const wrapper = open({ kind: 'income' })
 

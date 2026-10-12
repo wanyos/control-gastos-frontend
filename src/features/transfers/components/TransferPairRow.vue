@@ -25,7 +25,7 @@
             <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
               <span data-test="pair-leg-date">{{ formatDate(leg.movement.bookingDate) }}</span>
               <span aria-hidden="true">·</span>
-              <span data-test="pair-leg-account">{{ leg.movement.account.alias }}</span>
+              <span data-test="pair-leg-account">{{ accountLabel(leg.movement.account) }}</span>
             </p>
           </div>
           <span
@@ -65,6 +65,7 @@
 // stays where the backend put it (R4).
 import { computed } from 'vue'
 
+import { accountLabel } from '@/shared/accounts'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import { formatDate, formatMoney } from '@/shared/money'

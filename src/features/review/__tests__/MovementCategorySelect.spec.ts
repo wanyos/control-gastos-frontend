@@ -34,6 +34,30 @@ describe('MovementCategorySelect (R4)', () => {
     expect(options(wrapper)).toEqual(['No category', 'Salary'])
   })
 
+  it('groups a category that has subcategories under its name', () => {
+    const wrapper = selectOf(EXPENSE)
+
+    const groups = wrapper.findAll('optgroup')
+    expect(groups.map((group) => group.attributes('label'))).toEqual(['Food'])
+    expect(groups[0]?.findAll('option').map((option) => option.text())).toEqual([
+      'Food',
+      'Groceries',
+      'Restaurants',
+    ])
+    expect(groups[0]?.findAll('option').map((option) => option.attributes('value'))).toEqual([
+      '1',
+      '2',
+      '3',
+    ])
+  })
+
+  it('offers a category without subcategories once, with no group title (feature 28)', () => {
+    const wrapper = selectOf(INCOME)
+
+    expect(wrapper.findAll('optgroup')).toHaveLength(0)
+    expect(options(wrapper)).toEqual(['No category', 'Salary'])
+  })
+
   it('shows the category the movement already has', () => {
     const wrapper = selectOf(EXPENSE)
 

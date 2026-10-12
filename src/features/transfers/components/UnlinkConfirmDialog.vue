@@ -9,7 +9,7 @@
     <ul class="flex flex-col gap-1 pb-3 text-sm text-ink-body">
       <li v-for="leg in legs" :key="leg.movement.id" data-test="unlink-confirm-leg">
         {{ leg.side }} · {{ formatDate(leg.movement.bookingDate) }} ·
-        {{ leg.movement.account.alias }} ·
+        {{ accountLabel(leg.movement.account) }} ·
         <span class="font-mono tabular-nums">{{ formatMoney(leg.movement.amount) }}</span>
       </li>
     </ul>
@@ -40,6 +40,7 @@
 // copied, because no feature imports from another (C5).
 import { computed } from 'vue'
 
+import { accountLabel } from '@/shared/accounts'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseDialog from '@/shared/components/BaseDialog.vue'
 import { formatDate, formatMoney } from '@/shared/money'

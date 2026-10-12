@@ -256,7 +256,7 @@ describe('importedFileRows (R9, R10, R11)', () => {
       kind: 'statement',
       file: { name: 'movs-agosto.xlsx', bank: 'Bankinter', year: '2026' },
       counts: '39 new · 2 already imported',
-      newAccount: 'bankinter 0236',
+      newAccount: 'Bankinter ···0236',
       notes: ['Opening balance set from this file'],
     })
   })
@@ -270,6 +270,13 @@ describe('importedFileRows (R9, R10, R11)', () => {
     })
     expect(filledOne).toMatchObject({ notes: ['1 saved balance filled in'] })
     expect(first?.kind === 'statement' && first.notes).not.toContain('0 saved balances filled in')
+  })
+
+  it('names the new account as the bank and its last four digits, not by its alias (feature 28)', () => {
+    const [first] = rows()
+
+    expect(STATEMENT_IMPORTED.account.alias).toBe('bankinter 0236')
+    expect(first?.kind === 'statement' && first.newAccount).toBe('Bankinter ···0236')
   })
 
   it('has no new account when the account already existed', () => {

@@ -10,7 +10,6 @@
         :name="row.name"
         :type-label="row.typeLabel"
         :amount="row.amount"
-        :last4="row.last4"
         :detail="row.detail"
         :initial="initial"
         :tile-class="tileClass"
@@ -23,6 +22,7 @@
 // Block E card of one bank: its accounts first, then its products by type and name.
 import { computed } from 'vue'
 
+import { accountLabel } from '@/shared/accounts'
 import BaseCard from '@/shared/components/BaseCard.vue'
 import { formatDate, formatMoney } from '@/shared/money'
 
@@ -51,7 +51,6 @@ interface Row {
   name: string
   typeLabel: string
   amount: DecimalString | null
-  last4?: string
   detail?: string
 }
 
@@ -77,10 +76,9 @@ function productDetail(product: InvestmentProduct): string | undefined {
 const rows = computed<Row[]>(() => {
   const accountRows = props.accounts.map((account): Row => ({
     key: `account-${account.id}`,
-    name: account.alias,
+    name: accountLabel(account),
     typeLabel: holdingTypeLabel(account.type),
     amount: account.balance,
-    last4: account.iban.slice(-4),
     detail: `As of ${formatDate(props.asOf)}`,
   }))
   const productRows = [...props.products]

@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** F28 `repeated-labels` (flujo simple, sin SDD). Sale de los cabos sueltos 16 y 17. Intención aprobada por el humano el 2026-10-12; `implementer` lanzado.
+- **Feature en curso:** ninguna. La F28 quedó cerrada el 2026-10-12.
 - **Nivel de consumo:** medio (todos los subagentes en `opus`).
 
 Lo que seguía vivo al cerrar la F26 está en `docs/roadmap.md`: el plan de la E8 en su

@@ -3,6 +3,7 @@
 
 import { holdingTypeLabel } from '@/features/net-worth/issues'
 import type { InvestmentProductType } from '@/features/net-worth/types'
+import { accountLabel } from '@/shared/accounts'
 import { bankLabel } from '@/shared/banks'
 import { formatDate } from '@/shared/money'
 
@@ -196,7 +197,7 @@ export type ImportedFileRow =
       kind: 'statement'
       file: FileHeading
       counts: string
-      /** Alias of the account this run created; null when it already existed. */
+      /** The account this run created, named with accountLabel; null if it already existed. */
       newAccount: string | null
       notes: string[]
     }
@@ -224,7 +225,7 @@ function statementRow(file: StatementFileReport): ImportedFileRow {
     kind: 'statement',
     file: heading(file),
     counts: `${file.imported} new · ${file.duplicates} already imported`,
-    newAccount: file.account?.created === true ? file.account.alias : null,
+    newAccount: file.account?.created === true ? accountLabel(file.account) : null,
     notes,
   }
 }

@@ -368,7 +368,7 @@ nombre del mes. Pulsa `Previous`.
    dice cuántos movimientos casan y con qué filtro
    (`… movements match these filters in July 2026 · Account …`).
    -- no me gusta como esta el texto del select ni como se ponen los nombres de los bancos, es un string que repite dos veces el mismo nombre
-      Bankinter - bankinter -- 4073
+      Bankinter - bankinter -- 3954
 
 8. Marca `Uncategorized`. **Debes ver** solo los que no tienen categoría. Ahora
    elige una categoría en `Category`: **`Uncategorized` se desmarca sola**. Las

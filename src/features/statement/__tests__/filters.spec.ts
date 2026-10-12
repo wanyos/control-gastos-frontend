@@ -34,7 +34,7 @@ describe('what counts as an active filter (R2, R11)', () => {
   })
 
   it('is true for each of the four, one at a time', () => {
-    expect(hasActiveFilters(filters({ accountId: 19532 }))).toBe(true)
+    expect(hasActiveFilters(filters({ accountId: 8127 }))).toBe(true)
     expect(hasActiveFilters(filters({ categoryId: 3 }))).toBe(true)
     expect(hasActiveFilters(filters({ uncategorized: true }))).toBe(true)
     expect(hasActiveFilters(filters({ q: 'luz' }))).toBe(true)
@@ -65,12 +65,12 @@ describe('the query the screen asks for (R1, R3, R4)', () => {
   })
 
   it('carries the month AND the filters in the same request', () => {
-    expect(monthQuery('2026-03', filters({ accountId: 19532 }))).toEqual({
+    expect(monthQuery('2026-03', filters({ accountId: 8127 }))).toEqual({
       from: '2026-03-01',
       to: '2026-03-31',
       page: 1,
       pageSize: 200,
-      accountId: 19532,
+      accountId: 8127,
     })
     expect(monthQuery('2026-03', filters({ categoryId: 3 })).categoryId).toBe(3)
     expect(monthQuery('2026-03', filters({ uncategorized: true })).uncategorized).toBe(true)
@@ -107,9 +107,9 @@ describe('the filters in the URL (R8, R9, R10)', () => {
   })
 
   it('writes the same keys the review queue already uses', () => {
-    expect(toRouteQuery('2026-03', filters({ accountId: 19532, q: ' luz ' }))).toEqual({
+    expect(toRouteQuery('2026-03', filters({ accountId: 8127, q: ' luz ' }))).toEqual({
       month: '2026-03',
-      account: '19532',
+      account: '8127',
       q: 'luz',
     })
     expect(toRouteQuery('2026-03', filters({ categoryId: 3 })).category).toBe('3')
@@ -131,7 +131,7 @@ describe('the filters in the URL (R8, R9, R10)', () => {
     const state = {
       month: '2026-03',
       hideNoise: false,
-      filters: filters({ accountId: 19532, categoryId: 3, q: 'luz' }),
+      filters: filters({ accountId: 8127, categoryId: 3, q: 'luz' }),
     }
     const written = toRouteQuery(state.month, state.filters)
 
@@ -167,7 +167,7 @@ describe('the filters in the URL (R8, R9, R10)', () => {
   })
 
   it('takes the first value of a repeated key', () => {
-    expect(fromRouteQuery({ account: ['19532', '1'] }, SEPTEMBER).filters.accountId).toBe(19532)
+    expect(fromRouteQuery({ account: ['8127', '1'] }, SEPTEMBER).filters.accountId).toBe(8127)
   })
 })
 
@@ -211,7 +211,7 @@ describe('the sentences of the filters (R5, R13)', () => {
 
 describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
   it('asks for nothing extra while it is off: the whole month comes back', () => {
-    const query = monthQuery('2026-07', filters({ accountId: 19532 }))
+    const query = monthQuery('2026-07', filters({ accountId: 8127 }))
 
     expect(query).not.toHaveProperty('excluded')
     expect(query).not.toHaveProperty('transfer')
@@ -220,12 +220,12 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
   })
 
   it('adds excluded=none AND transfer=none to the filters already there (R2, R10)', () => {
-    expect(monthQuery('2026-07', filters({ accountId: 19532, q: 'luz' }), 1, true)).toEqual({
+    expect(monthQuery('2026-07', filters({ accountId: 8127, q: 'luz' }), 1, true)).toEqual({
       from: '2026-07-01',
       to: '2026-07-31',
       page: 1,
       pageSize: 200,
-      accountId: 19532,
+      accountId: 8127,
       q: 'luz',
       excluded: 'none',
       transfer: 'none',
@@ -247,14 +247,14 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
 
   describe('the count query (R7)', () => {
     it('is the same month and the same filters WITHOUT hiding anything, one row', () => {
-      const filter = filters({ accountId: 19532, uncategorized: true, q: 'luz' })
+      const filter = filters({ accountId: 8127, uncategorized: true, q: 'luz' })
 
       expect(hiddenCountQuery('2026-07', filter)).toEqual({
         from: '2026-07-01',
         to: '2026-07-31',
         page: 1,
         pageSize: 1,
-        accountId: 19532,
+        accountId: 8127,
         uncategorized: true,
         q: 'luz',
       })
@@ -281,11 +281,11 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
 
     it('keeps the month and the four filters exactly as they were (R4)', () => {
       expect(
-        toRouteQuery('2026-07', filters({ accountId: 19532, uncategorized: true, q: 'luz' }), true),
+        toRouteQuery('2026-07', filters({ accountId: 8127, uncategorized: true, q: 'luz' }), true),
       ).toEqual({
         month: '2026-07',
         hide: 'true',
-        account: '19532',
+        account: '8127',
         uncategorized: 'true',
         q: 'luz',
       })
@@ -295,7 +295,7 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
       const state = {
         month: '2026-07',
         hideNoise: true,
-        filters: filters({ accountId: 19532, q: 'luz' }),
+        filters: filters({ accountId: 8127, q: 'luz' }),
       }
       const written = toRouteQuery(state.month, state.filters, state.hideNoise)
 

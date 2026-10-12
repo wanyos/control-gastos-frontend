@@ -80,7 +80,7 @@ describe('transfers service', () => {
       amount: '100.00',
       description: 'AYTO MADRID PAGO INTER',
     })
-    expect(fine?.expense.account.alias).toBe('n26 ···4136')
+    expect(fine?.expense.account.alias).toBe('n26 ···7719')
     expect(fine?.income).toMatchObject({ id: 24377, type: 'income', bookingDate: '2025-06-27' })
   })
 
@@ -113,8 +113,8 @@ describe('transfers service', () => {
     expect(group?.in.map((one) => one.id)).toEqual([840, 841])
     expect(group?.in[0]).toEqual({
       id: 840,
-      accountId: 16563,
-      accountAlias: 'openbank ···4073',
+      accountId: 7318,
+      accountAlias: 'openbank ···3954',
       type: 'income',
       bookingDate: '2026-08-01',
       description: 'TRANSFERENCIA RECIBIDA',

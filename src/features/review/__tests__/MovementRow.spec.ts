@@ -58,11 +58,16 @@ describe('MovementRow (R4)', () => {
     const wrapper = rowOf(EXPENSE)
 
     expect(wrapper.get('[data-test="movement-description"]').text()).toBe('CAFETERÍA CENTRAL')
-    expect(wrapper.get('[data-test="movement-account"]').text()).toBe(
-      'Bankinter · bankinter ···0236',
-    )
+    expect(wrapper.get('[data-test="movement-account"]').text()).toBe('Bankinter ···0236')
     // Generated, never typed: ICU may change the month abbreviation.
     expect(wrapper.get('[data-test="movement-date"]').text()).toBe(formatDate('2026-07-31'))
+  })
+
+  it('names the account as the bank and its last four digits, without repeating the bank', () => {
+    const account = rowOf(EXPENSE).get('[data-test="movement-account"]').text()
+
+    expect(account).toBe('Bankinter ···0236')
+    expect(account).not.toContain('bankinter')
   })
 
   it('names the category, and marks the movements that have none', () => {

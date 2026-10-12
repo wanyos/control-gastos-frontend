@@ -36,6 +36,28 @@ describe('RowCategoryEditor (R4, R5, R16)', () => {
     ).toEqual(['No category', 'Salary'])
   })
 
+  it('offers a category without subcategories once, with no group title', () => {
+    const editor = mountEditor(INCOME)
+
+    expect(editor.findAll('optgroup')).toHaveLength(0)
+    expect(editor.findAll('option').map((option) => option.text())).toEqual([
+      'No category',
+      'Salary',
+    ])
+    // The value it sends is still the id of the category.
+    expect(editor.findAll('option').map((option) => option.attributes('value'))).toEqual(['', '4'])
+  })
+
+  it('keeps a category with subcategories as a group, itself first (feature 28)', () => {
+    const editor = mountEditor(EXPENSE)
+
+    expect(editor.findAll('optgroup').map((group) => group.attributes('label'))).toEqual(['Food'])
+    expect(editor.findAll('optgroup option').map((option) => option.attributes('value'))).toEqual([
+      '1',
+      '2',
+    ])
+  })
+
   it('shows the category the movement already has as the chosen one', () => {
     const select = mountEditor(EXPENSE).get('select')
 

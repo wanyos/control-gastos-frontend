@@ -22,12 +22,21 @@ describe('TransferPairRow (R3, R4, C2)', () => {
       'Money in',
     ])
     expect(legs[0]?.get('[data-test="pair-leg-date"]').text()).toBe(formatDate('2025-06-30'))
-    expect(legs[0]?.get('[data-test="pair-leg-account"]').text()).toBe('n26 ···4136')
+    expect(legs[0]?.get('[data-test="pair-leg-account"]').text()).toBe('N26 ···7719')
     expect(legs[0]?.get('[data-test="pair-leg-description"]').text()).toBe('AYTO MADRID PAGO INTER')
     expect(legs[0]?.get('[data-test="pair-leg-amount"]').text()).toBe(formatMoney('100.00'))
     expect(legs[1]?.get('[data-test="pair-leg-date"]').text()).toBe(formatDate('2025-06-27'))
-    expect(legs[1]?.get('[data-test="pair-leg-account"]').text()).toBe('openbank ···4073')
+    expect(legs[1]?.get('[data-test="pair-leg-account"]').text()).toBe('Openbank ···3954')
     expect(legs[1]?.get('[data-test="pair-leg-amount"]').text()).toBe(formatMoney('100.00'))
+  })
+
+  it('names the account as the bank and its last four digits, without repeating the bank', () => {
+    const row = mount(TransferPairRow, { props: { pair: FINE } })
+
+    const accounts = row.findAll('[data-test="pair-leg-account"]').map((account) => account.text())
+    expect(accounts).toEqual(['N26 ···7719', 'Openbank ···3954'])
+    expect(accounts.join(' ')).not.toContain('n26')
+    expect(accounts.join(' ')).not.toContain('openbank')
   })
 
   it('paints the bank description as it comes, marked as Spanish', () => {

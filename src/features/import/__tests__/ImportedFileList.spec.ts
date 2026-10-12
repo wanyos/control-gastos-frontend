@@ -45,7 +45,13 @@ describe('ImportedFileList (R9, R10, R11)', () => {
     expect(row.get('[data-test="file-heading-origin"]').text()).toBe('Bankinter · 2026')
     expect(row.get('[data-test="imported-counts"]').text()).toBe('39 new · 2 already imported')
     expect(row.get('[data-test="new-account"]').text()).toBe('New account')
-    expect(row.get('[data-test="new-account-alias"]').text()).toBe('bankinter 0236')
+  })
+
+  it('names the account it created as the bank and its last four digits, not by its alias (feature 28)', () => {
+    const row = mountList(STATEMENT_IMPORTED).get('[data-test="imported-file"]')
+
+    expect(STATEMENT_IMPORTED.account.alias).toBe('bankinter 0236')
+    expect(row.get('[data-test="new-account-name"]').text()).toBe('Bankinter ···0236')
   })
 
   it('shows no New account badge when the account already existed', () => {

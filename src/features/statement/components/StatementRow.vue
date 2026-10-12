@@ -115,7 +115,7 @@
 // `balanceAfter` is never painted: only three of the five accounts bring it (R9).
 import { computed } from 'vue'
 
-import { bankLabel } from '@/shared/banks'
+import { accountLabel } from '@/shared/accounts'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
 import { formatMoney } from '@/shared/money'
@@ -176,9 +176,7 @@ const dotClass = computed(() => {
   return category ? (CATEGORY_FILLS[category.id % CATEGORY_FILLS.length] ?? '') : 'bg-ink-faint'
 })
 
-const accountName = computed(
-  () => `${bankLabel(props.movement.account.bank)} · ${props.movement.account.alias}`,
-)
+const accountName = computed(() => accountLabel(props.movement.account))
 
 /** The API always sends a positive amount; the sign comes from `type`. */
 const amount = computed(() =>

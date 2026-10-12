@@ -38,9 +38,19 @@ describe('ReviewFilterBar (R5, R6, R8, R12)', () => {
     const options = wrapper.get('[data-test="filter-account"] select').findAll('option')
     expect(options.map((option) => option.text())).toEqual([
       'All accounts',
-      'Bankinter · bankinter ···0236',
-      'N26 · n26 ···3000',
+      'Bankinter ···0236',
+      'N26 ···3000',
     ])
+  })
+
+  it('names each account as the bank and its last four digits, without repeating the bank', () => {
+    const labels = barOf()
+      .get('[data-test="filter-account"] select')
+      .findAll('option')
+      .map((option) => option.text())
+
+    expect(labels.join(' ')).not.toContain('bankinter')
+    expect(labels.join(' ')).not.toContain('n26')
   })
 
   it('keeps the account chosen in the URL even when the page no longer holds it', () => {

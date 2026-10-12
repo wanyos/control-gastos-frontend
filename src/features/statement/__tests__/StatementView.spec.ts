@@ -295,7 +295,7 @@ describe('StatementView', () => {
       })
 
       expect(wrapper.get('[data-test="statement-scope"]').text()).toBe(
-        '5 movements match these filters in March 2026 · Account bankinter ···0236 · "luz"',
+        '5 movements match these filters in March 2026 · Account Bankinter ···0236 · "luz"',
       )
       expect(wrapper.find('[data-test="statement-totals-note"]').exists()).toBe(true)
       // Feature 23: the note no longer names a month nor carries a single digit (R14).

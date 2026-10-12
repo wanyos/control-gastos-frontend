@@ -42,6 +42,31 @@ describe('ReviewActionBar (R6, R7, R11)', () => {
     expect(wrapper.get('[data-test="apply-category"]').attributes('disabled')).toBeDefined()
   })
 
+  it('offers a category without subcategories once, with no group title', () => {
+    const wrapper = barOf()
+
+    // Salary has no children: one loose option. Food keeps its group, itself first.
+    expect(wrapper.findAll('optgroup').map((group) => group.attributes('label'))).toEqual(['Food'])
+    expect(wrapper.findAll('optgroup option').map((option) => option.text())).toEqual([
+      'Food',
+      'Groceries',
+      'Restaurants',
+    ])
+    expect(wrapper.findAll('select > option').map((option) => option.text())).toEqual([
+      'Choose a category…',
+      'Remove category',
+      'Salary',
+    ])
+    expect(wrapper.findAll('option').map((option) => option.attributes('value'))).toEqual([
+      '',
+      'none',
+      '1',
+      '2',
+      '3',
+      '4',
+    ])
+  })
+
   it('says how many of the selection the chosen category reaches (R7)', () => {
     const wrapper = barOf({ choice: '2', eligibleCount: 2, selectedCount: 4 })
 

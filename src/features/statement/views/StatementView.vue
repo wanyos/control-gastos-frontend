@@ -179,6 +179,7 @@ import RuleDialog from '@/features/category-rules/components/RuleDialog.vue'
 import { proposeMatchText } from '@/features/category-rules/rules'
 import { useCategoryRulesStore } from '@/features/category-rules/store'
 import type { NewRule } from '@/features/category-rules/types'
+import { accountLabel } from '@/shared/accounts'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
 import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
@@ -254,8 +255,9 @@ const failure = computed(() =>
 const scope = computed(() => {
   const pagination = store.result?.pagination
   if (!pagination || !hasActiveFilters(store.filters)) return undefined
+  const account = store.accounts?.find((one) => one.id === store.filters.accountId)
   return filterScopeLine(store.filters, pagination.total, store.month, {
-    account: store.accounts?.find((account) => account.id === store.filters.accountId)?.alias,
+    account: account ? accountLabel(account) : undefined,
     category: findCategoryName(store.categories, store.filters.categoryId),
   })
 })

@@ -10,12 +10,15 @@
       @update:model-value="onChange"
     >
       <option value="">No category</option>
-      <optgroup v-for="root in allowed" :key="root.id" :label="root.name">
-        <option :value="String(root.id)">{{ root.name }}</option>
-        <option v-for="child in root.children" :key="child.id" :value="String(child.id)">
-          {{ child.name }}
-        </option>
-      </optgroup>
+      <template v-for="root in allowed" :key="root.id">
+        <optgroup v-if="root.children.length > 0" :label="root.name">
+          <option :value="String(root.id)">{{ root.name }}</option>
+          <option v-for="child in root.children" :key="child.id" :value="String(child.id)">
+            {{ child.name }}
+          </option>
+        </optgroup>
+        <option v-else :value="String(root.id)">{{ root.name }}</option>
+      </template>
     </BaseSelect>
   </div>
 </template>

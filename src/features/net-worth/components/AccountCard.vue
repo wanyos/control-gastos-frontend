@@ -14,7 +14,6 @@
       <div class="truncate text-base font-semibold text-ink-strong">{{ name }}</div>
       <div class="mt-px flex flex-wrap items-center gap-x-1.5 text-xs text-ink-muted">
         <span>{{ typeLabel }}</span>
-        <span v-if="last4" class="font-mono">···· {{ last4 }}</span>
         <span v-if="detail" data-test="holding-date">{{ detail }}</span>
       </div>
     </div>
@@ -37,6 +36,8 @@
 <script setup lang="ts">
 // Port of design-system/components/finance/AccountCard.jsx as a non-interactive
 // row for an account or a product. A `null` amount is a gap, never a zero.
+// The `last4` line of the original is not ported: the name of an account
+// already ends with its last four digits (`accountLabel`).
 import { computed } from 'vue'
 
 import { formatMoney, toCents } from '@/shared/money'
@@ -51,7 +52,6 @@ const props = defineProps<{
   initial: string
   /** Full literal utility for the tile color. */
   tileClass: string
-  last4?: string
   /** Date line, e.g. `Valued 29 Aug 2026`. */
   detail?: string
 }>()

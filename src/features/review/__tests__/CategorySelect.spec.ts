@@ -17,13 +17,30 @@ describe('CategorySelect (R7)', () => {
     const wrapper = selectOf()
 
     const groups = wrapper.findAll('optgroup')
-    expect(groups.map((group) => group.attributes('label'))).toEqual(['Food', 'Salary'])
+    expect(groups.map((group) => group.attributes('label'))).toEqual(['Food'])
     expect(groups[0]?.findAll('option').map((option) => option.text())).toEqual([
       'Food',
       'Groceries',
       'Restaurants',
     ])
     expect(wrapper.get('select').findAll('option')[0]?.text()).toBe('All categories')
+  })
+
+  it('offers a category without subcategories once, with no group title (feature 28)', () => {
+    const wrapper = selectOf()
+
+    expect(wrapper.findAll('select > option').map((option) => option.text())).toEqual([
+      'All categories',
+      'Salary',
+    ])
+    // The order is the one received: Food and its children, then Salary.
+    expect(wrapper.findAll('option').map((option) => option.attributes('value'))).toEqual([
+      '',
+      '1',
+      '2',
+      '3',
+      '4',
+    ])
   })
 
   it('emits the chosen id, and null when the choice is cleared', async () => {

@@ -224,7 +224,7 @@ describe('NetWorthView', () => {
     expect(deposit.get('[data-test="holding-date"]').text()).toBe(
       `Matured ${formatDate('2026-08-15')}`,
     )
-    const account = holdingRow(wrapper, 'Main account')
+    const account = holdingRow(wrapper, 'Bankinter ···1332')
     expect(account.text()).toContain('Checking account')
     expect(account.text()).toContain('1332')
     expect(account.get('[data-test="holding-date"]').text()).toBe(
@@ -232,6 +232,35 @@ describe('NetWorthView', () => {
     )
     const myInvestor = rowByLabel(wrapper, 'bank-card', 'MyInvestor')
     expect(myInvestor.findAll('[data-test="holding-row"]')).toHaveLength(4)
+  })
+
+  it('names each account as the bank and its last four digits, not by its alias (feature 28)', async () => {
+    const { wrapper } = await mountLoaded(coherentNetWorth())
+
+    const names = ['Bankinter ···1332', 'N26 ···3000', 'Openbank ···6789']
+    for (const name of names) {
+      expect(holdingRow(wrapper, name).text()).toContain(name)
+    }
+    expect(wrapper.text()).not.toContain('Main account')
+    expect(wrapper.text()).not.toContain('Daily card')
+    expect(wrapper.text()).not.toContain('Rainy day')
+  })
+
+  it('shows the last four digits of an account only once in its row (feature 28)', async () => {
+    const { wrapper } = await mountLoaded(coherentNetWorth())
+
+    const tails = [
+      ['Bankinter ···1332', '1332'],
+      ['N26 ···3000', '3000'],
+      ['Openbank ···6789', '6789'],
+    ] as const
+    for (const [name, tail] of tails) {
+      const row = holdingRow(wrapper, name)
+      expect(row.text().split(tail)).toHaveLength(2)
+      // The line under the name keeps the type and the data date.
+      expect(row.get('[data-test="holding-date"]').text()).toBe(`As of ${formatDate('2026-09-12')}`)
+    }
+    expect(holdingRow(wrapper, 'Bankinter ···1332').text()).toContain('Checking account')
   })
 
   it('shows a gap for a product without valuation, never a zero (R13)', async () => {

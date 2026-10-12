@@ -1320,12 +1320,12 @@
           "Cómo se enseñan las subcategorías el día que existan, sin repetir la categoría cuando no las tiene."
         ],
         "respuestas_del_humano": [
-          "Del 2026-10-12: una cuenta se lee como el banco y los cuatro últimos dígitos, `Bankinter ···2314` (opción A).",
+          "Del 2026-10-12: una cuenta se lee como el banco y los cuatro últimos dígitos, `Bankinter ···6182` (opción A).",
           "Del 2026-10-12: el orden de las categorías no se toca, está bien así."
         ]
       },
       "acceptance": [
-        "Una cuenta se nombra como el nombre legible del banco seguido de `···` y los cuatro últimos dígitos de su IBAN (`Bankinter ···2314`), sin repetir el banco",
+        "Una cuenta se nombra como el nombre legible del banco seguido de `···` y los cuatro últimos dígitos de su IBAN (`Bankinter ···6182`), sin repetir el banco",
         "Ese nombre sale de una sola función compartida, y la usan todos los sitios donde hoy se nombra una cuenta: el desplegable `Account` y las líneas de `Movements`, el desplegable de cuenta y las filas de `Review`, las parejas de `Transfers` y las fichas de `Net Worth` (procedencia del leader: la lista de sitios la confirma el implementer buscando en el código, por delegación del humano)",
         "Dos cuentas del mismo banco se distinguen por sus cuatro últimos dígitos",
         "En los desplegables de categoría (el de una línea de `Movements`, el de cada fila y el de la barra de selección de `Review`, el filtro de `Review` y el diálogo de reglas), una categoría sin subcategorías sale una sola vez, como opción suelta y sin título de grupo",
@@ -1345,11 +1345,11 @@
         },
         {
           "descripcion": "En `Review`, lo mismo en el desplegable de cuenta y en cada fila.",
-          "comando": "grep -qF \"names the account as the bank and its last four digits, without repeating the bank\" src/features/review/__tests__/MovementRow.spec.ts && pnpm exec vitest run src/features/review/__tests__/MovementRow.spec.ts -t \"names the account as the bank and its last four digits, without repeating the bank\""
+          "comando": "grep -qF \"names the account as the bank and its last four digits, without repeating the bank\" src/features/review/__tests__/MovementRow.spec.ts && pnpm exec vitest run src/features/review/__tests__/MovementRow.spec.ts -t \"names the account as the bank and its last four digits, without repeating the bank\" && grep -qF \"names each account as the bank and its last four digits, without repeating the bank\" src/features/review/__tests__/ReviewFilterBar.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewFilterBar.spec.ts -t \"names each account as the bank and its last four digits, without repeating the bank\""
         },
         {
           "descripcion": "En cualquier otra pantalla donde salga una cuenta (`Transfers`, `Net Worth`), se nombra igual que en estas.",
-          "comando": "grep -qF \"names the account as the bank and its last four digits, without repeating the bank\" src/features/transfers/__tests__/TransferPairRow.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/TransferPairRow.spec.ts -t \"names the account as the bank and its last four digits, without repeating the bank\""
+          "comando": "grep -qF \"names the account as the bank and its last four digits, without repeating the bank\" src/features/transfers/__tests__/TransferPairRow.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/TransferPairRow.spec.ts -t \"names the account as the bank and its last four digits, without repeating the bank\" && grep -qF \"names each account as the bank and its last four digits, not by its alias (feature 28)\" src/features/net-worth/__tests__/NetWorthView.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/NetWorthView.spec.ts -t \"names each account as the bank and its last four digits, not by its alias\""
         },
         {
           "descripcion": "Al pulsar la etiqueta de categoría de una línea en `Movements`, cada categoría sale una sola vez.",
@@ -1357,7 +1357,7 @@
         },
         {
           "descripcion": "En `Review`, lo mismo en el desplegable de categoría de cada fila y en el de la barra que sale al marcar varias.",
-          "comando": "grep -qF \"offers a category without subcategories once, with no group title\" src/features/review/__tests__/ReviewActionBar.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewActionBar.spec.ts -t \"offers a category without subcategories once, with no group title\""
+          "comando": "grep -qF \"offers a category without subcategories once, with no group title\" src/features/review/__tests__/ReviewActionBar.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewActionBar.spec.ts -t \"offers a category without subcategories once, with no group title\" && grep -qF \"offers a category without subcategories once, with no group title (feature 28)\" src/features/review/__tests__/MovementCategorySelect.spec.ts && pnpm exec vitest run src/features/review/__tests__/MovementCategorySelect.spec.ts -t \"offers a category without subcategories once, with no group title\""
         },
         {
           "descripcion": "Sigo distinguiendo dos cuentas del mismo banco, si algún día las tengo.",
@@ -1369,7 +1369,7 @@
         }
       ],
       "sdd": false,
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

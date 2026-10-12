@@ -15,7 +15,7 @@
         </span>
         <span v-if="row.newAccount !== null" class="flex flex-wrap items-center gap-2">
           <BaseBadge size="sm" tone="positive" data-test="new-account">New account</BaseBadge>
-          <span class="text-ink-body" data-test="new-account-alias">{{ row.newAccount }}</span>
+          <span class="text-ink-body" data-test="new-account-name">{{ row.newAccount }}</span>
         </span>
         <span
           v-for="note in row.notes"

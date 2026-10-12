@@ -16,9 +16,9 @@ const account = (id: number, bank: string, tail: string) => ({
   type: 'checking',
 })
 
-const BANKINTER = account(19532, 'bankinter', '2314')
-const N26 = account(14788, 'n26', '4136')
-const OPENBANK = account(16563, 'openbank', '4073')
+const BANKINTER = account(8127, 'bankinter', '6182')
+const N26 = account(6205, 'n26', '7719')
+const OPENBANK = account(7318, 'openbank', '3954')
 
 const leg = (
   id: number,
@@ -322,8 +322,8 @@ test('reaches the screen from the sidebar and sees every pair, only the fine lab
     'BIZUM DE <persona> CONCEPTO multa',
   ])
   await expect(rows.nth(2).getByTestId('pair-leg-account')).toHaveText([
-    'n26 ···4136',
-    'openbank ···4073',
+    'N26 ···7719',
+    'Openbank ···3954',
   ])
   await expect(rows.nth(2).getByTestId('pair-leg-amount').first()).toContainText('100,00')
 

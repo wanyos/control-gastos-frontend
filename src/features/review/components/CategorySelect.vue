@@ -8,18 +8,22 @@
     @update:model-value="onChange"
   >
     <option value="">{{ failed ? UNAVAILABLE : 'All categories' }}</option>
-    <optgroup v-for="root in categories ?? []" :key="root.id" :label="root.name">
-      <option :value="String(root.id)">{{ root.name }}</option>
-      <option v-for="child in root.children" :key="child.id" :value="String(child.id)">
-        {{ child.name }}
-      </option>
-    </optgroup>
+    <template v-for="root in categories ?? []" :key="root.id">
+      <optgroup v-if="root.children.length > 0" :label="root.name">
+        <option :value="String(root.id)">{{ root.name }}</option>
+        <option v-for="child in root.children" :key="child.id" :value="String(child.id)">
+          {{ child.name }}
+        </option>
+      </optgroup>
+      <option v-else :value="String(root.id)">{{ root.name }}</option>
+    </template>
   </BaseSelect>
 </template>
 
 <script setup lang="ts">
-// One optgroup per root category, with the root itself as its first option: the
+// A root with children is an optgroup with the root itself as its first option: the
 // contract says a parent does NOT drag its children's movements, so both are pickable.
+// A root without children is a single loose option, so its name is read once (F28).
 import { computed } from 'vue'
 
 import BaseSelect from '@/shared/components/BaseSelect.vue'

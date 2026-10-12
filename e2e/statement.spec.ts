@@ -113,7 +113,7 @@ const ACCOUNTS = [
     bank: 'myinvestor',
     alias: 'myinvestor ···6789',
     type: 'checking',
-    balance: '3206.28',
+    balance: '2874.61',
   },
 ]
 

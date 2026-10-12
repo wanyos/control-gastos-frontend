@@ -24,9 +24,7 @@ describe('StatementRow (R9, R10)', () => {
     const row = mountRow(EXPENSE)
 
     expect(row.get('[data-test="statement-row-description"]').text()).toBe('CAFETERÍA CENTRAL')
-    expect(row.get('[data-test="statement-row-account"]').text()).toBe(
-      'Bankinter · bankinter ···0236',
-    )
+    expect(row.get('[data-test="statement-row-account"]').text()).toBe('Bankinter ···0236')
     expect(row.get('[data-test="statement-row-category"]').text()).toBe('Food')
     expect(row.get('[data-test="statement-row-amount"]').text()).toBe(formatMoney('-45.37'))
   })
@@ -147,16 +145,21 @@ describe('StatementRow (R9, R10)', () => {
       ...EXPENSE,
       account: {
         id: 9,
-        iban: 'ES00',
+        iban: 'ES7300815204618837401111',
         bank: 'sabadell',
         alias: 'sabadell ···1111',
         type: 'checking',
       },
     })
 
-    expect(mountRow(raw).get('[data-test="statement-row-account"]').text()).toBe(
-      'sabadell · sabadell ···1111',
-    )
+    expect(mountRow(raw).get('[data-test="statement-row-account"]').text()).toBe('sabadell ···1111')
+  })
+
+  it('names the account as the bank and its last four digits, without repeating the bank', () => {
+    const account = mountRow(EXPENSE).get('[data-test="statement-row-account"]').text()
+
+    expect(account).toBe('Bankinter ···0236')
+    expect(account).not.toContain('bankinter')
   })
 
   // --- The selection mode and the mark (feature 22) ---

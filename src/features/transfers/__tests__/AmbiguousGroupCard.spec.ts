@@ -43,7 +43,7 @@ describe('AmbiguousGroupCard (R8, R10, R11, C7)', () => {
       '[data-test="doubtful-column-in"] [data-test="doubtful-movement"]',
     )[1]
     expect(second?.get('[data-test="doubtful-date"]').text()).toBe(formatDate('2026-08-02'))
-    expect(second?.get('[data-test="doubtful-account"]').text()).toBe('n26 ···4136')
+    expect(second?.get('[data-test="doubtful-account"]').text()).toBe('n26 ···7719')
     expect(second?.get('[data-test="doubtful-description"]').text()).toBe('ABONO')
     expect(second?.get('[data-test="doubtful-description"]').attributes('lang')).toBe('es')
   })

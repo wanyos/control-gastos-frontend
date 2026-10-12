@@ -91,7 +91,7 @@
 import { onBeforeUnmount, ref, watch } from 'vue'
 import { Search } from '@lucide/vue'
 
-import { bankLabel } from '@/shared/banks'
+import { accountLabel } from '@/shared/accounts'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
 import BaseInput from '@/shared/components/BaseInput.vue'
@@ -171,7 +171,7 @@ watch(
     for (const account of accounts) {
       options.set(account.id, {
         id: account.id,
-        label: `${bankLabel(account.bank)} · ${account.alias}`,
+        label: accountLabel(account),
       })
     }
     if (accountId !== null && !options.has(accountId)) {
