@@ -1488,7 +1488,8 @@
         "respuestas_del_humano": [
           "Del 2026-10-12: de momento le basta con verlo justo después de aplicar; poder volver otro día a ver qué categorizó la última aplicación queda fuera.",
           "Del 2026-10-12: lo que categorizan las reglas al importar queda fuera, para una revisión posterior.",
-          "Del 2026-10-12: sí, la lista de choques (movimientos a los que les casan dos reglas de categorías distintas) sigue a la vista igual que la de lo categorizado."
+          "Del 2026-10-12: sí, la lista de choques (movimientos a los que les casan dos reglas de categorías distintas) sigue a la vista igual que la de lo categorizado.",
+          "Del 2026-10-12: aprobó la hoja de decisiones, y prefirió que el backend devuelva qué movimientos categoriza en vez de que el frontend lo deduzca comparando antes y después. El backend lo hizo en su feature 56 (`categorizedMovements` en `POST /api/category-rules/apply`)."
         ]
       },
       "acceptance": [],
@@ -1527,8 +1528,7 @@
         }
       ],
       "sdd": true,
-      "status": "blocked",
-      "blocked_by": "Espera a la parte 1 de `../docs/handoff-reglas-aplicadas.md` (backend): que `POST /api/category-rules/apply` devuelva qué movimientos categorizó. Decidido por el humano el 2026-10-12. Al desbloquear, el spec se rehace para leer esa lista en vez de comparar antes y después."
+      "status": "pending"
     }
   ]
 }
