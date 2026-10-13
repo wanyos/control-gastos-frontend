@@ -1500,7 +1500,7 @@
         },
         {
           "descripcion": "Desde ahí puedo ver la lista de los movimientos que se acaban de categorizar, cada uno con la categoría que le han puesto.",
-          "comando": "grep -qF \"works out which movements the pass categorized from the reads before and after\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"works out which movements the pass categorized from the reads before and after\" && grep -qF \"lists each categorized movement with the category it was given\" src/features/category-rules/__tests__/LastApplyReport.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/LastApplyReport.spec.ts -t \"lists each categorized movement with the category it was given\""
+          "comando": "grep -qF \"keeps the categorized movements the server sent as the list of the result\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"keeps the categorized movements the server sent as the list of the result\" && grep -qF \"lists each categorized movement with the category it was given\" src/features/category-rules/__tests__/LastApplyReport.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/LastApplyReport.spec.ts -t \"lists each categorized movement with the category it was given\""
         },
         {
           "descripcion": "Si no se ha categorizado ninguno, me lo dice con esas palabras.",
@@ -1511,16 +1511,20 @@
           "comando": "grep -qF \"shows how many pending movements have no category without applying anything\" src/features/review/__tests__/ReviewView.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewView.spec.ts -t \"shows how many pending movements have no category without applying anything\""
         },
         {
-          "descripcion": "Si recargo la página, lo que veo sigue siendo verdad: no me enseña como «recién categorizado» algo que ya no lo es. (tras recargar no queda nada del resultado ni nada guardado en el navegador; y una lista que no cuadra con el número del backend no se enseña)",
-          "comando": "grep -qF \"a new page load starts with no result and writes nothing to the browser storage\" src/features/category-rules/__tests__/store.spec.ts && grep -qF \"keeps no list when it does not add up to the number the server gave\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"a new page load starts with no result and writes nothing to the browser storage\" && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"keeps no list when it does not add up to the number the server gave\""
+          "descripcion": "Si recargo la página, lo que veo sigue siendo verdad: no me enseña como «recién categorizado» algo que ya no lo es. (tras recargar no queda nada del resultado ni nada guardado en el navegador)",
+          "comando": "grep -qF \"a new page load starts with no result and writes nothing to the browser storage\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"a new page load starts with no result and writes nothing to the browser storage\""
         },
         {
-          "descripcion": "(añadido) No quiero que aplicar las reglas confirme nada: al aplicar sale una sola escritura, la de aplicar, y todo lo demás son lecturas.",
-          "comando": "grep -qF \"applying sends one POST without a body and no other write\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"applying sends one POST without a body and no other write\""
+          "descripcion": "(añadido) No quiero que aplicar las reglas confirme nada: al aplicar sale una sola petición, la de aplicar, sin cuerpo.",
+          "comando": "grep -qF \"applying sends a single request and it is the POST without a body\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"applying sends a single request and it is the POST without a body\""
         },
         {
-          "descripcion": "(añadido) Si no se pueden leer los pendientes antes de aplicar, las reglas no se aplican y no cambia nada.",
-          "comando": "grep -qF \"sends no POST when the pending movements cannot be read first\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"sends no POST when the pending movements cannot be read first\""
+          "descripcion": "(añadido) Si la respuesta de aplicar no trae la lista de lo categorizado, o la lista no tiene tantos movimientos como el número que la acompaña, no se enseña ningún resultado y la ventana dice que algo falló.",
+          "comando": "grep -qF \"rejects an apply answer without the list of categorized movements\" src/features/category-rules/__tests__/service.spec.ts && grep -qF \"rejects an apply answer whose list does not have as many movements as categorized\" src/features/category-rules/__tests__/service.spec.ts && grep -qF \"keeps no result when the answer of the server does not follow the contract\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/service.spec.ts -t \"rejects an apply answer\" && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"keeps no result when the answer of the server does not follow the contract\""
+        },
+        {
+          "descripcion": "(añadido) Lo que categorizan las reglas al importar queda fuera: el informe de importar se sigue leyendo cuando trae la lista nueva, y esa lista no se guarda ni se enseña.",
+          "comando": "grep -qF \"reads a report whose categorization carries the categorized movements\" src/features/import/__tests__/service.spec.ts && pnpm exec vitest run src/features/import/__tests__/service.spec.ts -t \"reads a report whose categorization carries the categorized movements\""
         },
         {
           "descripcion": "(añadido) Lo que dejó la feature 27 en `Review` sigue igual: aplicar las reglas sigue borrando el `Undo` y las casillas marcadas, y lo nuevo no se mete en la línea que se queda bajo la barra de arriba.",
@@ -1528,7 +1532,7 @@
         }
       ],
       "sdd": true,
-      "status": "pending"
+      "status": "spec_ready"
     }
   ]
 }
