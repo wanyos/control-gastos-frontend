@@ -1489,7 +1489,8 @@
           "Del 2026-10-12: de momento le basta con verlo justo después de aplicar; poder volver otro día a ver qué categorizó la última aplicación queda fuera.",
           "Del 2026-10-12: lo que categorizan las reglas al importar queda fuera, para una revisión posterior.",
           "Del 2026-10-12: sí, la lista de choques (movimientos a los que les casan dos reglas de categorías distintas) sigue a la vista igual que la de lo categorizado.",
-          "Del 2026-10-12: aprobó la hoja de decisiones, y prefirió que el backend devuelva qué movimientos categoriza en vez de que el frontend lo deduzca comparando antes y después. El backend lo hizo en su feature 56 (`categorizedMovements` en `POST /api/category-rules/apply`)."
+          "Del 2026-10-12: aprobó la hoja de decisiones, y prefirió que el backend devuelva qué movimientos categoriza en vez de que el frontend lo deduzca comparando antes y después. El backend lo hizo en su feature 56 (`categorizedMovements` en `POST /api/category-rules/apply`).",
+          "Del 2026-10-13: aprobó el spec rehecho, y sí quiere que cada movimiento de la lista enseñe también el texto de la regla que lo categorizó (decisión 2 de la hoja, R16 y T8)."
         ]
       },
       "acceptance": [],
@@ -1532,7 +1533,7 @@
         }
       ],
       "sdd": true,
-      "status": "spec_ready"
+      "status": "in_progress"
     }
   ]
 }
