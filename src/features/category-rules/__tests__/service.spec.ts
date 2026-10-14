@@ -14,7 +14,16 @@ import {
   parseRules,
   updateRule,
 } from '../service'
-import { APPLY_OK, IBERDROLA, MERCADONA, THREE_RULES, answer, fakeClient } from './fixtures'
+import {
+  APPLY_OK,
+  IBERDROLA,
+  INCOME_MOVEMENT,
+  MERCADONA,
+  THREE_RULES,
+  TWO_RULES_MOVEMENT,
+  answer,
+  fakeClient,
+} from './fixtures'
 
 describe('category-rules service (R5, R8, R9, R11, C2)', () => {
   describe('reading', () => {
@@ -138,6 +147,103 @@ describe('category-rules service (R5, R8, R9, R11, C2)', () => {
       })
 
       expect(JSON.stringify(parsed)).not.toContain('La pasada falló')
+    })
+
+    // ─── The list of what was categorized (feature 30) ───────────────────────
+
+    /** The answer of the contract: two movements, the first with two rules. */
+    const CONTRACT_ANSWER = {
+      ...APPLY_OK,
+      categorized: 2,
+      categorizedMovements: [TWO_RULES_MOVEMENT, INCOME_MOVEMENT],
+    }
+
+    const withFirst = (changes: Record<string, unknown>) => ({
+      ...CONTRACT_ANSWER,
+      categorizedMovements: [{ ...TWO_RULES_MOVEMENT, ...changes }, INCOME_MOVEMENT],
+    })
+
+    it('reads the movements the apply answer says it categorized', () => {
+      expect(parseApplyResult(CONTRACT_ANSWER).categorizedMovements).toEqual([
+        {
+          movementId: 198,
+          description: 'COMPRA SINTETICO COLMADO NORTE',
+          bookingDate: '2026-08-11',
+          amount: '41.37',
+          type: 'expense',
+          categoryId: 4,
+          categoryName: 'Supermercado',
+          rules: [
+            { ruleId: 3, matchText: 'sintetico colmado' },
+            { ruleId: 12, matchText: 'colmado norte' },
+          ],
+        },
+        {
+          movementId: 203,
+          description: 'ABONO SINTETICO TALLER EJEMPLO',
+          bookingDate: '2026-08-12',
+          amount: '1318.64',
+          type: 'income',
+          categoryId: 9,
+          categoryName: 'Nomina',
+          rules: [{ ruleId: 9, matchText: 'taller ejemplo' }],
+        },
+      ])
+
+      // The order is the one of the answer, never a sort made here.
+      const backwards = parseApplyResult({
+        ...CONTRACT_ANSWER,
+        categorizedMovements: [INCOME_MOVEMENT, TWO_RULES_MOVEMENT],
+      })
+      expect(backwards.categorizedMovements.map((one) => one.movementId)).toEqual([203, 198])
+
+      const none = parseApplyResult({ ...APPLY_OK, categorized: 0, categorizedMovements: [] })
+      expect(none.categorizedMovements).toEqual([])
+    })
+
+    it('rejects an apply answer without the list of categorized movements', () => {
+      const withoutList: Record<string, unknown> = { ...APPLY_OK }
+      delete withoutList.categorizedMovements
+      expect(Object.keys(withoutList)).not.toContain('categorizedMovements')
+
+      expect(() => parseApplyResult(withoutList)).toThrow(ValidationError)
+      expect(() => parseApplyResult(withoutList)).toThrow(
+        `POST ${APPLY_PATH}: categorizedMovements is not an array`,
+      )
+      expect(() => parseApplyResult({ ...APPLY_OK, categorizedMovements: null })).toThrow(
+        `POST ${APPLY_PATH}: categorizedMovements is not an array`,
+      )
+    })
+
+    it('rejects an apply answer whose list does not have as many movements as categorized', () => {
+      const short = { ...CONTRACT_ANSWER, categorized: 3 }
+      expect(() => parseApplyResult(short)).toThrow(ValidationError)
+      expect(() => parseApplyResult(short)).toThrow(
+        `POST ${APPLY_PATH}: categorizedMovements is not a list of 3 movements`,
+      )
+
+      expect(() =>
+        parseApplyResult({
+          ...APPLY_OK,
+          categorized: 0,
+          categorizedMovements: [TWO_RULES_MOVEMENT],
+        }),
+      ).toThrow(`POST ${APPLY_PATH}: categorizedMovements is not a list of 0 movements`)
+    })
+
+    it('names the failing field of a categorized movement it cannot read', () => {
+      expect(() => parseApplyResult(withFirst({ amount: 41.37 }))).toThrow(
+        `POST ${APPLY_PATH}: categorizedMovements[0].amount is not a decimal string with two decimals`,
+      )
+      expect(() => parseApplyResult(withFirst({ type: 'neutral' }))).toThrow(
+        `POST ${APPLY_PATH}: categorizedMovements[0].type is not one of income | expense`,
+      )
+      expect(() => parseApplyResult(withFirst({ bookingDate: '' }))).toThrow(
+        `POST ${APPLY_PATH}: categorizedMovements[0].bookingDate is not a YYYY-MM-DD date`,
+      )
+      expect(() =>
+        parseApplyResult(withFirst({ rules: [{ ruleId: '3', matchText: 'sintetico colmado' }] })),
+      ).toThrow(`POST ${APPLY_PATH}: categorizedMovements[0].rules[0].ruleId is not an integer`)
     })
 
     it('names the failing field of a result it cannot read', () => {

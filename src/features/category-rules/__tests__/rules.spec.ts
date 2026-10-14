@@ -10,10 +10,13 @@ import {
   applySummaryLines,
   deleteErrorMessage,
   isMatchTextTooShort,
+  lastApplyFigures,
+  lastApplyHeadline,
   needsRulesReload,
   normalizeMatchText,
   proposeMatchText,
   ruleErrorMessage,
+  signedAmount,
 } from '../rules'
 import type { ApplyResult } from '../types'
 import {
@@ -28,6 +31,7 @@ import {
 
 const result = (overrides: Partial<ApplyResult> = {}): ApplyResult => ({
   categorized: 12,
+  categorizedMovements: [],
   conflictCount: 1,
   conflicts: [],
   unmatched: 5,
@@ -231,6 +235,48 @@ describe('rules (R2, R4, R6, R9, R12, R13)', () => {
         '3 conflicts',
       ])
       expect(applySummaryLines(result({ categorized: 0, conflictCount: 0 }))[2]).toBe('0 conflicts')
+    })
+  })
+
+  describe('the result left in view (feature 30, R5, R6)', () => {
+    it('says at what time the rules were applied and how many movements were categorized', () => {
+      expect(lastApplyHeadline(214, '10:42')).toBe(
+        'Rules applied at 10:42: 214 movements categorized.',
+      )
+      expect(lastApplyHeadline(1, '09:05')).toBe('Rules applied at 09:05: 1 movement categorized.')
+    })
+
+    it('says with those words that no movements were categorized', () => {
+      expect(lastApplyHeadline(0, '10:42')).toBe(
+        'Rules applied at 10:42: no movements were categorized.',
+      )
+    })
+
+    it('reads the other two figures in one line, with the singular of conflict', () => {
+      expect(lastApplyFigures(result({ unmatched: 847, conflictCount: 3 }))).toBe(
+        '847 still without a matching rule · 3 conflicts',
+      )
+      expect(lastApplyFigures(result())).toBe('5 still without a matching rule · 1 conflict')
+      expect(lastApplyFigures(result({ unmatched: 0, conflictCount: 0 }))).toBe(
+        '0 still without a matching rule · 0 conflicts',
+      )
+    })
+
+    it('puts the minus sign on an expense and none on an income', () => {
+      const movement = {
+        movementId: 198,
+        description: 'COMPRA SINTETICO COLMADO NORTE',
+        bookingDate: '2026-08-11',
+        amount: '41.37',
+        categoryId: 4,
+        categoryName: 'Supermercado',
+        rules: [],
+      }
+
+      expect(signedAmount({ ...movement, type: 'expense' })).toBe('-41.37')
+      expect(signedAmount({ ...movement, type: 'income' })).toBe('41.37')
+      // Not what the contract sends, but it must not end up as `--41.37`.
+      expect(signedAmount({ ...movement, type: 'expense', amount: '-41.37' })).toBe('-41.37')
     })
   })
 })

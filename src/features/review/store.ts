@@ -80,6 +80,8 @@ export const useReviewStore = defineStore('review', () => {
   const categoriesFailed = ref(false)
   /** Null when unknown or when the count query failed: the sidebar then shows nothing. */
   const pendingCount = ref<number | null>(null)
+  /** Null when unknown or when its query failed: the header then says nothing (feature 30). */
+  const uncategorizedCount = ref<number | null>(null)
 
   // --- Feature 16: selection and actions ---
   /** An array, not a Set: the order is kept and it is plain to read in a test. */
@@ -177,6 +179,23 @@ export const useReviewStore = defineStore('review', () => {
     }
   }
 
+  /**
+   * How many pending movements have no category (feature 30): `pagination.total` of
+   * the smallest query that asks exactly that. It is not the total of the page on
+   * screen, which travels with the filters of the user. A failure leaves it unknown.
+   */
+  async function refreshUncategorizedCount(client?: HttpClient): Promise<void> {
+    try {
+      const counted = await getMovements(
+        { status: QUEUE_STATUS, uncategorized: true, page: 1, pageSize: 1 },
+        client,
+      )
+      uncategorizedCount.value = counted.pagination.total
+    } catch {
+      uncategorizedCount.value = null
+    }
+  }
+
   // ─── Selection (R1, R2, R3) ───────────────────────────────────────────────
 
   function toggleSelection(id: number): void {
@@ -223,13 +242,18 @@ export const useReviewStore = defineStore('review', () => {
     }
   }
 
-  /** Emptying the last page makes it vanish: fall back to page 1, as `load` does. */
+  /**
+   * Emptying the last page makes it vanish: fall back to page 1, as `load` does. What
+   * brought us here may have given or taken a category, so the number of pending
+   * movements without one is asked for again too (feature 30).
+   */
   async function refreshAfterAction(client?: HttpClient): Promise<void> {
     const failure = await refreshQuietly(client)
     if (failure && page.value > 1 && isRejectedRequest(failure)) {
       page.value = 1
       if ((await refreshQuietly(client)) === null) notice.value = OUT_OF_RANGE_NOTICE
     }
+    await refreshUncategorizedCount(client)
   }
 
   /**
@@ -406,10 +430,12 @@ export const useReviewStore = defineStore('review', () => {
   // ─── After a rules pass (feature 17, R14) ─────────────────────────────────
 
   /**
-   * A rules pass writes `categoryId` on many pending movements at once and the
-   * backend does not say which: the page on screen, its totals and the sidebar count
-   * are asked for again. The selection and the Undo go too — putting an action back
-   * over a queue that just changed in bulk could overwrite what the pass wrote.
+   * A rules pass writes `categoryId` on many pending movements at once: the page on
+   * screen, its totals, the number without a category and the sidebar count are asked
+   * for again. (Which movements it wrote on comes in its answer and is kept by the
+   * rules store; this store does not read it.) The selection and the Undo go too —
+   * putting an action back over a queue that just changed in bulk could overwrite
+   * what the pass wrote.
    */
   async function refreshAfterRules(client?: HttpClient): Promise<void> {
     clearSelection()
@@ -435,6 +461,7 @@ export const useReviewStore = defineStore('review', () => {
     categories,
     categoriesFailed,
     pendingCount,
+    uncategorizedCount,
     selectedIds,
     selection,
     isActing,
@@ -454,6 +481,7 @@ export const useReviewStore = defineStore('review', () => {
     goToPage,
     loadCategories,
     refreshPendingCount,
+    refreshUncategorizedCount,
     refreshAfterRules,
   }
 })

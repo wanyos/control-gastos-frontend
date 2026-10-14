@@ -21,8 +21,8 @@
 
 <script setup lang="ts">
 // What a finished pass did: how many were categorized, how many no rule matched and
-// how many clashed (R12). The backend does not say WHICH movements it categorized,
-// so nothing here pretends to list them.
+// how many clashed (R12). The answer also says WHICH movements it categorized; this
+// dialog keeps to the figures, and the list is shown by LastApplyReport (feature 30).
 import { computed } from 'vue'
 
 import { applySummaryLines } from '../rules'

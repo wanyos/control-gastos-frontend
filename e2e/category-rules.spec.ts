@@ -25,7 +25,7 @@ const CATEGORIES = [
 
 type Movement = Record<string, unknown>
 
-const movement = (id: number, description: string): Movement => ({
+const movement = (id: number, description: string, extra: Movement = {}): Movement => ({
   id,
   type: 'expense',
   bookingDate: '2026-07-31',
@@ -48,6 +48,7 @@ const movement = (id: number, description: string): Movement => ({
   daySequence: 1,
   createdAt: '2026-08-06T18:30:00.000Z',
   updatedAt: '2026-08-06T18:30:00.000Z',
+  ...extra,
 })
 
 const rule = (id: number, matchText: string, category: object) => ({
@@ -61,8 +62,37 @@ const rule = (id: number, matchText: string, category: object) => ({
 
 const TOTALS = { income: '0.00', expense: '192.58', net: '-192.58' }
 
-const APPLY_RESULT = {
+/** One element of `categorizedMovements`, shaped like the contract's example. */
+const categorizedMovement = (
+  movementId: number,
+  description: string,
+  overrides: Record<string, unknown> = {},
+) => ({
+  movementId,
+  description,
+  bookingDate: '2026-08-11',
+  amount: '41.37',
+  type: 'expense',
+  categoryId: 4,
+  categoryName: 'Supermercado',
+  rules: [{ ruleId: 3, matchText: 'sintetico colmado' }],
+  ...overrides,
+})
+
+type ApplyAnswer = Record<string, unknown> & {
+  categorizedMovements: ReturnType<typeof categorizedMovement>[]
+}
+
+const APPLY_RESULT: ApplyAnswer = {
   categorized: 12,
+  // As many as `categorized` says: an answer whose list does not add up is unreadable
+  // for the app (feature 30).
+  categorizedMovements: Array.from({ length: 12 }, (_item, index) =>
+    categorizedMovement(198 + index, `COMPRA SINTETICO COLMADO NORTE ${index + 1}`, {
+      bookingDate: `2026-08-${String(11 + index).padStart(2, '0')}`,
+      amount: `${41 + index * 3}.${String(37 + index * 5).padStart(2, '0')}`,
+    }),
+  ),
   conflictCount: 1,
   conflicts: [
     {
@@ -83,14 +113,23 @@ interface Options {
   createFailsWith?: { status: number; body: unknown }
   /** The rules /rules starts with. */
   rules?: ReturnType<typeof rule>[]
+  /** The pending movements of the queue, instead of the two of every other test. */
+  movements?: Movement[]
+  /** What each POST that applies answers, in order; the last one answers the rest. */
+  applyAnswers?: ApplyAnswer[]
 }
 
 async function prepare(page: Page, options: Options = {}) {
   const rows = new Map<number, Movement>(
-    [movement(10, 'RECIB /IBERDROLA CLIENTES, S.A'), movement(11, 'COMPRA MERCADONA')].map(
-      (row) => [row.id as number, row],
-    ),
+    (
+      options.movements ?? [
+        movement(10, 'RECIB /IBERDROLA CLIENTES, S.A'),
+        movement(11, 'COMPRA MERCADONA'),
+      ]
+    ).map((row) => [row.id as number, row]),
   )
+  const applyAnswers = options.applyAnswers ?? [APPLY_RESULT]
+  let applied = 0
   const rules = new Map<number, ReturnType<typeof rule>>(
     (options.rules ?? []).map((one) => [one.id, one]),
   )
@@ -112,8 +151,11 @@ async function prepare(page: Page, options: Options = {}) {
   // case-insensitive, and `pagination.total` counts the whole match, not the page.
   const answerMovements = (route: Route, query: URLSearchParams) => {
     const q = (query.get('q') ?? '').toLowerCase()
-    const visible = [...rows.values()].filter((row) =>
-      String(row.description).toLowerCase().includes(q),
+    const onlyUncategorized = query.get('uncategorized') === 'true'
+    const visible = [...rows.values()].filter(
+      (row) =>
+        String(row.description).toLowerCase().includes(q) &&
+        (!onlyUncategorized || row.categoryId === null),
     )
     const size = Number(query.get('pageSize') ?? '100')
     return route.fulfill({
@@ -175,7 +217,21 @@ async function prepare(page: Page, options: Options = {}) {
           row.category = UTILITIES
         }
       }
-      return route.fulfill({ json: APPLY_RESULT })
+      const answer = applyAnswers[Math.min(applied, applyAnswers.length - 1)] ?? APPLY_RESULT
+      applied += 1
+      // And the movements the answer says it categorized, when they are in the queue.
+      for (const one of answer.categorizedMovements) {
+        const row = rows.get(one.movementId)
+        if (!row) continue
+        row.categoryId = one.categoryId
+        row.category = {
+          id: one.categoryId,
+          name: one.categoryName,
+          kind: one.type,
+          parentId: null,
+        }
+      }
+      return route.fulfill({ json: answer })
     }
     const id = Number(url.pathname.split('/').pop())
     if (request.method() === 'DELETE') {
@@ -381,6 +437,289 @@ test('the dialog says how many movements a text would match, and writes nothing'
   // The whole feature is read only: not one request left with another method (C1).
   expect(writes(watch)).toEqual([])
   expect(reads.filter((search) => search.includes('q=')).length).toBeGreaterThanOrEqual(3)
+  expect(watch.consoleErrors).toEqual([])
+  expect(watch.pageErrors).toEqual([])
+})
+
+// ─── Feature 30: what applying did stays in view ───────────────────────────
+
+/** Three pending movements: the pass below categorizes two and leaves one in conflict. */
+const THREE_PENDING = [
+  movement(10, 'RECIB /IBERDROLA CLIENTES, S.A'),
+  movement(11, 'COMPRA MERCADONA', {
+    bookingDate: '2026-07-29',
+    valueDate: '2026-07-29',
+    amount: '58.14',
+  }),
+  movement(12, 'PAGO SINTETICO EJEMPLO', {
+    bookingDate: '2026-07-27',
+    valueDate: '2026-07-27',
+    amount: '23.80',
+  }),
+]
+
+const FOUR_RULES = [
+  rule(3, 'sintetico', GROCERIES),
+  rule(7, 'iberdrola', UTILITIES),
+  rule(8, 'mercadona', GROCERIES),
+  rule(9, 'ejemplo', UTILITIES),
+]
+
+const ONE_CONFLICT = [
+  {
+    movementId: 12,
+    description: 'PAGO SINTETICO EJEMPLO',
+    bookingDate: '2026-07-27',
+    matches: [
+      { ruleId: 3, matchText: 'sintetico', categoryId: 4, categoryName: 'Supermercado' },
+      { ruleId: 9, matchText: 'ejemplo', categoryId: 6, categoryName: 'Suministros' },
+    ],
+  },
+]
+
+/** A pass that categorizes two movements and finds one conflict. */
+const TWO_CATEGORIZED: ApplyAnswer = {
+  categorized: 2,
+  categorizedMovements: [
+    categorizedMovement(10, 'RECIB /IBERDROLA CLIENTES, S.A', {
+      bookingDate: '2026-07-31',
+      amount: '96.29',
+      categoryId: 6,
+      categoryName: 'Suministros',
+      rules: [{ ruleId: 7, matchText: 'iberdrola' }],
+    }),
+    categorizedMovement(11, 'COMPRA MERCADONA', {
+      bookingDate: '2026-07-29',
+      amount: '58.14',
+      rules: [{ ruleId: 8, matchText: 'mercadona' }],
+    }),
+  ],
+  conflictCount: 1,
+  conflicts: ONE_CONFLICT,
+  unmatched: 0,
+}
+
+/** The pass after that one: nothing left to categorize, the conflict is still there. */
+const NONE_CATEGORIZED: ApplyAnswer = {
+  categorized: 0,
+  categorizedMovements: [],
+  conflictCount: 1,
+  conflicts: ONE_CONFLICT,
+  unmatched: 0,
+}
+
+const TWO_HEADLINE = /^Rules applied at \d{2}:\d{2}: 2 movements categorized\.$/
+
+/** Applies from /rules and closes the dialog, as the user does. */
+async function applyFromRules(page: Page): Promise<void> {
+  await page.getByTestId('apply-rules').click()
+  await page.getByTestId('apply-confirmed').click()
+  await expect(page.getByTestId('apply-figure')).toHaveCount(3)
+  await page.getByTestId('apply-close').click()
+  await expect(page.getByTestId('apply-figure')).toHaveCount(0)
+}
+
+const goByMenu = async (page: Page, label: 'Review' | 'Rules'): Promise<void> => {
+  await page.locator('nav a', { hasText: label }).click()
+  await expect(page).toHaveURL(label === 'Review' ? /\/review$/ : /\/rules$/)
+}
+
+test('the result of applying stays in view from Rules to Review', async ({ page }) => {
+  const watch = await prepare(page, {
+    rules: FOUR_RULES,
+    movements: THREE_PENDING,
+    applyAnswers: [TWO_CATEGORIZED],
+  })
+  await page.goto('/rules')
+  await expect(page.getByTestId('rule-row')).toHaveCount(4)
+  await expect(page.getByTestId('last-apply')).toHaveCount(0)
+
+  await page.getByTestId('apply-rules').click()
+  await page.getByTestId('apply-confirmed').click()
+  await expect(page.getByTestId('apply-figure').first()).toHaveText('2 movements categorized')
+  await page.getByTestId('apply-close').click()
+  await expect(page.getByTestId('apply-figure')).toHaveCount(0)
+
+  // The dialog is gone and the number is still on the screen.
+  const headline = page.getByTestId('last-apply-headline')
+  await expect(headline).toHaveText(TWO_HEADLINE)
+  const said = await headline.innerText()
+  await expect(page.getByTestId('last-apply-figures')).toHaveText(
+    '0 still without a matching rule · 1 conflict',
+  )
+
+  // The list is folded until it is asked for; then, one row per movement, in the order
+  // of the answer, each with the category it was given.
+  const listed = page.getByTestId('last-apply-movement')
+  await expect(listed).toHaveCount(0)
+  await expect(page.getByTestId('last-apply-show-movements')).toHaveText('Show the 2 movements')
+  await page.getByTestId('last-apply-show-movements').click()
+  await expect(listed).toHaveCount(2)
+  await expect(listed.nth(0).getByTestId('last-apply-movement-description')).toHaveText(
+    'RECIB /IBERDROLA CLIENTES, S.A',
+  )
+  await expect(listed.nth(0).getByTestId('last-apply-movement-date')).toHaveText('31 Jul 2026')
+  await expect(listed.nth(0).getByTestId('last-apply-movement-category')).toHaveText('Suministros')
+  await expect(listed.nth(0).getByTestId('last-apply-movement-amount')).toContainText('-96,29')
+  await expect(listed.nth(0).getByTestId('last-apply-movement-rule')).toHaveText('“iberdrola”')
+  await expect(listed.nth(1).getByTestId('last-apply-movement-description')).toHaveText(
+    'COMPRA MERCADONA',
+  )
+  await expect(listed.nth(1).getByTestId('last-apply-movement-category')).toHaveText('Supermercado')
+  await expect(listed.nth(1).getByTestId('last-apply-movement-amount')).toContainText('-58,14')
+
+  // Over to Review through the menu, without loading the page again.
+  await goByMenu(page, 'Review')
+  await expect(page.getByTestId('movement-row')).toHaveCount(3)
+  await expect(headline).toHaveText(said)
+  await expect(page.getByTestId('last-apply-figures')).toHaveText(
+    '0 still without a matching rule · 1 conflict',
+  )
+  // And the queue agrees: only the movement in conflict is still without a category.
+  await expect(page.getByTestId('review-uncategorized-count')).toHaveText(
+    '1 pending movement has no category.',
+  )
+
+  await page.getByTestId('last-apply-dismiss').click()
+  await expect(page.getByTestId('last-apply')).toHaveCount(0)
+  await expect(page.getByTestId('movement-row')).toHaveCount(3)
+
+  await page.reload()
+  await expect(page.getByTestId('movement-row')).toHaveCount(3)
+  await expect(page.getByTestId('last-apply')).toHaveCount(0)
+
+  // Nothing was confirmed and no movement was written by the app: one POST, no body.
+  expect(writes(watch)).toEqual([{ method: 'POST', path: '/api/category-rules/apply', body: null }])
+  expect(watch.consoleErrors).toEqual([])
+  expect(watch.pageErrors).toEqual([])
+})
+
+/** What the block looks like: its words, its box and the paint of its main parts. */
+const lookOfLastApply = (page: Page) =>
+  page.getByTestId('last-apply').evaluate((block) => {
+    const paint = (element: Element | null) => {
+      if (!element) return null
+      const style = getComputedStyle(element)
+      const box = element.getBoundingClientRect()
+      return {
+        width: box.width,
+        height: box.height,
+        color: style.color,
+        background: style.backgroundColor,
+        border: `${style.borderTopWidth} ${style.borderTopStyle} ${style.borderTopColor}`,
+        radius: style.borderTopLeftRadius,
+        padding: `${style.paddingTop} ${style.paddingRight} ${style.paddingBottom} ${style.paddingLeft}`,
+        font: `${style.fontFamily} ${style.fontSize} ${style.fontWeight} ${style.lineHeight}`,
+      }
+    }
+    const part = (name: string) => paint(block.querySelector(`[data-test="${name}"]`))
+    return {
+      words: (block as HTMLElement).innerText,
+      block: paint(block),
+      headline: part('last-apply-headline'),
+      figures: part('last-apply-figures'),
+      dismiss: part('last-apply-dismiss'),
+      showMovements: part('last-apply-show-movements'),
+      showConflicts: part('last-apply-show-conflicts'),
+      firstMovement: part('last-apply-movement'),
+      firstConflict: part('rule-conflict'),
+    }
+  })
+
+/**
+ * The same, once it has stopped changing: the pointer is taken off the block (a button
+ * under it is painted as hovered) and two readings in a row have to agree (the buttons
+ * change colour over a few milliseconds).
+ */
+async function settledLookOfLastApply(page: Page) {
+  await page.mouse.move(0, 0)
+  let last = await lookOfLastApply(page)
+  await expect
+    .poll(async () => {
+      const now = await lookOfLastApply(page)
+      const same = JSON.stringify(now) === JSON.stringify(last)
+      last = now
+      return same
+    })
+    .toBe(true)
+  return last
+}
+
+const storedInBrowser = (page: Page) =>
+  page.evaluate(() => ({
+    local: window.localStorage.length,
+    session: window.sessionStorage.length,
+    search: window.location.search,
+    hash: window.location.hash,
+  }))
+
+// tasks.md does not ask for this test; the leader did when handing over the batch. The
+// test above dismisses before it reloads, so it cannot tell whether a reload alone
+// forgets the result, and nothing else compares the block of one screen with the other's.
+test('the result of applying looks the same on Rules and on Review and the next pass replaces it', async ({
+  page,
+}) => {
+  const watch = await prepare(page, {
+    rules: FOUR_RULES,
+    movements: THREE_PENDING,
+    applyAnswers: [TWO_CATEGORIZED, NONE_CATEGORIZED],
+  })
+  await page.goto('/rules')
+  await expect(page.getByTestId('rule-row')).toHaveCount(4)
+  await applyFromRules(page)
+  await expect(page.getByTestId('last-apply-headline')).toHaveText(TWO_HEADLINE)
+
+  // Folded, and then with its two lists open: the same on both screens.
+  const foldedOnRules = await settledLookOfLastApply(page)
+  await page.getByTestId('last-apply-show-movements').click()
+  await page.getByTestId('last-apply-show-conflicts').click()
+  await expect(page.getByTestId('last-apply-movement')).toHaveCount(2)
+  await expect(page.getByTestId('last-apply').getByTestId('rule-conflict')).toHaveCount(1)
+  const openOnRules = await settledLookOfLastApply(page)
+  expect(foldedOnRules.words).toContain('2 movements categorized.')
+  expect(openOnRules.words).toContain('PAGO SINTETICO EJEMPLO')
+  expect(openOnRules.block?.height ?? 0).toBeGreaterThan(foldedOnRules.block?.height ?? 0)
+
+  await goByMenu(page, 'Review')
+  await expect(page.getByTestId('movement-row')).toHaveCount(3)
+  // Each screen mounts its own copy, so the lists come folded again.
+  await expect(page.getByTestId('last-apply-movement')).toHaveCount(0)
+  expect(await settledLookOfLastApply(page)).toEqual(foldedOnRules)
+  await page.getByTestId('last-apply-show-movements').click()
+  await page.getByTestId('last-apply-show-conflicts').click()
+  await expect(page.getByTestId('last-apply-movement')).toHaveCount(2)
+  await expect(page.getByTestId('last-apply').getByTestId('rule-conflict')).toHaveCount(1)
+  expect(await settledLookOfLastApply(page)).toEqual(openOnRules)
+
+  // Another pass takes the place of the result that was showing, on both screens.
+  await goByMenu(page, 'Rules')
+  await expect(page.getByTestId('last-apply-headline')).toHaveText(TWO_HEADLINE)
+  await applyFromRules(page)
+  const none = /^Rules applied at \d{2}:\d{2}: no movements were categorized\.$/
+  await expect(page.getByTestId('last-apply')).toHaveCount(1)
+  await expect(page.getByTestId('last-apply-headline')).toHaveText(none)
+  await expect(page.getByTestId('last-apply-show-movements')).toHaveCount(0)
+  await expect(page.getByTestId('last-apply-show-conflicts')).toHaveText('Show the 1 conflict')
+  await goByMenu(page, 'Review')
+  await expect(page.getByTestId('last-apply')).toHaveCount(1)
+  await expect(page.getByTestId('last-apply-headline')).toHaveText(none)
+
+  // Nothing of it was put where a reload could find it, so a reload forgets it.
+  expect(await storedInBrowser(page)).toEqual({ local: 0, session: 0, search: '', hash: '' })
+  await page.reload()
+  await expect(page.getByTestId('movement-row')).toHaveCount(3)
+  await expect(page.getByTestId('review-uncategorized-count')).toHaveText(
+    '1 pending movement has no category.',
+  )
+  await expect(page.getByTestId('last-apply')).toHaveCount(0)
+  await goByMenu(page, 'Rules')
+  await expect(page.getByTestId('rule-row')).toHaveCount(4)
+  await expect(page.getByTestId('last-apply')).toHaveCount(0)
+
+  expect(writes(watch)).toEqual([
+    { method: 'POST', path: '/api/category-rules/apply', body: null },
+    { method: 'POST', path: '/api/category-rules/apply', body: null },
+  ])
   expect(watch.consoleErrors).toEqual([])
   expect(watch.pageErrors).toEqual([])
 })

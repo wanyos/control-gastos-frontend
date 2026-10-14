@@ -20,7 +20,14 @@ import {
   ruleErrorMessage,
 } from './rules'
 import { applyRules, createRule, deleteRule, getRules, updateRule } from './service'
-import type { ApplyFlow, CategoryRule, MatchPreview, NewRule, RuleChanges } from './types'
+import type {
+  ApplyFlow,
+  CategoryRule,
+  LastApply,
+  MatchPreview,
+  NewRule,
+  RuleChanges,
+} from './types'
 
 /**
  * The categorization rules: the list, the dialogs' state and the on-demand pass.
@@ -52,6 +59,12 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
   const applyFlow = ref<ApplyFlow>({ step: 'closed' })
   /** Goes up when an apply ends, whatever the outcome: Review watches it (R14). */
   const applyRun = ref(0)
+  /**
+   * What the last pass that finished without an error did, and when (feature 30).
+   * Memory of the page only: nothing writes it to the browser storage or to the URL,
+   * so after a reload nothing is shown as «just categorized».
+   */
+  const lastApply = ref<LastApply | null>(null)
 
   let categoriesRequested = false
 
@@ -234,6 +247,11 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     applyFlow.value = { step: 'confirm' }
   }
 
+  /** Takes the result of the last pass off Rules and off Review (feature 30). */
+  function dismissLastApply(): void {
+    lastApply.value = null
+  }
+
   /** While the pass runs the dialog cannot be dismissed: it is a mass write (R11). */
   function closeApply(): void {
     if (applyFlow.value.step === 'applying') return
@@ -245,11 +263,16 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     if (applyFlow.value.step === 'applying') return
     applyFlow.value = { step: 'applying' }
     lastCreated.value = null
+    // The result on screen is about the pass before this one: it goes first (feature 30).
+    lastApply.value = null
     try {
       const result = await applyRules(client)
-      applyFlow.value = result.error
-        ? { step: 'failed', message: applyErrorMessage(result.error) }
-        : { step: 'done', result }
+      if (result.error) {
+        applyFlow.value = { step: 'failed', message: applyErrorMessage(result.error) }
+      } else {
+        lastApply.value = { at: new Date(), result }
+        applyFlow.value = { step: 'done', result }
+      }
     } catch (rejection) {
       applyFlow.value = { step: 'failed', message: applyErrorMessage(toAppError(rejection)) }
     } finally {
@@ -270,6 +293,7 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     lastCreated,
     applyFlow,
     applyRun,
+    lastApply,
     preview,
     load,
     loadCategories,
@@ -280,6 +304,7 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     openApply,
     confirmApply,
     closeApply,
+    dismissLastApply,
     previewMatches,
     clearPreview,
   }

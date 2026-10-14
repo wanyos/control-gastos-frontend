@@ -7,7 +7,7 @@ import { API_NETWORK, ApiError, ValidationError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
 import type { MovementQuery } from '@/shared/movements'
 
-import type { ApplyResult } from './types'
+import type { ApplyResult, CategorizedMovement } from './types'
 
 /** The contract's floor: at least 3 characters once normalized. */
 export const MIN_MATCH_TEXT = 3
@@ -307,6 +307,31 @@ export function applySummaryLines(result: ApplyResult): string[] {
     `${result.unmatched} still without a matching rule`,
     `${result.conflictCount} ${result.conflictCount === 1 ? 'conflict' : 'conflicts'}`,
   ]
+}
+
+// ─── The result of the last pass, left in view (feature 30) ──────────────────
+
+/** `Rules applied at 10:42: 12 movements categorized.`, or that none were. */
+export function lastApplyHeadline(categorized: number, clock: string): string {
+  const what =
+    categorized === 0 ? 'no movements were categorized' : `${countOf(categorized)} categorized`
+  return `Rules applied at ${clock}: ${what}.`
+}
+
+/** `5 still without a matching rule · 1 conflict`: the other two figures of the pass. */
+export function lastApplyFigures(result: ApplyResult): string {
+  const conflicts = `${result.conflictCount} ${result.conflictCount === 1 ? 'conflict' : 'conflicts'}`
+  return `${result.unmatched} still without a matching rule · ${conflicts}`
+}
+
+/**
+ * The amount of a categorized movement as a signed decimal: the API sends it positive
+ * and the sign comes from `type`. One that already carries its sign is left alone, so
+ * a drift of the contract cannot turn into `--41.37` and break the list.
+ */
+export function signedAmount(movement: CategorizedMovement): string {
+  if (movement.type !== 'expense' || movement.amount.startsWith('-')) return movement.amount
+  return `-${movement.amount}`
 }
 
 // ─── The match preview (feature 18) ─────────────────────────────────────────

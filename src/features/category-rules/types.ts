@@ -55,13 +55,41 @@ export interface RuleConflict {
   matches: RuleMatch[]
 }
 
+/** A rule that matched a categorized movement (no category: it is the movement's). */
+export interface AppliedRule {
+  ruleId: number
+  matchText: string
+}
+
+/** A movement the pass wrote a category on, as the apply answer lists it (feature 30). */
+export interface CategorizedMovement {
+  movementId: number
+  description: string
+  bookingDate: string
+  /** Positive decimal string; the sign comes from `type`. */
+  amount: string
+  type: 'income' | 'expense'
+  categoryId: number
+  categoryName: string
+  rules: AppliedRule[]
+}
+
 export interface ApplyResult {
   categorized: number
+  /** Exactly `categorized` of them, in the order the API sent them. */
+  categorizedMovements: CategorizedMovement[]
   conflictCount: number
   conflicts: RuleConflict[]
   unmatched: number
   /** Present only when the pass failed; its `message` is never kept, let alone painted. */
   error: { code: string } | null
+}
+
+/** What the last pass that finished without an error did. Kept in memory only. */
+export interface LastApply {
+  /** When the POST answered. */
+  at: Date
+  result: ApplyResult
 }
 
 /** What the apply dialog is showing right now. */

@@ -10,10 +10,13 @@ import {
   CATEGORY_TREE,
   CONFLICT_BODY,
   IBERDROLA,
+  INCOME_MOVEMENT,
   MERCADONA,
   NOT_FOUND_BODY,
   SUPERMARKET,
   THREE_RULES,
+  TWELVE_CATEGORIZED,
+  TWO_RULES_MOVEMENT,
   answer,
   deferred,
   fakeClient,
@@ -302,6 +305,144 @@ describe('useCategoryRulesStore (R4 … R13)', () => {
       expect(MOVEMENTS_TOUCHED(api.calls)).toBe(false)
       expect(api.calls.every((call) => call.path.startsWith('/api/category-rules'))).toBe(true)
       expect(IBERDROLA.id).toBe(8)
+    })
+  })
+
+  describe('the result of the last pass (feature 30)', () => {
+    const UNREADABLE =
+      'Something went wrong applying the rules. Some movements may already be categorized. The review queue has been reloaded.'
+
+    it('keeps the categorized movements the server sent as the list of the result', async () => {
+      const api = fakeClient({ [`POST ${APPLY_PATH}`]: answer(APPLY_OK) })
+      const store = useCategoryRulesStore()
+      expect(store.lastApply).toBeNull()
+
+      await store.confirmApply(api.client)
+
+      const kept = store.lastApply?.result.categorizedMovements ?? []
+      expect(kept).toHaveLength(12)
+      expect(kept.map((one) => one.movementId)).toEqual(
+        TWELVE_CATEGORIZED.map((one) => one.movementId),
+      )
+      expect(kept[0]).toEqual(TWO_RULES_MOVEMENT)
+      expect(kept[1]).toEqual(INCOME_MOVEMENT)
+      expect(kept[1]?.categoryName).toBe('Nomina')
+      expect(kept[0]?.rules.map((one) => one.matchText)).toEqual([
+        'sintetico colmado',
+        'colmado norte',
+      ])
+      expect(store.lastApply?.result.categorized).toBe(12)
+      expect(store.lastApply?.at).toBeInstanceOf(Date)
+    })
+
+    it('keeps no result when the answer of the server does not follow the contract', async () => {
+      const withoutList: Record<string, unknown> = { ...APPLY_OK }
+      delete withoutList.categorizedMovements
+      const oneShort = { ...APPLY_OK, categorizedMovements: TWELVE_CATEGORIZED.slice(1) }
+
+      for (const body of [withoutList, oneShort]) {
+        setActivePinia(createPinia())
+        const api = fakeClient({ [`POST ${APPLY_PATH}`]: answer(body) })
+        const store = useCategoryRulesStore()
+
+        await store.confirmApply(api.client)
+
+        expect(store.lastApply).toBeNull()
+        expect(store.applyFlow).toEqual({ step: 'failed', message: UNREADABLE })
+        expect(store.applyRun).toBe(1)
+      }
+    })
+
+    it('drops the previous result when another pass is confirmed', async () => {
+      const second = deferred()
+      let posts = 0
+      const api = fakeClient({
+        [`POST ${APPLY_PATH}`]: (call) => {
+          posts += 1
+          return posts === 1 ? Promise.resolve(APPLY_OK) : second.answer(call)
+        },
+      })
+      const store = useCategoryRulesStore()
+      await store.confirmApply(api.client)
+      expect(store.lastApply).not.toBeNull()
+
+      const running = store.confirmApply(api.client)
+
+      // The POST has left and has not answered yet: the old result is already gone.
+      expect(api.count(APPLY_PATH)).toBe(2)
+      expect(store.applyFlow).toEqual({ step: 'applying' })
+      expect(store.lastApply).toBeNull()
+
+      second.resolve({ ...APPLY_OK, categorized: 0, categorizedMovements: [] })
+      await running
+      expect(store.lastApply?.result.categorized).toBe(0)
+    })
+
+    it('keeps no result when the pass fails', async () => {
+      const failing = fakeClient({
+        [`POST ${APPLY_PATH}`]: rejectWith(httpError(500, CONFLICT_BODY)),
+      })
+      const store = useCategoryRulesStore()
+
+      await store.confirmApply(failing.client)
+
+      expect(store.applyFlow).toMatchObject({ step: 'failed' })
+      expect(store.lastApply).toBeNull()
+
+      // A 200 that carries an error brings the list of what it did write: not kept either.
+      setActivePinia(createPinia())
+      const halfDone = fakeClient({
+        [`POST ${APPLY_PATH}`]: answer({ ...APPLY_OK, error: { code: 'RULES_PASS_FAILED' } }),
+      })
+      const other = useCategoryRulesStore()
+
+      await other.confirmApply(halfDone.client)
+
+      expect(other.applyFlow).toMatchObject({ step: 'failed' })
+      expect(other.lastApply).toBeNull()
+    })
+
+    it('a new page load starts with no result and writes nothing to the browser storage', async () => {
+      localStorage.clear()
+      sessionStorage.clear()
+      const api = fakeClient({ [`POST ${APPLY_PATH}`]: answer(APPLY_OK) })
+      const store = useCategoryRulesStore()
+
+      await store.confirmApply(api.client)
+
+      expect(store.lastApply?.result.categorizedMovements).toHaveLength(12)
+      expect(localStorage.length).toBe(0)
+      expect(sessionStorage.length).toBe(0)
+
+      // What a reload leaves: a store made from scratch.
+      setActivePinia(createPinia())
+      expect(useCategoryRulesStore().lastApply).toBeNull()
+    })
+
+    it('applying sends a single request and it is the POST without a body', async () => {
+      const api = fakeClient({ [`POST ${APPLY_PATH}`]: answer(APPLY_OK) })
+      const store = useCategoryRulesStore()
+
+      store.openApply()
+      await store.confirmApply(api.client)
+
+      expect(api.calls).toEqual([
+        { path: APPLY_PATH, method: 'POST', body: undefined, contentType: undefined },
+      ])
+    })
+
+    it('Dismiss forgets the result', async () => {
+      const api = fakeClient({ [`POST ${APPLY_PATH}`]: answer(APPLY_OK) })
+      const store = useCategoryRulesStore()
+      await store.confirmApply(api.client)
+      expect(store.lastApply).not.toBeNull()
+
+      store.dismissLastApply()
+
+      expect(store.lastApply).toBeNull()
+      // The dialog is not its business: it stays as it was.
+      expect(store.applyFlow).toMatchObject({ step: 'done' })
+      expect(api.calls).toHaveLength(1)
     })
   })
 })

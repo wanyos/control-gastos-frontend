@@ -74,10 +74,15 @@ src/
       components/         # MovementList, MovementRow, ReviewFilterBar, CategorySelect,
                           # ReviewTotals, ReviewPager, ReviewCountBadge (#15);
                           # ReviewActionBar, MovementCategorySelect, ActionNotice,
-                          # BulkConfirmDialog (#16)
+                          # BulkConfirmDialog (#16);
+                          # UncategorizedCount (#30: la frase de la cabecera que dice cuántos
+                          # pendientes siguen sin categoría)
       views/              # ReviewView (ruta /review)
       store.ts            # useReviewStore: filtros, página, datos, categorías y recuento (#15);
-                          # selección, acciones y deshacer (#16)
+                          # selección, acciones y deshacer (#16);
+                          # `uncategorizedCount` y `refreshUncategorizedCount`: cuántos
+                          # pendientes no tienen categoría, con una petición propia de
+                          # `pageSize=1` al abrir la pantalla y tras cada acción (#30)
       service.ts          # GET /api/movements, GET /api/categories (#15);
                           # PATCH /api/movements (#16). El PATCH de UN movimiento bajó a
                           # shared/movements.ts en la #21 y se re-exporta desde aquí
@@ -86,12 +91,22 @@ src/
     category-rules/       # feature #17: reglas de categorización («lo que contenga X va a Y»)
       components/         # RuleDialog (crear y editar), RuleList, RuleRow, DeleteRuleDialog,
                           # RuleCreatedNotice, ApplyRulesDialog, ApplyResult, RuleConflictList,
-                          # RuleMatchPreview (a cuántos afecta el texto, feature #18)
+                          # RuleMatchPreview (a cuántos afecta el texto, feature #18);
+                          # LastApplyReport (qué hizo la última aplicación de las reglas; lo
+                          # pintan `Rules` y `Review`) y CategorizedMovementList (sus filas,
+                          # una por movimiento categorizado) (#30)
       views/              # RulesView (ruta /rules)
-      store.ts            # useCategoryRulesStore: lista, diálogos y la pasada bajo demanda
-      service.ts          # GET/POST /api/category-rules, PATCH y DELETE /:id, POST /apply
+      store.ts            # useCategoryRulesStore: lista, diálogos y la pasada bajo demanda;
+                          # `lastApply` (la respuesta de la última aplicación y su hora, solo
+                          # en memoria) y `dismissLastApply` (#30)
+      service.ts          # GET/POST /api/category-rules, PATCH y DELETE /:id, POST /apply;
+                          # `parseApplyResult` valida también `categorizedMovements` y que
+                          # tenga tantos elementos como `categorized` (#30)
       rules.ts            # normalización del backend, texto propuesto, umbrales y textos de la
-                          # previsualización y de los errores (puras; #17 y #18)
+                          # previsualización y de los errores (puras; #17 y #18);
+                          # `lastApplyHeadline`, `lastApplyFigures` y `signedAmount` (#30)
+      types.ts            # CategoryRule, NewRule, ApplyResult…; desde la #30, AppliedRule,
+                          # CategorizedMovement, `ApplyResult.categorizedMovements` y LastApply
     statement/            # feature #19: el extracto, mi histórico mes a mes; desde la #21
                           # también corrige la categoría de una línea (su única escritura)
       components/         # MonthNav, MonthTotals, StatementList, StatementRow,
@@ -163,7 +178,8 @@ src/
     validation.ts         # createValidators(context): guardas de respuestas de la API (feature #13)
     banks.ts              # bankLabel(slug): nombre legible de banco, lista abierta (feature #13)
     money.ts              # importes exactos y formato es-ES / en-GB (feature #9);
-                          # `formatMoneyWhole`, euros enteros para una frase (feature #25)
+                          # `formatMoneyWhole`, euros enteros para una frase (feature #25);
+                          # `formatClock`, la hora local `HH:MM` de una fecha (feature #30)
     categories.ts         # árbol de categorías: tipos, parseo y GET /api/categories (feature #17)
     movements.ts          # movimientos: tipos (con `MovementScope` y los parámetros
                           # `transfer` / `excluded` de la #23), parseo, GET /api/movements y la espera tras la
@@ -313,6 +329,10 @@ src/
 > primera pantalla que escribe en la base de datos; el hecho bancario —importe, fecha,
 > descripción— sigue sin poder tocarse.
 
+> Revisado el 2026-10-13 por la feature 30 `rules-applied-result`: la respuesta de
+> `POST /api/category-rules/apply` trae la lista de lo que categorizó y lo que hizo la
+> última aplicación se queda a la vista en `Rules` y en `Review` (última frase del párrafo).
+>
 > **La pantalla de reglas y su sentido de dependencia (feature #17).** `review` monta
 > los componentes de `category-rules` (el diálogo de nueva regla, el aviso y el de
 > aplicar) y su store **observa** `applyRun` del store de reglas para refrescar la cola
@@ -327,7 +347,16 @@ src/
 > la re-exportan con el mismo nombre; los dos `PATCH` que escriben se quedan en
 > `review/service.ts`, que es la única pantalla que escribe movimientos. Crear una regla **no**
 > escribe nada sobre ningún movimiento; la única escritura en masa es
-> `POST /api/category-rules/apply`, y siempre pasa por una confirmación.
+> `POST /api/category-rules/apply`, y siempre pasa por una confirmación. **Desde la feature
+> #30** la respuesta de esa petición trae la lista de los movimientos que categorizó
+> (`categorizedMovements`, tantos como `categorized`; si no cuadra, la respuesta se trata
+> como ilegible), el store de reglas la guarda **solo en memoria** como resultado de la
+> última aplicación (`lastApply`, con la hora; se borra con `Dismiss`, al confirmar otra
+> aplicación y al recargar la página) y `Rules` y `Review` la enseñan con el mismo
+> componente, `category-rules/components/LastApplyReport.vue`, que no lee ningún store.
+> Aplicar sigue costando una sola petición. `Review` lo monta fuera de
+> `StickyBelowTopBar`, y el sentido de la dependencia sigue siendo `review` →
+> `category-rules`.
 
 > **Dependencias entre features y con `shared/` (features #13-#14).** `AppShell.vue`
 > (shared) monta `ImportButton` de `features/import`, igual que el router monta

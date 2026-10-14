@@ -12,7 +12,9 @@ import { createValidators } from '@/shared/validation'
 import type { Validators } from '@/shared/validation'
 
 import type {
+  AppliedRule,
   ApplyResult,
+  CategorizedMovement,
   CategoryRule,
   NewRule,
   RuleCategory,
@@ -29,6 +31,9 @@ const listChecks = createValidators(`GET ${RULES_PATH}`)
 const createChecks = createValidators(`POST ${RULES_PATH}`)
 const updateChecks = createValidators(`PATCH ${RULES_PATH}/:id`)
 const applyChecks = createValidators(`POST ${APPLY_PATH}`)
+
+/** A pass never categorizes a `neutral` movement, so the answer never lists one. */
+const CATEGORIZED_TYPES = ['income', 'expense'] as const
 
 function parseCategory(v: Validators, raw: unknown, path: string): RuleCategory {
   const category = v.asObject(raw, path)
@@ -86,16 +91,50 @@ function parseConflict(v: Validators, raw: unknown, path: string): RuleConflict 
   }
 }
 
+function parseAppliedRule(v: Validators, raw: unknown, path: string): AppliedRule {
+  const rule = v.asObject(raw, path)
+  return {
+    ruleId: v.asInteger(rule.ruleId, `${path}.ruleId`),
+    matchText: v.asString(rule.matchText, `${path}.matchText`),
+  }
+}
+
+function parseCategorized(v: Validators, raw: unknown, path: string): CategorizedMovement {
+  const movement = v.asObject(raw, path)
+  return {
+    movementId: v.asInteger(movement.movementId, `${path}.movementId`),
+    description: v.asString(movement.description, `${path}.description`),
+    bookingDate: v.asDateOnly(movement.bookingDate, `${path}.bookingDate`),
+    amount: v.asDecimal(movement.amount, `${path}.amount`),
+    type: v.asMember(movement.type, CATEGORIZED_TYPES, `${path}.type`),
+    categoryId: v.asInteger(movement.categoryId, `${path}.categoryId`),
+    categoryName: v.asString(movement.categoryName, `${path}.categoryName`),
+    rules: v
+      .asArray(movement.rules, `${path}.rules`)
+      .map((item, i) => parseAppliedRule(v, item, `${path}.rules[${i}]`)),
+  }
+}
+
 /**
  * Maps `POST /api/category-rules/apply`, or throws ValidationError. Only the `code`
  * of a failed pass is kept: its `message` comes in Spanish and nothing paints it (R13).
+ * The list of what was categorized must have exactly `categorized` movements: a list
+ * that does not add up is an answer nobody can read (feature 30).
  */
 export function parseApplyResult(raw: unknown): ApplyResult {
   const v = applyChecks
   const body = v.asObject(raw, 'response')
   const failure = body.error
+  const categorized = v.asInteger(body.categorized, 'categorized')
+  const categorizedMovements = v
+    .asArray(body.categorizedMovements, 'categorizedMovements')
+    .map((item, i) => parseCategorized(v, item, `categorizedMovements[${i}]`))
+  if (categorizedMovements.length !== categorized) {
+    v.reject('categorizedMovements', `a list of ${categorized} movements`)
+  }
   return {
-    categorized: v.asInteger(body.categorized, 'categorized'),
+    categorized,
+    categorizedMovements,
     conflictCount: v.asInteger(body.conflictCount, 'conflictCount'),
     conflicts: v
       .asArray(body.conflicts, 'conflicts')

@@ -117,6 +117,12 @@ export function formatPercent(permille: number): string {
   return PERCENT_FORMAT.format(ratio)
 }
 
+/** `10:42`, 24 h, in the local time of the browser: the hour something happened here. */
+export function formatClock(at: Date): string {
+  const twoDigits = (value: number): string => String(value).padStart(2, '0')
+  return `${twoDigits(at.getHours())}:${twoDigits(at.getMinutes())}`
+}
+
 /** `"2026-09-12"` → `12 Sept 2026`, built and read in UTC so no timezone shifts the day. */
 export function formatDate(date: DateOnly): string {
   const match = DATE_ONLY.exec(date)

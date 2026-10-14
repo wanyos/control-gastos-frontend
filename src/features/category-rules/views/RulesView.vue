@@ -15,6 +15,13 @@
       </BaseButton>
     </header>
 
+    <!-- What the last pass did stays here after its dialog is closed (feature 30). -->
+    <LastApplyReport
+      v-if="store.lastApply"
+      :report="store.lastApply"
+      @dismiss="store.dismissLastApply()"
+    />
+
     <p v-if="store.deleteMessage" class="text-sm text-negative" data-test="rules-delete-message">
       {{ store.deleteMessage }}
     </p>
@@ -85,6 +92,7 @@ import BaseCard from '@/shared/components/BaseCard.vue'
 
 import ApplyRulesDialog from '../components/ApplyRulesDialog.vue'
 import DeleteRuleDialog from '../components/DeleteRuleDialog.vue'
+import LastApplyReport from '../components/LastApplyReport.vue'
 import RuleDialog from '../components/RuleDialog.vue'
 import RuleList from '../components/RuleList.vue'
 import { loadErrorMessage } from '../rules'

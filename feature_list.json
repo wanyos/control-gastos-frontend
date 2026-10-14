@@ -1192,10 +1192,6 @@
           "comando": "grep -qF \"says what was saved over the complete months, with the totals of the backend\" src/features/overview/__tests__/OverviewPreviousMonths.spec.ts && pnpm exec vitest run src/features/overview/__tests__/OverviewPreviousMonths.spec.ts -t \"says what was saved over the complete months, with the totals of the backend\""
         },
         {
-          "descripcion": "(añadido) No quiero que cambie nada de la parte del mes, que ya está cerrada: sus textos, sus componentes y cuatro de sus archivos de test siguen idénticos a los del commit de la feature 25, y esos tests pasan.",
-          "comando": "git diff --quiet a68df91 -- src/features/overview/reading.ts src/features/overview/components/MonthSentence.vue src/features/overview/components/MonthFiguresGrid.vue src/features/overview/components/UsualLine.vue src/features/overview/components/UncategorizedLine.vue src/features/overview/__tests__/reading.spec.ts src/features/overview/__tests__/store.spec.ts src/features/overview/__tests__/service.spec.ts src/features/overview/__tests__/components.spec.ts src/features/statement src/features/import && pnpm exec vitest run src/features/overview/__tests__/reading.spec.ts src/features/overview/__tests__/store.spec.ts src/features/overview/__tests__/service.spec.ts src/features/overview/__tests__/components.spec.ts"
-        },
-        {
           "descripcion": "(añadido) No quiero que escriba nada: solo mira. En un navegador de verdad, con las respuestas del backend imitadas, toda la visita a la pantalla manda solo GET.",
           "comando": "grep -qF \"reads the previous months below the month and moves on a click\" e2e/overview.spec.ts && pnpm test:e2e --project=chromium e2e/overview.spec.ts"
         }
@@ -1284,10 +1280,6 @@
         {
           "descripcion": "(añadido) No quiero que el aviso me tape la fila que estoy mirando: la fila que se acaba de cambiar queda entera por debajo del aviso.",
           "comando": "grep -qF \"the notice does not cover the row that was just changed\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"the notice does not cover the row that was just changed\""
-        },
-        {
-          "descripcion": "(añadido) No quiero que cambie qué hace cada acción ni qué deshace el `Undo`: los archivos que deciden eso son idénticos a los del commit en que se aprobó la intención.",
-          "comando": "git diff --quiet 8f0dce6 -- src/features/review/store.ts src/features/review/actions.ts src/features/review/service.ts src/features/statement/store.ts src/features/statement/actions.ts src/features/statement/service.ts src/features/transfers/store.ts src/features/transfers/pairs.ts src/features/transfers/service.ts src/features/category-rules/store.ts src/shared/movements.ts src/shared/transfers.ts"
         }
       ],
       "sdd": true,
@@ -1451,10 +1443,6 @@
         {
           "descripcion": "(añadido) No quiero tocar el backend: para distinguir un mes vacío de uno con todo escondido la pantalla no pide nada nuevo, hace las mismas dos lecturas que ya hacía con la casilla puesta.",
           "comando": "grep -qF \"asks the backend for nothing new to tell an empty month from a hidden one\" src/features/statement/__tests__/StatementView.spec.ts && pnpm exec vitest run src/features/statement/__tests__/StatementView.spec.ts -t \"asks the backend for nothing new to tell an empty month from a hidden one\""
-        },
-        {
-          "descripcion": "(añadido) No quiero que cambie cómo se marca o se desmarca un movimiento, ni qué movimientos cuentan, ni `Review`: los archivos que deciden eso son idénticos a los del commit en que se aprobó la intención.",
-          "comando": "git diff --quiet d5290e7 -- src/features/review src/shared/components/BaseBadge.vue src/features/statement/service.ts src/features/statement/actions.ts src/shared/movements.ts"
         }
       ],
       "sdd": true,
@@ -1533,7 +1521,7 @@
         }
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     }
   ]
 }

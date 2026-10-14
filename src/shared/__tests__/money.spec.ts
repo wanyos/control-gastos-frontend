@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import { ValidationError } from '@/shared/errors'
 
 import {
+  formatClock,
   formatDate,
   formatMoney,
   formatMoneyWhole,
@@ -113,6 +114,18 @@ describe('formatDate', () => {
 
   it('rejects a malformed date', () => {
     expect(() => formatDate('12/09/2026')).toThrow(ValidationError)
+  })
+})
+
+describe('formatClock (feature 30)', () => {
+  it('writes the local hour and minute in 24 h, with two digits each', () => {
+    expect(formatClock(new Date(2026, 9, 12, 10, 42))).toBe('10:42')
+    expect(formatClock(new Date(2026, 9, 12, 9, 5))).toBe('09:05')
+  })
+
+  it('does not turn the afternoon into a 12 h clock, nor midnight into 24', () => {
+    expect(formatClock(new Date(2026, 9, 12, 17, 30))).toBe('17:30')
+    expect(formatClock(new Date(2026, 9, 12, 0, 7))).toBe('00:07')
   })
 })
 

@@ -7,7 +7,16 @@
         :pagination="store.result.pagination"
         :totals="store.result.totals"
       />
+      <UncategorizedCount :count="store.uncategorizedCount" />
     </header>
+
+    <!-- What the last rules pass did (feature 30). In the normal flow, never inside the
+         block that sticks under the top bar. -->
+    <LastApplyReport
+      v-if="rules.lastApply"
+      :report="rules.lastApply"
+      @dismiss="rules.dismissLastApply()"
+    />
 
     <ReviewFilterBar
       :filters="store.filters"
@@ -142,6 +151,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ApplyRulesDialog from '@/features/category-rules/components/ApplyRulesDialog.vue'
+import LastApplyReport from '@/features/category-rules/components/LastApplyReport.vue'
 import RuleCreatedNotice from '@/features/category-rules/components/RuleCreatedNotice.vue'
 import RuleDialog from '@/features/category-rules/components/RuleDialog.vue'
 import { proposeMatchText } from '@/features/category-rules/rules'
@@ -160,6 +170,7 @@ import ReviewActionBar from '../components/ReviewActionBar.vue'
 import ReviewFilterBar from '../components/ReviewFilterBar.vue'
 import ReviewPager from '../components/ReviewPager.vue'
 import ReviewTotals from '../components/ReviewTotals.vue'
+import UncategorizedCount from '../components/UncategorizedCount.vue'
 import { EMPTY_FILTERS, fromRouteQuery, hasActiveFilters, toRouteQuery } from '../filters'
 import { reviewErrorMessage, useReviewStore } from '../store'
 import type { CategoryKind, Movement, MovementAccount, ReviewFilters } from '../types'
@@ -194,6 +205,8 @@ function syncFromRoute(): void {
 onMounted(() => {
   syncFromRoute()
   void store.loadCategories()
+  // Its own small request: the page above travels with the filters of the URL.
+  void store.refreshUncategorizedCount()
 })
 
 watch(() => route.query, syncFromRoute)

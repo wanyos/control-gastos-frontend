@@ -1,9 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
+import type { Pinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { Router } from 'vue-router'
 
+import { parseApplyResult } from '@/features/category-rules/service'
+import { useCategoryRulesStore } from '@/features/category-rules/store'
 import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 
 import ReviewView from '../views/ReviewView.vue'
@@ -15,6 +18,7 @@ import {
   CREATED_RULE,
   RULES,
   CATEGORY_TREE,
+  COUNT_PAGE,
   EMPTY_PAGE,
   EXPENSE,
   INCOME,
@@ -35,7 +39,12 @@ import type { ApiCall } from './fixtures'
 
 type Answer = Parameters<typeof mockApi>[0]
 
-async function mountView(url: string, answers: Answer) {
+const PAGE_QUERY = 'status=pending_review&page=1&pageSize=100'
+/** What the screen asks on mount to know how many pending movements have no category (feature 30). */
+const UNCATEGORIZED_QUERY = 'status=pending_review&uncategorized=true&page=1&pageSize=1'
+
+/** `prepare` runs before the screen is mounted, to put state in the stores it will read. */
+async function mountView(url: string, answers: Answer, prepare?: (pinia: Pinia) => void) {
   const api = mockApi({ categories: json(CATEGORY_TREE), ...answers })
   const router: Router = createRouter({
     history: createMemoryHistory(),
@@ -44,10 +53,12 @@ async function mountView(url: string, answers: Answer) {
   await router.push(url)
   await router.isReady()
 
-  const wrapper = mount(ReviewView, { global: { plugins: [router, createPinia()] } })
+  const pinia = createPinia()
+  prepare?.(pinia)
+  const wrapper = mount(ReviewView, { global: { plugins: [router, pinia] } })
   await flushPromises()
 
-  return { api, router, wrapper }
+  return { api, router, wrapper, pinia }
 }
 
 describe('ReviewView', () => {
@@ -66,7 +77,11 @@ describe('ReviewView', () => {
     it('asks for the pending queue on mount and paints the rows and the totals', async () => {
       const { api, wrapper } = await mountView('/review', { movements: json(PAGE_OF_THREE) })
 
-      expect(api.movementQueries()).toEqual(['status=pending_review&page=1&pageSize=100'])
+      // The page, and since feature 30 how many pending movements have no category.
+      expect(api.movementQueries()).toEqual([
+        'status=pending_review&page=1&pageSize=100',
+        UNCATEGORIZED_QUERY,
+      ])
       expect(api.count(CATEGORIES)).toBe(1)
       expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(3)
       expect(wrapper.get('[data-test="totals-matches"]').text()).toBe('132 movements')
@@ -74,7 +89,11 @@ describe('ReviewView', () => {
 
     it('shows the loading indicator with the filters still usable (R11)', async () => {
       const page = deferred()
-      const { wrapper } = await mountView('/review', { movements: page.answer })
+      // The count of feature 30 gets its own answer: one Response can be read only once.
+      const { wrapper } = await mountView('/review', {
+        movements: (query) =>
+          query.get('pageSize') === '1' ? Promise.resolve(jsonResponse(COUNT_PAGE)) : page.answer(),
+      })
 
       expect(wrapper.find('[data-test="review-loading"]').exists()).toBe(true)
       const selects = wrapper.findAll('[data-test="review-filters"] select')
@@ -110,7 +129,10 @@ describe('ReviewView', () => {
       await flushPromises()
 
       expect(router.currentRoute.value.query).toEqual({ account: '2' })
-      expect(api.movementQueries()[1]).toBe('status=pending_review&accountId=2&page=1&pageSize=100')
+      // [0] is the page of the mount and [1] its count of movements without a category.
+      expect(api.movementQueries()[1]).toBe(UNCATEGORIZED_QUERY)
+      expect(api.movementQueries()[2]).toBe('status=pending_review&accountId=2&page=1&pageSize=100')
+      expect(api.movementQueries()).toHaveLength(3)
     })
 
     it('writes the page into the query and asks for it', async () => {
@@ -123,7 +145,9 @@ describe('ReviewView', () => {
       await flushPromises()
 
       expect(router.currentRoute.value.query).toEqual({ page: '2' })
-      expect(api.movementQueries()[1]).toBe('status=pending_review&page=2&pageSize=100')
+      expect(api.movementQueries()[1]).toBe(UNCATEGORIZED_QUERY)
+      expect(api.movementQueries()[2]).toBe('status=pending_review&page=2&pageSize=100')
+      expect(api.movementQueries()).toHaveLength(3)
       expect(wrapper.get('[data-test="pager-position"]').text()).toBe('Page 2 of 2')
     })
 
@@ -132,8 +156,10 @@ describe('ReviewView', () => {
         movements: json(PAGE_TWO),
       })
 
+      // The count of movements without a category never carries the filters of the URL.
       expect(api.movementQueries()).toEqual([
         'status=pending_review&accountId=1&q=luz&page=2&pageSize=100',
+        UNCATEGORIZED_QUERY,
       ])
       const search = wrapper.get('[data-test="review-search"] input')
       expect((search.element as HTMLInputElement).value).toBe('luz')
@@ -147,7 +173,10 @@ describe('ReviewView', () => {
         movements: json(PAGE_OF_THREE),
       })
 
-      expect(api.movementQueries()).toEqual(['status=pending_review&page=1&pageSize=100'])
+      expect(api.movementQueries()).toEqual([
+        'status=pending_review&page=1&pageSize=100',
+        UNCATEGORIZED_QUERY,
+      ])
       expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(3)
     })
 
@@ -276,7 +305,9 @@ describe('ReviewView', () => {
       await wrapper.get('[data-test="review-error-retry"]').trigger('click')
       await flushPromises()
 
-      expect(api.count(MOVEMENTS)).toBe(2)
+      // The page that failed, the count of the mount (feature 30) and the page again.
+      expect(api.movementQueries()).toEqual([PAGE_QUERY, UNCATEGORIZED_QUERY, PAGE_QUERY])
+      expect(api.count(MOVEMENTS)).toBe(3)
       expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(3)
     })
   })
@@ -712,6 +743,189 @@ describe('ReviewView', () => {
       await flushPromises()
 
       expect(document.querySelector('[data-test="rule-preview"]')).toBeNull()
+    })
+  })
+
+  // ─── What is left without a category, and what the last pass did (feature 30) ──
+
+  describe('pending movements without a category and the last rules pass (feature 30)', () => {
+    const SENTENCE = '[data-test="review-uncategorized-count"]'
+    const REPORT = '[data-test="last-apply"]'
+    const HEADLINE = '[data-test="last-apply-headline"]'
+    const STICKY = '[data-test="sticky-below-top-bar"]'
+
+    const isCountQuery = (query: URLSearchParams): boolean =>
+      query.get('uncategorized') === 'true' && query.get('pageSize') === '1'
+
+    /** The page of the queue, and `total` movements without a category behind the count. */
+    const withUncategorized =
+      (total: number) =>
+      (query: URLSearchParams): Promise<Response> =>
+        Promise.resolve(
+          jsonResponse(
+            isCountQuery(query)
+              ? { ...COUNT_PAGE, pagination: { ...COUNT_PAGE.pagination, total } }
+              : PAGE_OF_THREE,
+          ),
+        )
+
+    /** A finished pass kept by the rules store, as if it had been applied at 10:42. */
+    const withLastApply = (pinia: Pinia): void => {
+      useCategoryRulesStore(pinia).lastApply = {
+        at: new Date(2026, 9, 12, 10, 42),
+        result: parseApplyResult(APPLY_RESULT),
+      }
+    }
+
+    const follows = (first: Element, second: Element): boolean =>
+      Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING)
+
+    it('shows how many pending movements have no category without applying anything', async () => {
+      const { api, wrapper } = await mountView('/review', { movements: withUncategorized(58) })
+
+      expect(wrapper.get(SENTENCE).text()).toBe('58 pending movements have no category.')
+      // In the header, next to the totals, and not the total of the page on screen (132).
+      expect(wrapper.get('header').find(SENTENCE).exists()).toBe(true)
+      expect(wrapper.get('[data-test="totals-matches"]').text()).toBe('132 movements')
+      expect(api.movementQueries()).toEqual([PAGE_QUERY, UNCATEGORIZED_QUERY])
+      // Nothing was applied and nothing was written to get it.
+      expect(api.calls.every((call) => call.method === 'GET')).toBe(true)
+      expect(api.count(APPLY_RULES)).toBe(0)
+      expect(api.patches()).toEqual([])
+      expect(wrapper.find(REPORT).exists()).toBe(false)
+    })
+
+    it('says it in the singular, and with other words when none is left', async () => {
+      const one = await mountView('/review', { movements: withUncategorized(1) })
+      expect(one.wrapper.get(SENTENCE).text()).toBe('1 pending movement has no category.')
+
+      const none = await mountView('/review', { movements: withUncategorized(0) })
+      expect(none.wrapper.get(SENTENCE).text()).toBe('Every pending movement has a category.')
+    })
+
+    it('keeps the number of the whole queue when the screen is filtered', async () => {
+      const { api, wrapper } = await mountView('/review?q=luz&account=1', {
+        movements: withUncategorized(58),
+      })
+
+      expect(api.movementQueries()).toEqual([
+        'status=pending_review&accountId=1&q=luz&page=1&pageSize=100',
+        UNCATEGORIZED_QUERY,
+      ])
+      expect(wrapper.get(SENTENCE).text()).toBe('58 pending movements have no category.')
+    })
+
+    it('shows nothing about uncategorized movements when that request fails', async () => {
+      const { wrapper } = await mountView('/review', {
+        movements: (query) =>
+          Promise.resolve(
+            isCountQuery(query)
+              ? jsonResponse({ message: 'Error interno' }, { status: 500 })
+              : jsonResponse(PAGE_OF_THREE),
+          ),
+      })
+
+      expect(wrapper.find(SENTENCE).exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('no category')
+      expect(wrapper.text()).not.toContain('Error interno')
+      // The rest of the screen is not its business.
+      expect(wrapper.find('[data-test="review-error"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(3)
+    })
+
+    it('asks for the number again after confirming a row', async () => {
+      const queue = fakeQueue()
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+      })
+      expect(wrapper.get(SENTENCE).text()).toBe('132 pending movements have no category.')
+
+      await wrapper.findAll('[data-test="movement-confirm"]')[0]?.trigger('click')
+      await flushPromises()
+
+      expect(api.movementQueries().at(-1)).toBe(UNCATEGORIZED_QUERY)
+      expect(wrapper.get(SENTENCE).text()).toBe('131 pending movements have no category.')
+    })
+
+    it('shows the result of the last rules pass under the title', async () => {
+      const { api, pinia, wrapper } = await mountView(
+        '/review',
+        { movements: json(PAGE_OF_THREE) },
+        withLastApply,
+      )
+
+      expect(wrapper.get(HEADLINE).text()).toBe('Rules applied at 10:42: 12 movements categorized.')
+      expect(wrapper.get('[data-test="last-apply-figures"]').text()).toBe(
+        '5 still without a matching rule · 1 conflict',
+      )
+      // Between the header and the filters.
+      const report = wrapper.get(REPORT).element
+      expect(follows(wrapper.get('header').element, report)).toBe(true)
+      expect(follows(report, wrapper.get('[data-test="review-filters"]').element)).toBe(true)
+
+      const before = api.calls.length
+      await wrapper.get('[data-test="last-apply-dismiss"]').trigger('click')
+
+      expect(wrapper.find(HEADLINE).exists()).toBe(false)
+      expect(wrapper.find(REPORT).exists()).toBe(false)
+      expect(useCategoryRulesStore(pinia).lastApply).toBeNull()
+      expect(api.calls).toHaveLength(before)
+      expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(3)
+    })
+
+    it('leaves the result in view after applying here and closing the dialog', async () => {
+      const queue = fakeQueue()
+      const { api, pinia, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: () => Promise.resolve(jsonResponse(APPLY_RESULT)),
+      })
+      expect(wrapper.find(REPORT).exists()).toBe(false)
+
+      useCategoryRulesStore(pinia).openApply()
+      await flushPromises()
+      document.querySelector<HTMLElement>('[data-test="apply-confirmed"]')?.click()
+      await flushPromises()
+      document.querySelector<HTMLElement>('[data-test="apply-close"]')?.click()
+      await flushPromises()
+
+      expect(document.querySelector('[role="dialog"]')).toBeNull()
+      expect(wrapper.get(HEADLINE).text()).toMatch(
+        /^Rules applied at \d{2}:\d{2}: 12 movements categorized\.$/,
+      )
+      await wrapper.get('[data-test="last-apply-show-movements"]').trigger('click')
+      expect(wrapper.findAll('[data-test="last-apply-movement"]')).toHaveLength(12)
+      // One POST without a body, and no movement was written.
+      const posted = api.calls.filter((call) => call.method !== 'GET')
+      expect(posted.map((call) => `${call.method} ${call.path}`)).toEqual([`POST ${APPLY_RULES}`])
+      expect(posted[0]?.body).toBeUndefined()
+      expect(api.patches()).toEqual([])
+    })
+
+    it('draws the result of the rules pass outside the block that sticks under the top bar', async () => {
+      const queue = fakeQueue()
+      const { wrapper } = await mountView(
+        '/review',
+        { movements: queue.movements, patch: queue.patch },
+        withLastApply,
+      )
+
+      // The result alone is not a notice: the block is not painted for it.
+      expect(wrapper.find(REPORT).exists()).toBe(true)
+      expect(wrapper.find(STICKY).exists()).toBe(false)
+
+      await wrapper.findAll('[data-test="movement-confirm"]')[0]?.trigger('click')
+      await flushPromises()
+
+      const sticky = wrapper.get(STICKY)
+      expect(sticky.find('[data-test="action-summary"]').exists()).toBe(true)
+      expect(sticky.find(REPORT).exists()).toBe(false)
+      expect(sticky.find(HEADLINE).exists()).toBe(false)
+      // Still on the page, and not a descendant of the block.
+      const report = wrapper.get(REPORT).element
+      expect(sticky.element.contains(report)).toBe(false)
+      expect(report.closest(STICKY)).toBeNull()
     })
   })
 

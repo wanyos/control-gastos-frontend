@@ -302,9 +302,51 @@ export const CREATED_RULE = {
   updatedAt: '2026-09-06T10:00:00.000Z',
 }
 
-/** What a finished rules pass answers (feature 17). */
+/** One element of `categorizedMovements` (feature 30): an expense one rule sent to Food. */
+export const categorizedMovement = (
+  movementId: number,
+  description: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> => ({
+  movementId,
+  description,
+  bookingDate: '2026-08-11',
+  amount: '41.37',
+  type: 'expense',
+  categoryId: 1,
+  categoryName: 'Food',
+  rules: [{ ruleId: 3, matchText: 'sintetico colmado' }],
+  ...overrides,
+})
+
+/** What a finished rules pass answers (feature 17), with the list of feature 30. */
 export const APPLY_RESULT = {
   categorized: 12,
+  categorizedMovements: [
+    categorizedMovement(198, 'COMPRA SINTETICO COLMADO NORTE', {
+      rules: [
+        { ruleId: 3, matchText: 'sintetico colmado' },
+        { ruleId: 12, matchText: 'colmado norte' },
+      ],
+    }),
+    categorizedMovement(203, 'ABONO SINTETICO TALLER EJEMPLO', {
+      bookingDate: '2026-08-12',
+      amount: '1318.64',
+      type: 'income',
+      categoryId: 4,
+      categoryName: 'Salary',
+      rules: [{ ruleId: 9, matchText: 'taller ejemplo' }],
+    }),
+    ...Array.from({ length: 10 }, (_item, index) =>
+      categorizedMovement(204 + index, `RECIBO SINTETICO SUMINISTRO ${index + 1}`, {
+        bookingDate: `2026-08-${13 + index}`,
+        amount: `${17 + index * 3}.${String(29 + index * 7).padStart(2, '0')}`,
+        categoryId: 2,
+        categoryName: 'Groceries',
+        rules: [{ ruleId: 8, matchText: 'sintetico suministro' }],
+      }),
+    ),
+  ],
   conflictCount: 1,
   conflicts: [
     {

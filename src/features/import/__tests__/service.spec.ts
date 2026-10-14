@@ -223,6 +223,41 @@ describe('import service', () => {
       ).toThrow('POST /api/import: files[0].error.code is not a non-empty string')
     })
 
+    // Feature 30: the backend sends the same list `POST /api/category-rules/apply`
+    // does. Import neither shows nor keeps it, and must go on reading the report.
+    it('reads a report whose categorization carries the categorized movements', () => {
+      const raw = {
+        ...FULL_REPORT,
+        categorization: {
+          ...FULL_REPORT.categorization,
+          categorized: 1,
+          categorizedMovements: [
+            {
+              movementId: 198,
+              description: 'COMPRA SINTETICO COLMADO NORTE',
+              bookingDate: '2026-08-11',
+              amount: '41.37',
+              type: 'expense',
+              categoryId: 4,
+              categoryName: 'Supermercado',
+              rules: [{ ruleId: 3, matchText: 'sintetico colmado' }],
+            },
+          ],
+        },
+      }
+
+      const report = parseImportReport(raw)
+
+      expect(report.categorization.categorized).toBe(1)
+      expect(report.categorization.unmatched).toBe(5)
+      expect(report.categorization.conflictCount).toBe(1)
+      expect(report.categorization.conflicts).toHaveLength(1)
+      expect(report.categorization.conflicts[0]?.description).toBe('PAGO SINTETICO EJEMPLO')
+      expect(report.categorization.error).toBeNull()
+      expect(report.categorization).not.toHaveProperty('categorizedMovements')
+      expect(JSON.stringify(report)).not.toContain('COMPRA SINTETICO COLMADO NORTE')
+    })
+
     it('rejects an unknown file status', () => {
       const raw = { ...FULL_REPORT, files: [{ ...STATEMENT_FAILED_NO_ERROR, status: 'pending' }] }
 

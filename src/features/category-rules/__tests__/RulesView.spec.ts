@@ -185,6 +185,62 @@ describe('RulesView (R7, R8, R9, R10)', () => {
     expect(api.touchedMovements()).toBe(false)
   })
 
+  // ─── The result of the last pass, left in view (feature 30) ──────────────
+
+  describe('the result of applying, after its dialog is closed (feature 30)', () => {
+    const applyAndClose = async () => {
+      const mounted = await mountView({
+        rules: () => jsonOf(THREE_RULES),
+        apply: () => jsonOf(APPLY_OK),
+      })
+      await mounted.wrapper.get('[data-test="apply-rules"]').trigger('click')
+      at('[data-test="apply-confirmed"]')?.click()
+      await flushPromises()
+      at('[data-test="apply-close"]')?.click()
+      await flushPromises()
+      return mounted
+    }
+
+    it('paints nothing about a pass before any rules are applied', async () => {
+      const { wrapper } = await mountView({ rules: () => jsonOf(THREE_RULES) })
+
+      expect(wrapper.find('[data-test="last-apply"]').exists()).toBe(false)
+    })
+
+    it('after closing the apply dialog Rules still shows how many movements were categorized', async () => {
+      const { api, wrapper } = await applyAndClose()
+
+      expect(at('[role="dialog"]')).toBeNull()
+      expect(wrapper.get('[data-test="last-apply-headline"]').text()).toMatch(
+        /^Rules applied at \d{2}:\d{2}: 12 movements categorized\.$/,
+      )
+      expect(wrapper.get('[data-test="last-apply-figures"]').text()).toBe(
+        '5 still without a matching rule · 1 conflict',
+      )
+      // Under the header, before the list of rules.
+      const block = wrapper.get('[data-test="last-apply"]').element
+      const header = wrapper.get('header').element
+      const list = wrapper.get('[data-test="rule-row"]').element
+      expect(header.compareDocumentPosition(block) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(block.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      // Showing it asked for nothing: one POST, and no movement was read or written.
+      expect(api.count(APPLY_PATH)).toBe(1)
+      expect(api.touchedMovements()).toBe(false)
+    })
+
+    it('Dismiss takes the result off Rules', async () => {
+      const { api, wrapper } = await applyAndClose()
+      const before = api.calls.length
+
+      await wrapper.get('[data-test="last-apply-dismiss"]').trigger('click')
+
+      expect(wrapper.find('[data-test="last-apply"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="last-apply-headline"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="rule-row"]')).toHaveLength(3)
+      expect(api.calls).toHaveLength(before)
+    })
+  })
+
   // ─── The match preview (feature 18) ──────────────────────────────────────
 
   describe('the count of what a rule matches (R11, R12, C1)', () => {

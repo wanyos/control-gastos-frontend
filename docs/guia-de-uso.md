@@ -557,6 +557,12 @@ uno en uno o varios a la vez. Lo confirmado sale de esta lista.
    del menú.
    -- ok
 
+   **Nuevo desde la feature 30, sin probar en tu primera revisión:** debajo,
+   sin marcar ningún filtro, una frase dice cuántos de los pendientes no tienen
+   categoría (`… pending movements have no category.`, o
+   `Every pending movement has a category.` si no queda ninguno). Se pone al
+   día después de cada acción, de cada `Undo` y de aplicar las reglas.
+
 3. Mira una fila. **Debes ver**: una casilla, el concepto, el banco con la
    cuenta y la fecha, la categoría (o `Uncategorized`), el importe, un
    desplegable de categoría, un botón `Confirm` y un botón `Create rule`.
@@ -770,7 +776,8 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
 
 > **Haz este paso solo si quieres.** Aplica **todas** tus reglas, no solo la
 > última, sobre todos los pendientes sin categoría. No se puede deshacer desde
-> la aplicación: el backend dice cuántos categorizó, pero no cuáles.
+> la aplicación. Al terminar dice cuántos categorizó y deja a la vista la lista
+> de cuáles, cada uno con la categoría que se le puso (paso 15).
 
 14. Pulsa `Apply rules`, y en la pregunta, otra vez `Apply rules`. Mientras
     trabaja, la ventana no se puede cerrar. Al terminar **debes ver**
@@ -782,8 +789,19 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
     dijo: 5 categorizados, 1.372 sin regla y 1 choque.
     -- ok
 
-15. Cierra y ve a `Review`. **Debes ver**, sin recargar, que la lista, sus
-    cifras y el número del menú ya están al día.
+15. Cierra la ventana. **Debes ver**, bajo el título de `Rules`, un recuadro
+    que empieza por `Rules applied at`, la hora y cuántos movimientos se
+    categorizaron (`… movements categorized.`, o `no movements were
+    categorized.` si no fue ninguno), y debajo cuántos siguen sin regla y
+    cuántos choques hay. Pulsa `Show the … movements`: **debes ver** una fila
+    por cada movimiento categorizado, con su fecha, su concepto, el texto de la
+    regla que casó con él, la categoría que se le puso y su importe. Si hubo
+    choques, `Show the … conflicts` enseña la misma lista de choques que la
+    ventana. Ve a `Review`. **Debes ver**, sin recargar, el mismo recuadro bajo
+    el título, y que la lista, sus cifras, la frase de los pendientes sin
+    categoría y el número del menú ya están al día. `Dismiss` quita el recuadro
+    de las dos pantallas. También se va al recargar la página, y otra
+    aplicación lo sustituye por su resultado.
     -- no veo que haya cambiado nada despues del paso anterior
 
 ### Qué escribe y cómo se deshace
@@ -807,9 +825,18 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
   con nombres de canal (`trans inm`, `tpv virtual`). El texto se puede editar
   antes de guardar. Está anotado como pendiente, sin fecha.
 
-- **Los choques se ven, pero no se resuelven** desde la aplicación, y no se
-  guardan: al cerrar la ventana desaparecen. Para volver a verlos se aplica
-  otra vez, que no cambia nada de lo ya hecho.
+- **Los choques se ven, pero no se resuelven** desde la aplicación. Al cerrar
+  la ventana siguen a la vista en el recuadro de `Rules` y de `Review`
+  (`Show the … conflicts`), pero no se guardan: se van con `Dismiss` y al
+  recargar la página. Para volver a verlos se aplica otra vez, que no cambia
+  nada de lo ya hecho.
+
+- **El recuadro con lo que hizo la última aplicación no se guarda.** Vive
+  mientras la página esté abierta: se va con `Dismiss`, al recargar y al
+  aplicar otra vez. Su lista es solo para mirar: para cambiar uno de esos
+  movimientos hay que buscarlo en `Review`. Lo que categorizan las reglas al
+  importar no sale en él, y si la aplicación falla a medias tampoco se pinta,
+  aunque algún movimiento se haya categorizado.
 
 - **No se puede crear una regla en blanco** desde `Rules`.
 - No se crean, renombran ni borran categorías.
@@ -1136,10 +1163,14 @@ categoría es donde se ve avanzar este trabajo.
 3. Repite con los comercios que más se repitan.
 
 4. Ve a `Rules` y pulsa `Apply rules`. Lee cuántos se categorizaron y los
-   choques. Recuerda que esto no se deshace desde la aplicación.
+   choques. Al cerrar la ventana, ese número sigue a la vista bajo el título:
+   pulsa `Show the … movements` y repasa que cada movimiento ha ido a la
+   categoría que esperabas. Recuerda que esto no se deshace desde la
+   aplicación.
 
 5. Lo que quede suelto, categorízalo a mano en `Review`, de uno en uno o
-   marcando varios y con `Apply category`.
+   marcando varios y con `Apply category`. La frase de debajo de las cifras de
+   `Review` dice cuántos pendientes siguen sin categoría.
 
 6. Cuando un movimiento esté bien, pulsa `Confirm`. Recuerda que, pasado el
    `Undo`, no vuelve a pendiente.

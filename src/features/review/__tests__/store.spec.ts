@@ -32,6 +32,10 @@ import {
   networkDown,
 } from './fixtures'
 
+const PAGE_QUERY = 'status=pending_review&page=1&pageSize=100'
+/** The smallest request that says how many pending movements have no category (feature 30). */
+const UNCATEGORIZED_QUERY = 'status=pending_review&uncategorized=true&page=1&pageSize=1'
+
 const filters = (overrides: Partial<ReviewFilters> = {}): ReviewFilters => ({
   ...EMPTY_FILTERS,
   ...overrides,
@@ -457,7 +461,8 @@ describe('useReviewStore', () => {
 
       await store.confirmOne(10)
 
-      expect(api.movementQueries().length - reads).toBe(1)
+      // The page, and since feature 30 the number of pending movements without a category.
+      expect(api.movementQueries().slice(reads)).toEqual([PAGE_QUERY, UNCATEGORIZED_QUERY])
       expect(store.result?.pagination.total).toBe(131)
       expect(store.isLoading).toBe(false)
     })
@@ -571,7 +576,7 @@ describe('useReviewStore', () => {
 
       await store.confirmSelected()
 
-      expect(api.movementQueries().length - reads).toBe(1)
+      expect(api.movementQueries().slice(reads)).toEqual([PAGE_QUERY, UNCATEGORIZED_QUERY])
       expect(store.actionMessage).toContain('Reloading the list')
       expect(store.actionMessage).not.toContain('cuenta')
     })
@@ -581,7 +586,7 @@ describe('useReviewStore', () => {
 
       await store.confirmSelected()
 
-      expect(api.movementQueries().length - reads).toBe(1)
+      expect(api.movementQueries().slice(reads)).toEqual([PAGE_QUERY, UNCATEGORIZED_QUERY])
       expect(store.actionMessage).toContain("the reply couldn't be read")
     })
 
@@ -670,7 +675,7 @@ describe('useReviewStore', () => {
       await store.undoLast()
 
       expect(api.patches()).toHaveLength(3)
-      expect(api.movementQueries().length - reads).toBe(1)
+      expect(api.movementQueries().slice(reads)).toEqual([PAGE_QUERY, UNCATEGORIZED_QUERY])
       expect(store.actionMessage).toContain('Reloading the list')
       expect(store.lastAction).not.toBeNull()
     })
@@ -728,10 +733,12 @@ describe('useReviewStore', () => {
       rules.applyRun += 1
       await flushPromises()
 
+      // The page, the number without a category (feature 30) and the sidebar count.
       const asked = api.movementQueries().slice(reads)
-      expect(asked).toHaveLength(2)
+      expect(asked).toHaveLength(3)
       expect(asked[0]).toBe('status=pending_review&page=1&pageSize=100')
-      expect(asked[1]).toBe('status=pending_review&page=1&pageSize=1')
+      expect(asked[1]).toBe(UNCATEGORIZED_QUERY)
+      expect(asked[2]).toBe('status=pending_review&page=1&pageSize=1')
       expect(store.selectedIds).toEqual([])
       expect(store.lastAction).toBeNull()
       expect(api.patches()).toHaveLength(1) // the Confirm above, nothing else
@@ -747,6 +754,120 @@ describe('useReviewStore', () => {
 
       expect(api.movementQueries()).toEqual(['status=pending_review&page=1&pageSize=1'])
       expect(store.pendingCount).toBe(7)
+    })
+  })
+
+  describe('how many pending movements have no category (feature 30)', () => {
+    /**
+     * The fake queue, answering the count of feature 30 with the truth of its rows:
+     * how many are still pending and have no category.
+     */
+    const countingQueue = () => {
+      const queue = fakeQueue()
+      const uncategorized = (): number =>
+        [...queue.rows.values()].filter(
+          (row) => row.status === 'pending_review' && row.categoryId === null,
+        ).length
+      return {
+        ...queue,
+        movements: (query: URLSearchParams): Promise<Response> =>
+          query.get('uncategorized') === 'true' && query.get('pageSize') === '1'
+            ? Promise.resolve(
+                jsonResponse({
+                  ...COUNT_PAGE,
+                  pagination: { ...COUNT_PAGE.pagination, total: uncategorized() },
+                }),
+              )
+            : queue.movements(query),
+      }
+    }
+
+    it('asks how many pending movements have no category with the smallest request', async () => {
+      const api = mockApi({ movements: json(COUNT_PAGE) })
+      const store = useReviewStore()
+      expect(store.uncategorizedCount).toBeNull()
+
+      await store.refreshUncategorizedCount()
+
+      expect(api.calls).toHaveLength(1)
+      expect(api.calls[0]?.method).toBe('GET')
+      expect(api.movementQueries()).toEqual([UNCATEGORIZED_QUERY])
+      expect(store.uncategorizedCount).toBe(7)
+      // It is its own number: the sidebar count is not touched by it.
+      expect(store.pendingCount).toBeNull()
+    })
+
+    it('asks for that number again after an action an undo and a rules pass', async () => {
+      const queue = countingQueue()
+      const api = mockApi({ movements: queue.movements, patch: queue.patch })
+      const store = useReviewStore()
+      const rules = useCategoryRulesStore()
+      const asked = (): number =>
+        api.movementQueries().filter((query) => query === UNCATEGORIZED_QUERY).length
+      await store.load()
+      await store.refreshUncategorizedCount()
+      // The income and the neutral row have no category.
+      expect(store.uncategorizedCount).toBe(2)
+      expect(asked()).toBe(1)
+
+      await store.categorizeOne(11, 4)
+
+      expect(store.uncategorizedCount).toBe(1)
+      expect(asked()).toBe(2)
+
+      await store.undoLast()
+
+      expect(store.uncategorizedCount).toBe(2)
+      expect(asked()).toBe(3)
+
+      // What a rules pass does on the server: a category on a pending movement.
+      queue.rows.get(11)!.categoryId = 4
+      rules.applyRun += 1
+      await flushPromises()
+
+      expect(store.uncategorizedCount).toBe(1)
+      expect(asked()).toBe(4)
+    })
+
+    it('forgets the number when the request fails', async () => {
+      let call = 0
+      mockApi({
+        movements: () => {
+          call += 1
+          return call === 1
+            ? Promise.resolve(jsonResponse(COUNT_PAGE))
+            : Promise.resolve(jsonResponse({ message: 'Error interno' }, { status: 500 }))
+        },
+      })
+      const store = useReviewStore()
+      await store.refreshUncategorizedCount()
+      expect(store.uncategorizedCount).toBe(7)
+
+      await expect(store.refreshUncategorizedCount()).resolves.toBeUndefined()
+
+      expect(store.uncategorizedCount).toBeNull()
+      // A number nobody could read is not a failure of the list.
+      expect(store.error).toBeNull()
+      expect(store.actionMessage).toBeNull()
+    })
+
+    it('a rules pass still clears the Undo and the ticked rows', async () => {
+      const queue = fakeQueue()
+      const api = mockApi({ movements: queue.movements, patch: queue.patch })
+      const store = useReviewStore()
+      const rules = useCategoryRulesStore()
+      await store.load()
+      await store.confirmOne(10)
+      store.toggleSelection(11)
+      expect(store.lastAction?.summary).toBe('1 movement confirmed')
+      expect(store.selectedIds).toEqual([11])
+
+      rules.applyRun += 1
+      await flushPromises()
+
+      expect(store.lastAction).toBeNull()
+      expect(store.selectedIds).toEqual([])
+      expect(api.patches()).toHaveLength(1) // the Confirm above: the pass undoes nothing
     })
   })
 

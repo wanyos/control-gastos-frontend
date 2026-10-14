@@ -173,11 +173,17 @@ async function routeReview(page: Page, watch: Watch, options: { reject?: boolean
     }),
   )
   const stop = stopInto(watch)
+  /** The rules created through this fake, so that applying them can be answered. */
+  const created: { id: number; matchText: string; categoryId: number }[] = []
 
   const answerGet = (route: Route, query: URLSearchParams) => {
     const q = (query.get('q') ?? '').toLowerCase()
+    const onlyUncategorized = query.get('uncategorized') === 'true'
     const visible = [...rows.values()].filter(
-      (row) => row.status === 'pending_review' && String(row.description).toLowerCase().includes(q),
+      (row) =>
+        row.status === 'pending_review' &&
+        String(row.description).toLowerCase().includes(q) &&
+        (!onlyUncategorized || row.categoryId === null),
     )
     const size = Number(query.get('pageSize') ?? '100')
     return route.fulfill({
@@ -239,6 +245,7 @@ async function routeReview(page: Page, watch: Watch, options: { reject?: boolean
     const request = route.request()
     if (request.method() !== 'POST') return stop(route)
     const body = JSON.parse(request.postData() ?? '{}') as { matchText: string; categoryId: number }
+    created.push({ id: 31, matchText: body.matchText, categoryId: body.categoryId })
     return route.fulfill({
       status: 201,
       json: {
@@ -248,6 +255,46 @@ async function routeReview(page: Page, watch: Watch, options: { reject?: boolean
         category: CATEGORY_BY_ID.get(body.categoryId) ?? null,
         createdAt: '2026-10-02T09:14:00.000Z',
         updatedAt: '2026-10-02T09:14:00.000Z',
+      },
+    })
+  })
+  // Applying the rules created above, as the contract describes it (feature 30): every
+  // pending movement without a category whose description contains the text of a rule
+  // gets its category, and the answer lists each of them. With no rule, nobody foresaw it.
+  await page.route('**/api/category-rules/apply', (route) => {
+    if (route.request().method() !== 'POST' || created.length === 0) return stop(route)
+    const pending = [...rows.values()].filter(
+      (row) => row.status === 'pending_review' && row.categoryId === null,
+    )
+    const categorizedMovements = pending.flatMap((row) => {
+      const matched = created.filter((one) =>
+        String(row.description).toLowerCase().includes(one.matchText.toLowerCase()),
+      )
+      const [first] = matched
+      if (!first) return []
+      const category = CATEGORY_BY_ID.get(first.categoryId) ?? null
+      row.categoryId = first.categoryId
+      row.category = category
+      return [
+        {
+          movementId: row.id,
+          description: row.description,
+          bookingDate: row.bookingDate,
+          amount: row.amount,
+          type: row.type,
+          categoryId: first.categoryId,
+          categoryName: category?.name ?? '',
+          rules: matched.map((one) => ({ ruleId: one.id, matchText: one.matchText })),
+        },
+      ]
+    })
+    return route.fulfill({
+      json: {
+        categorized: categorizedMovements.length,
+        categorizedMovements,
+        conflictCount: 0,
+        conflicts: [],
+        unmatched: pending.length - categorizedMovements.length,
       },
     })
   })
@@ -993,6 +1040,95 @@ test('the notice does not cover the row that was just changed', async ({ page })
 
   expectNothingUnforeseen(watch)
 })
+
+// ─── The same, with the result of applying the rules above the list (feature 30) ───
+
+/** How many of the 64 descriptions contain the text of the rule created below. */
+const BAKERY_ROWS = 8
+
+/**
+ * Leaves `Review` as it is right after a rules pass: a rule is created from the first
+ * row, applied from its notice and the dialog closed. What the pass did is then painted
+ * between the title and the filters, and no notice is showing.
+ */
+async function applyRulesInReview(page: Page): Promise<void> {
+  await reviewRow(page, REVIEW_FIRST_ID).getByTestId('movement-create-rule').click()
+  await page.getByTestId('rule-text').getByRole('textbox').fill('panaderia')
+  await page.getByTestId('rule-category').getByRole('combobox').selectOption(String(TRANSPORT.id))
+  await page.getByTestId('rule-save').click()
+  await page.getByTestId('apply-rules-now').click()
+  await page.getByTestId('apply-confirmed').click()
+  await expect(page.getByTestId('apply-figure').first()).toHaveText(
+    `${BAKERY_ROWS} movements categorized`,
+  )
+  await page.getByTestId('apply-close').click()
+  await expect(page.getByTestId('apply-figure')).toHaveCount(0)
+  await expect(page.getByTestId('last-apply-headline')).toHaveText(
+    new RegExp(`^Rules applied at \\d{2}:\\d{2}: ${BAKERY_ROWS} movements categorized\\.$`),
+  )
+  await expect(page.locator(BLOCK)).toHaveCount(0)
+}
+
+// tasks.md does not ask for these two tests; the leader did when handing over the second
+// batch of feature 30. The block that says what the last rules pass did sits above the
+// list of Review and changes how tall everything above the rows is, folded and with its
+// list of movements open. The test of feature 27 above never has it on the page. Their
+// titles do not start like that one's, so the check of feature 27 that filters by its
+// title keeps running that test alone.
+for (const state of ['folded', 'open'] as const) {
+  test(`the notice leaves the changed row clear with the result of applying the rules ${state} above the list`, async ({
+    page,
+  }) => {
+    const watch = watchPage(page)
+    await routeReview(page, watch)
+    await page.goto('/review')
+    await expect(page.getByTestId('movement-row')).toHaveCount(REVIEW_ROWS)
+    await applyRulesInReview(page)
+    await expect(page.getByTestId('movement-row')).toHaveCount(REVIEW_ROWS)
+    if (state === 'open') {
+      await page.getByTestId('last-apply-show-movements').click()
+      await expect(page.getByTestId('last-apply-movement')).toHaveCount(BAKERY_ROWS)
+    }
+
+    // A row in the middle of the queue that the pass left without a category, brought
+    // up until its top edge is at the bottom edge of the top bar.
+    const target = reviewRow(page, REVIEW_FIRST_ID + 30)
+    await expect(target.getByTestId('movement-category')).toHaveText('Uncategorized')
+    await expect(reviewRow(page, REVIEW_FIRST_ID).getByTestId('movement-category')).toHaveText(
+      'Transport',
+    )
+    await bringUnderTopBar(page, target)
+    expect(await scrollY(page)).toBeGreaterThan(0)
+    await expectAtBottomOfTopBar(page, target)
+    await expect(page.locator(BLOCK)).toHaveCount(0)
+    await reviewCategory(target).selectOption(String(GROCERIES.id))
+    await expect(page.getByTestId('action-summary')).toContainText(
+      '1 movement categorized as Groceries',
+    )
+
+    await expectRowClearOfNotice(page, target)
+    await expectInView(page, page.getByTestId('action-summary'))
+    await expectInView(page, page.getByTestId('action-undo'))
+    // What the pass did is still on the page, and not inside the block that sticks.
+    await expect(page.getByTestId('last-apply')).toHaveCount(1)
+    await expect(page.locator(`${BLOCK} [data-test="last-apply"]`)).toHaveCount(0)
+
+    expect(watch.writes).toEqual([
+      {
+        method: 'POST',
+        path: '/api/category-rules',
+        body: { matchText: 'panaderia', categoryId: TRANSPORT.id },
+      },
+      { method: 'POST', path: '/api/category-rules/apply', body: null },
+      {
+        method: 'PATCH',
+        path: `/api/movements/${REVIEW_FIRST_ID + 30}`,
+        body: { categoryId: GROCERIES.id },
+      },
+    ])
+    expectNothingUnforeseen(watch)
+  })
+}
 
 /** How far below the top bar the next row is left: its upper part is behind the notice. */
 const PARTLY_UNDER = 30

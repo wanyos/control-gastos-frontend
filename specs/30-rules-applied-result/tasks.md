@@ -19,13 +19,13 @@ no se escribe ni el código ni el test.
 Archivos: `src/features/category-rules/types.ts`, `src/features/category-rules/service.ts`, `src/features/category-rules/rules.ts`, `src/features/category-rules/store.ts`, `src/features/category-rules/components/LastApplyReport.vue`, `src/features/category-rules/components/CategorizedMovementList.vue`, `src/features/category-rules/components/ApplyResult.vue`, `src/features/category-rules/views/RulesView.vue`, `src/shared/money.ts`, `src/features/category-rules/__tests__/fixtures.ts`, `src/features/category-rules/__tests__/service.spec.ts`, `src/features/category-rules/__tests__/rules.spec.ts`, `src/features/category-rules/__tests__/store.spec.ts`, `src/features/category-rules/__tests__/LastApplyReport.spec.ts`, `src/features/category-rules/__tests__/RulesView.spec.ts`, `src/shared/__tests__/money.spec.ts`, `src/features/review/store.ts`, `src/features/review/components/UncategorizedCount.vue`, `src/features/review/views/ReviewView.vue`, `src/features/review/__tests__/fixtures.ts`, `src/features/review/__tests__/store.spec.ts`, `src/features/review/__tests__/UncategorizedCount.spec.ts`, `src/features/review/__tests__/ReviewView.spec.ts`
 Depende de: —
 
-- [ ] T1 — `types.ts`: `AppliedRule`, `CategorizedMovement`, el campo
+- [x] T1 — `types.ts`: `AppliedRule`, `CategorizedMovement`, el campo
   `ApplyResult.categorizedMovements` y `LastApply` (design §2). `fixtures.ts` de
   `category-rules` y de `review`: un constructor `categorizedMovement(id, description,
   overrides)` y `categorizedMovements` con 12 elementos en `APPLY_OK` y en
   `APPLY_RESULT` (design §9). `rules.spec.ts`: su constructor `result(...)` gana el
   campo. Ninguna aserción que ya exista cambia. Cubre: R1, C3.
-- [ ] T2 — `service.ts`: `parseApplyResult` valida `categorizedMovements` y su tamaño,
+- [x] T2 — `service.ts`: `parseApplyResult` valida `categorizedMovements` y su tamaño,
   en el orden de design §2. Tests nuevos en `service.spec.ts`, con estos nombres
   exactos:
   - `reads the movements the apply answer says it categorized` — de la respuesta del
@@ -41,13 +41,13 @@ Depende de: —
     41.37` como número, `type: 'neutral'`, `bookingDate: ''` y `rules[0].ruleId` como
     texto: cada uno lanza nombrando su ruta (`categorizedMovements[0].amount`…).
     Cubre: R1, R2.
-- [ ] T3 — `rules.ts`: `lastApplyHeadline` y `lastApplyFigures` con los textos exactos
+- [x] T3 — `rules.ts`: `lastApplyHeadline` y `lastApplyFigures` con los textos exactos
   de requirements R5 y R6. Tests en `rules.spec.ts` (plural, singular y cero del
   titular; singular y plural de `conflict`). Cubre: R5, R6.
-- [ ] T4 — `shared/money.ts`: `formatClock`. Test en `money.spec.ts`:
+- [x] T4 — `shared/money.ts`: `formatClock`. Test en `money.spec.ts`:
   `new Date(2026, 9, 12, 10, 42)` → `10:42`; `new Date(2026, 9, 12, 9, 5)` → `09:05`.
   Cubre: R5.
-- [ ] T5 — `store.ts`: `lastApply`, `dismissLastApply` y las dos líneas de
+- [x] T5 — `store.ts`: `lastApply`, `dismissLastApply` y las dos líneas de
   `confirmApply` (design §3). Tests nuevos en `store.spec.ts`, con estos nombres
   exactos:
   - `keeps the categorized movements the server sent as the list of the result` — tras
@@ -74,7 +74,7 @@ Depende de: —
     Cubre: R9.
   Los seis tests de `applying (R10, R11, R13)` que ya existen no se editan y siguen en
   verde con la fixture de T1. Cubre: C1, C3.
-- [ ] T6 — `LastApplyReport.vue` y `CategorizedMovementList.vue` (design §4), y el
+- [x] T6 — `LastApplyReport.vue` y `CategorizedMovementList.vue` (design §4), y el
   comentario de `ApplyResult.vue` que dice que el backend no devuelve cuáles (solo el
   comentario). Tests en `LastApplyReport.spec.ts`, con estos nombres exactos:
   - `says how many movements were categorized and at what time` — titular y línea de
@@ -92,7 +92,7 @@ Depende de: —
   - `emits dismiss when Dismiss is pressed`. Cubre: R9.
   - `offers no way to change a movement` — dentro del bloque no hay `select`, `input`
     ni más botones que los tres descritos. Cubre: C1.
-- [ ] T7 — `RulesView.vue`: montar el bloque bajo la cabecera. Tests en
+- [x] T7 — `RulesView.vue`: montar el bloque bajo la cabecera. Tests en
   `RulesView.spec.ts`:
   - `after closing the apply dialog Rules still shows how many movements were categorized`
     — aplicar, pulsar `Close`: `last-apply-headline` sigue en la página. Cubre: R5.
@@ -100,14 +100,14 @@ Depende de: —
   El test que ya existe `always asks before applying, and cancelling sends nothing
   (R10)` no se edita: sigue comprobando `12 movements categorized` en la ventana y que
   la pantalla no pide movimientos. Cubre: C1, C3.
-- [ ] T8 — **Condicional (ver arriba).** `CategorizedMovementList.vue`: bajo el
+- [x] T8 — **Condicional (ver arriba).** `CategorizedMovementList.vue`: bajo el
   concepto, el texto de cada regla de `rules` (design §4). Test en
   `LastApplyReport.spec.ts`, con este nombre exacto:
   - `names the rules that matched each categorized movement` — la fila del movimiento
     con dos reglas tiene dos `last-apply-movement-rule` con sus `matchText`, en el
     orden de la respuesta; la de una regla, uno.
   Cubre: R16.
-- [ ] T9 — `review/store.ts`: `uncategorizedCount`, `refreshUncategorizedCount` y su
+- [x] T9 — `review/store.ts`: `uncategorizedCount`, `refreshUncategorizedCount` y su
   llamada al final de `refreshAfterAction` (design §5); y el comentario de
   `refreshAfterRules`, que dice que el backend no dice cuáles. Tests nuevos en
   `review/__tests__/store.spec.ts`:
@@ -119,14 +119,14 @@ Depende de: —
   - `a rules pass still clears the Undo and the ticked rows` — con un `Undo` y una
     casilla marcada, `rules.applyRun += 1` deja `lastAction` en `null` y `selectedIds`
     vacío. Cubre: C2.
-- [ ] T10 — `review/__tests__/store.spec.ts`: corregir los tests que cuentan lecturas
+- [x] T10 — `review/__tests__/store.spec.ts`: corregir los tests que cuentan lecturas
   tras una acción o tras `applyRun` (hoy, al menos `asks for the page and the count
   again, and drops the selection and the undo`, que espera 2 lecturas y pasan a ser 3).
   Lo que comprobaban de la selección, del `Undo` y de los `PATCH` se conserva.
   Cubre: R14, C2.
-- [ ] T11 — `UncategorizedCount.vue`. Test en `UncategorizedCount.spec.ts`: las tres
+- [x] T11 — `UncategorizedCount.vue`. Test en `UncategorizedCount.spec.ts`: las tres
   frases de R13 (varios, uno, cero) y nada con `null`. Cubre: R13, R15.
-- [ ] T12 — `ReviewView.vue`: `refreshUncategorizedCount()` en `onMounted`,
+- [x] T12 — `ReviewView.vue`: `refreshUncategorizedCount()` en `onMounted`,
   `UncategorizedCount` en la cabecera y `LastApplyReport` entre la cabecera y
   `ReviewFilterBar`, fuera de `StickyBelowTopBar` (design §4, §6). Tests nuevos en
   `ReviewView.spec.ts`, con estos nombres exactos:
@@ -149,7 +149,7 @@ Depende de: —
 Archivos: `e2e/category-rules.spec.ts`, `e2e/review-queue.spec.ts`, `e2e/review-actions.spec.ts`, `e2e/action-notice-in-view.spec.ts`, `src/features/import/__tests__/service.spec.ts`, `docs/architecture.md`, `docs/guia-de-uso.md`, `feature_list.json`
 Depende de: Lote A
 
-- [ ] T13 — `e2e/category-rules.spec.ts`: `APPLY_RESULT` gana `categorizedMovements`
+- [x] T13 — `e2e/category-rules.spec.ts`: `APPLY_RESULT` gana `categorizedMovements`
   con 12 elementos (design §9), y `prepare` acepta en `options` otra respuesta de
   aplicar. El test que ya existe `applying asks first, sends one bodyless POST and
   refreshes the queue` no cambia sus aserciones. Test nuevo, con este nombre exacto:
@@ -160,10 +160,10 @@ Depende de: Lote A
     `Dismiss` y dejar de verlo; recargar la página y seguir sin verlo. Al final, la
     única escritura registrada es el `POST` de aplicar, sin cuerpo.
     Cubre: R5, R7, R9, R11, C1.
-- [ ] T14 — Ejecutar `e2e/review-queue.spec.ts`, `e2e/review-actions.spec.ts` y
+- [x] T14 — Ejecutar `e2e/review-queue.spec.ts`, `e2e/review-actions.spec.ts` y
   `e2e/action-notice-in-view.spec.ts`. Solo si alguno deja de pasar por la petición
   nueva de R13, ajustar su ruta simulada; sus aserciones no se cambian. Cubre: C2.
-- [ ] T15 — `src/features/import/__tests__/service.spec.ts`: test nuevo, con este
+- [x] T15 — `src/features/import/__tests__/service.spec.ts`: test nuevo, con este
   nombre exacto:
   - `reads a report whose categorization carries the categorized movements` —
     `parseImportReport` de `FULL_REPORT` con `categorization.categorizedMovements`
@@ -171,19 +171,19 @@ Depende de: Lote A
     `categorized`, `conflicts` y `unmatched`, y el resultado no tiene la propiedad
     `categorizedMovements`.
   No se edita nada más de `src/features/import/` (design §8). Cubre: C4.
-- [ ] T16 — `feature_list.json`: quitar el último check de la feature 27 (el que
+- [x] T16 — `feature_list.json`: quitar el último check de la feature 27 (el que
   ejecuta `git diff --quiet 8f0dce6 -- …`) y el último de la feature 29 (el que ejecuta
   `git diff --quiet d5290e7 -- …`). Decidido por el leader con el humano informado
   (lección 3 de `docs/lessons.md`). No se toca ningún otro check, ni los de la
   feature 30. Después, `./init.sh --state` tiene que salir con 0. Cubre: C2.
-- [ ] T17 — `docs/architecture.md`: en el árbol, los componentes y funciones nuevos de
+- [x] T17 — `docs/architecture.md`: en el árbol, los componentes y funciones nuevos de
   `category-rules/`, `review/` y `shared/money.ts`; y en el párrafo «La pantalla de
   reglas y su sentido de dependencia (feature #17)», una frase que diga que la
   respuesta de aplicar trae la lista de lo categorizado, que el store de reglas la
   guarda en memoria como resultado de la última aplicación y que `Rules` y `Review` la
   enseñan con el mismo componente. Añadir arriba de ese párrafo la línea «Revisado el
   … por la feature 30». Cubre: R1, R5.
-- [ ] T18 — `docs/guia-de-uso.md`: corregir lo que queda falso sin tocar las
+- [x] T18 — `docs/guia-de-uso.md`: corregir lo que queda falso sin tocar las
   anotaciones del humano (`--`): «el backend dice cuántos categorizó, pero no cuáles»
   (aviso antes del paso 14 de `Rules`), el paso 15 (qué se ve en `Review` después),
   «los choques … no se guardan: al cerrar la ventana desaparecen» (lista «Lo que no

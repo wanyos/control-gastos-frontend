@@ -76,8 +76,59 @@ export const conflict = (movementId: number, description: string): Record<string
   ],
 })
 
+/** One element of `categorizedMovements`: an expense one rule sent to Supermercado. */
+export const categorizedMovement = (
+  movementId: number,
+  description: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> => ({
+  movementId,
+  description,
+  bookingDate: '2026-08-11',
+  amount: '41.37',
+  type: 'expense',
+  categoryId: 4,
+  categoryName: 'Supermercado',
+  rules: [{ ruleId: 3, matchText: 'sintetico colmado' }],
+  ...overrides,
+})
+
+/** The first of the list: two rules of the same category matched it. */
+export const TWO_RULES_MOVEMENT = categorizedMovement(198, 'COMPRA SINTETICO COLMADO NORTE', {
+  rules: [
+    { ruleId: 3, matchText: 'sintetico colmado' },
+    { ruleId: 12, matchText: 'colmado norte' },
+  ],
+})
+
+/** The second: an income, so its amount is painted without a sign. */
+export const INCOME_MOVEMENT = categorizedMovement(203, 'ABONO SINTETICO TALLER EJEMPLO', {
+  bookingDate: '2026-08-12',
+  amount: '1318.64',
+  type: 'income',
+  categoryId: 9,
+  categoryName: 'Nomina',
+  rules: [{ ruleId: 9, matchText: 'taller ejemplo' }],
+})
+
+/** Twelve, as many as `categorized` says, by `movementId` ascending as the API sends them. */
+export const TWELVE_CATEGORIZED = [
+  TWO_RULES_MOVEMENT,
+  INCOME_MOVEMENT,
+  ...Array.from({ length: 10 }, (_item, index) =>
+    categorizedMovement(204 + index, `RECIBO SINTETICO SUMINISTRO ${index + 1}`, {
+      bookingDate: `2026-08-${13 + index}`,
+      amount: `${17 + index * 3}.${String(29 + index * 7).padStart(2, '0')}`,
+      categoryId: 6,
+      categoryName: 'Suministros',
+      rules: [{ ruleId: 8, matchText: 'sintetico suministro' }],
+    }),
+  ),
+]
+
 export const APPLY_OK = {
   categorized: 12,
+  categorizedMovements: TWELVE_CATEGORIZED,
   conflictCount: 1,
   conflicts: [conflict(210, 'PAGO SINTETICO EJEMPLO')],
   unmatched: 5,
