@@ -68,6 +68,14 @@ Hay además un movimiento de otra clase marcado como que no cuenta: una compra
 de 25,00 € en N26 (`TULOTERO`). No se sabe quién lo marcó ni cuándo; puede ser
 un resto de una prueba.
 
+**Lo que quiere el humano para los depósitos (2026-10-16, con sus palabras):** «si un depósito se cancela no tiene repercusión en el aumento del saldo o patrimonio, tampoco debería tenerlo solo por ser un depósito; lo que se gana son los intereses cuando vence su plazo». Es decir: abrir o cancelar un depósito no es ni gasto ni ingreso; solo los intereses lo son, cuando vence.
+
+**Cómo está hoy, medido el 2026-10-16 tras importar octubre:**
+
+- **En el patrimonio (`Net Worth`) ya se cumple.** Abrir un depósito saca el dinero de la cuenta y lo suma como producto (`Depósito 12 meses 2026-10`, 25.000 €, su capital, sin intereses hasta que vence); el total no sube por abrirlo. Con todos los archivos al día, el patrimonio pasó de 88.852,64 € a 88.402,49 €. No se ha comprobado movimiento a movimiento.
+- **En las sumas (`Movements`, `Overview`) no se cumple.** Los movimientos de depósito que no se marcan a mano cuentan enteros: octubre sale con 75.203,92 € de entrada y 78.455,20 € de salida, cuando 75.037,07 € y 75.000 € son de depósitos. Y los ya marcados están marcados enteros, así que **los intereses no cuentan en ningún sitio**: el `INTERESES DEP.` de 25.037,07 € trae 25.000 € de capital y 37,07 € de interés, y solo esos 37,07 € deberían contar como ingreso.
+- Para separar capital e intereses hace falta saber el capital de cada depósito: el backend lo tiene en el producto (`principal`) y en el movimiento de apertura. Es trabajo del backend.
+
 ### D. El recibo de la tarjeta de crédito
 
 26 recibos `RECIBO VISA CLASICA` de Bankinter suman 7.492,29 €. Las compras
