@@ -76,6 +76,8 @@ un resto de una prueba.
 - **En las sumas (`Movements`, `Overview`) no se cumple.** Los movimientos de depósito que no se marcan a mano cuentan enteros: octubre sale con 75.203,92 € de entrada y 78.455,20 € de salida, cuando 75.037,07 € y 75.000 € son de depósitos. Y los ya marcados están marcados enteros, así que **los intereses no cuentan en ningún sitio**: el `INTERESES DEP.` de 25.037,07 € trae 25.000 € de capital y 37,07 € de interés, y solo esos 37,07 € deberían contar como ingreso.
 - Para separar capital e intereses hace falta saber el capital de cada depósito: el backend lo tiene en el producto (`principal`) y en el movimiento de apertura. Es trabajo del backend.
 
+**Resuelto en el backend el 2026-10-16 (su feature 57, commit `f8b2aa0`; migración aplicada a la base real ese día, tras una copia `control-gastos-2026-10-16-090624.dump`).** Comprobado por el leader con la API: octubre de 2026 pasa de 75.203,92 € / 78.455,20 € a 203,92 € / 3.455,20 € (fuera los 75.000 € de aperturas y los 50.000 € de cancelaciones; cuentan los 37,07 € de interés); los meses de septiembre de 2025 a septiembre de 2026 recuperan como ingreso el interés de cada vencimiento (de 13,08 € a 177,96 €), y agosto de 2025 queda como dudoso (`principal_not_found`, cuenta 0). La parte del frontend (que la lista lo enseñe) es el cabo suelto 37 del roadmap.
+
 ### D. El recibo de la tarjeta de crédito
 
 26 recibos `RECIBO VISA CLASICA` de Bankinter suman 7.492,29 €. Las compras
