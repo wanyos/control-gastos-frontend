@@ -225,6 +225,39 @@ describe('useStatementStore', () => {
       expect(api.methods()).toEqual(['GET'])
     })
 
+    // Cabo 37a: the quiet refresh after a write asks page 1 again; what `Load more` had
+    // brought must not come back a second time through the next `Load more`.
+    it('never shows a row twice after a write and another Load more', async () => {
+      const api = mockApi({
+        movements: (query) => {
+          if (query.get('page') === '2') return json(BIG_MONTH_PAGE_TWO)()
+          // Page 3 answers the rows of page 1 on purpose: whatever a page carries, a row
+          // already on screen is not added again.
+          return json({
+            ...BIG_MONTH_PAGE_ONE,
+            pagination: { ...BIG_MONTH_PAGE_ONE.pagination, totalPages: 3 },
+          })()
+        },
+        bulkPatch: json(bulkResult([excluded(EXPENSE)])),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      await store.loadMore()
+      expect(store.shown).toBe(3)
+      store.startSelecting()
+      store.toggleSelected(10)
+
+      await store.setExcluded(true)
+      expect(api.queries().at(-1)).toBe('from=2026-09-01&to=2026-09-30&page=1&pageSize=200')
+      await store.loadMore()
+
+      const ids = store.shownMovements.map((row) => row.id)
+      expect(new Set(ids).size).toBe(ids.length)
+      expect(ids).toEqual([10, 12, 30])
+      // The page reached is kept, so the next page asked for is the one after it.
+      expect(api.queries().at(-1)).toBe('from=2026-09-01&to=2026-09-30&page=3&pageSize=200')
+    })
+
     it('a failed Load more keeps the month on screen', async () => {
       mockApi({
         movements: (query) =>

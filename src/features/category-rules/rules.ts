@@ -60,6 +60,14 @@ export const BANK_BOILERPLATE: ReadonlySet<string> = new Set([
   'liquidacion',
   'orden',
   'envio',
+  // Channel words seen in the real statement, added for cabo 8: a cancellation
+  // («ANUL. /VivaGym» proposed `anul. /vivagym`) and the immediate-transfer code
+  // («TRANS INM /…» proposed `trans inm`). `a favor de` is already covered: `favor` is
+  // above and `a` / `de` are under the floor of 3 letters.
+  'anul',
+  'trans',
+  'inm',
+  'concepto',
 ])
 
 /**

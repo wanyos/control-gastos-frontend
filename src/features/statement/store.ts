@@ -275,7 +275,10 @@ export const useStatementStore = defineStore('statement', () => {
         client,
       )
       if (run !== loadRun) return
-      extra.value = [...extra.value, ...loaded.movements]
+      // A row already on screen is never added twice: after a quiet refresh page 1 may
+      // carry rows that `Load more` had brought (cabo 37a), and Vue warns on repeated keys.
+      const onScreen = new Set(loadedMovements.value.map((row) => row.id))
+      extra.value = [...extra.value, ...loaded.movements.filter((row) => !onScreen.has(row.id))]
       page.value = next
     } catch (rejection) {
       if (run !== loadRun) return
@@ -345,7 +348,9 @@ export const useStatementStore = defineStore('statement', () => {
    * Asks for the month again after a write, without the spinner and without blanking
    * what is on screen: `totals` and `pagination.total` are the backend's, never a sum
    * made here (R9, R10). Only the first page is asked for; whatever `Load more` had
-   * brought and page 1 now carries is dropped, so no row shows up twice.
+   * brought stays, minus what page 1 now carries, so no row shows up twice. The page
+   * reached is kept: the next `Load more` asks for the one after it, not for page 2
+   * again (cabo 37a).
    */
   async function refreshQuietly(client?: HttpClient): Promise<void> {
     const run = ++loadRun
@@ -356,7 +361,7 @@ export const useStatementStore = defineStore('statement', () => {
       )
       if (run !== loadRun) return
       result.value = loaded
-      page.value = loaded.pagination.page
+      page.value = Math.max(page.value, loaded.pagination.page)
       const onPageOne = new Set(loaded.movements.map((row) => row.id))
       extra.value = extra.value.filter((row) => !onPageOne.has(row.id))
     } catch {

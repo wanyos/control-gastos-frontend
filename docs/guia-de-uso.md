@@ -1071,8 +1071,10 @@ al desenlazar **ese sigue sin contar**. La pregunta y el aviso lo dicen.
 - **Un traspaso tuyo cuya otra mitad nunca se importó no sale aquí**: no tiene
   con quién emparejarse y no aparece como dudoso. Se marca a mano en
   `Movements`.
-- La nota gris de `Movements` avisa de que una pareja puede no ser un
-  traspaso, pero no enlaza a esta pantalla.
+- En `Movements`, los dos movimientos de una pareja salen con el importe
+  tachado y en gris y con `Transfer` bajo el concepto, junto a la cuenta. La
+  frase bajo las cifras avisa, dentro de `More about what counts`, de que una
+  pareja puede no ser un traspaso, pero no enlaza a esta pantalla.
 - Cada `Unlink` mueve tus sumas históricas. Desenlaza solo lo que sepas que no
   es un traspaso tuyo.
 
@@ -1224,8 +1226,9 @@ mano ese día, no un dato que la aplicación calcule.
 3. En `Account`, elige la cuenta desde la que salió el dinero.
    -- ok
 
-4. Busca los envíos a tus propias cuentas que **no** lleven la etiqueta
-   `Transfer` ni `Not counted`. Solo tú sabes cuáles son.
+4. Busca los envíos a tus propias cuentas que todavía cuentan: los que llevan
+   el importe sin tachar y **no** tienen `Transfer` ni `Not counted` bajo el
+   concepto, junto a la cuenta. Solo tú sabes cuáles son.
    
 
 5. Apunta las tres cifras del mes.
@@ -1235,7 +1238,8 @@ mano ese día, no un dato que la aplicación calcule.
    `Exclude from totals`.
 
 7. Comprueba que `Money out` ha bajado exactamente en la suma de lo marcado, y
-   que las líneas llevan `Not counted`. Si te has equivocado, `Undo`.
+   que las líneas llevan ahora `Not counted` bajo el concepto y el importe
+   tachado y en gris. Si te has equivocado, `Undo`.
 
 8. Pulsa `Previous` o `Next` para ir al mes siguiente y repite. Las casillas
    siguen a la vista al cambiar de mes, pero lo marcado se suelta: va mes a

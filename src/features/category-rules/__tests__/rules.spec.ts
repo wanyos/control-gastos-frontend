@@ -89,6 +89,22 @@ describe('rules (R2, R4, R6, R9, R12, R13)', () => {
 
     it('falls back to the whole normalized description when no word qualifies', () => {
       expect(proposeMatchText('RECIBO 12/08')).toBe('recibo 12/08')
+      expect(proposeMatchText('TRANS INM')).toBe('trans inm')
+      expect(proposeMatchText('ANUL. /TPV VIRTUAL')).toBe('anul. /tpv virtual')
+    })
+
+    // Cabo 8: the words that say how you paid, and the punctuation around them, never
+    // start the proposal.
+    it('skips a cancellation code and its punctuation', () => {
+      expect(proposeMatchText('ANUL. /VivaGym')).toBe('vivagym')
+      expect(proposeMatchText('ANUL. /VIVA GYM')).toBe('viva gym')
+    })
+
+    it('skips the channel words of a transfer and of a card terminal', () => {
+      expect(proposeMatchText('TRANS INM /PEPE GARCIA')).toBe('pepe garcia')
+      expect(proposeMatchText('TRANSFERENCIA A FAVOR DE GIMNASIO CENTRAL')).toBe('gimnasio')
+      expect(proposeMatchText('TPV VIRTUAL 1234 AMAZON')).toBe('amazon')
+      expect(proposeMatchText('CONCEPTO BIZUM LIBRERIA NORTE')).toBe('libreria')
     })
 
     it('never proposes a word of the boilerplate list on its own', () => {
