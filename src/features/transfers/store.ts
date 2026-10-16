@@ -102,6 +102,19 @@ export const useTransfersStore = defineStore('transfers', () => {
     await Promise.all([fetchPairs(true), fetchGroups(true)])
   }
 
+  /**
+   * After an import (2026-10-16): the detection may have linked pairs and left new
+   * doubtful groups, so a list that was already on screen is asked for again. The
+   * initial `loading` means the screen was never opened: nothing is read then.
+   */
+  async function reloadIfLoaded(): Promise<void> {
+    const loaded = (status: ListStatus) => status !== 'loading'
+    await Promise.all([
+      loaded(pairsStatus.value) ? fetchPairs(true) : Promise.resolve(),
+      loaded(groupsStatus.value) ? fetchGroups(true) : Promise.resolve(),
+    ])
+  }
+
   async function write(
     gesture: Gesture,
     action: () => Promise<{ summary: string; undo: Undo | null }>,
@@ -200,6 +213,7 @@ export const useTransfersStore = defineStore('transfers', () => {
     retryPairs,
     retryGroups,
     reloadBoth,
+    reloadIfLoaded,
     requestUnlink,
     cancelUnlink,
     confirmUnlink,

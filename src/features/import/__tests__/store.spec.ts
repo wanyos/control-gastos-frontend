@@ -397,3 +397,49 @@ describe('useImportStore', () => {
     })
   })
 })
+
+describe('what an import asks for again on the screen in front of the user (2026-10-16)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('reloads the review page that was already on screen, not only its count', async () => {
+    const api = mockApi({
+      pending: json(PENDING_TWO),
+      import: json(FULL_REPORT),
+      movements: json(PENDING_COUNT_PAGE),
+    })
+    const review = useReviewStore()
+    await review.load()
+    expect(review.result).not.toBeNull()
+    expect(api.count(GET_MOVEMENTS)).toBe(1)
+    const store = useImportStore()
+    await atConfirm(store)
+
+    await store.start()
+    await flushPromises()
+
+    // The count, the page again and the number without a category.
+    expect(api.count(GET_MOVEMENTS)).toBe(4)
+  })
+
+  it('reads nothing of the review page when it was never opened', async () => {
+    const api = mockApi({
+      pending: json(PENDING_TWO),
+      import: json(FULL_REPORT),
+      movements: json(PENDING_COUNT_PAGE),
+    })
+    const store = useImportStore()
+    await atConfirm(store)
+
+    await store.start()
+    await flushPromises()
+
+    expect(api.count(GET_MOVEMENTS)).toBe(1)
+    expect(useReviewStore().result).toBeNull()
+  })
+})

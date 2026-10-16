@@ -18,6 +18,8 @@ import {
   CREATED_RULE,
   RULES,
   CATEGORY_TREE,
+  CONFIRM_ALL,
+  CONFIRM_ALL_RESULT,
   COUNT_PAGE,
   EMPTY_PAGE,
   EXPENSE,
@@ -499,6 +501,46 @@ describe('ReviewView', () => {
       const sent = api.patches()[0]?.body as { ids: number[] } | undefined
       expect(sent?.ids).toHaveLength(20)
       expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(0)
+    })
+  })
+
+  describe('closing everything still pending (2026-10-16)', () => {
+    it('opens the dialog from the header, sends the two categories and says what was closed', async () => {
+      const queue = fakeQueue()
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        confirmAll: json(CONFIRM_ALL_RESULT),
+      })
+
+      await wrapper.get('[data-test="confirm-all-open"]').trigger('click')
+      await flushPromises()
+      expect(document.querySelector('[data-test="confirm-all"]')).not.toBeNull()
+
+      const pick = (test: string, value: string) => {
+        const select = document.querySelector<HTMLSelectElement>(`[data-test="${test}"] select`)
+        if (!select) throw new Error(`no select ${test}`)
+        select.value = value
+        select.dispatchEvent(new Event('change'))
+      }
+      pick('confirm-all-expense', '2')
+      pick('confirm-all-income', '4')
+      await flushPromises()
+      document.querySelector<HTMLElement>('[data-test="confirm-all-continue"]')?.click()
+      await flushPromises()
+
+      const posts = api.calls.filter((call) => call.method === 'POST')
+      expect(posts.map((call) => call.path)).toEqual([CONFIRM_ALL])
+      expect(posts[0]?.body).toEqual({ expenseCategoryId: 2, incomeCategoryId: 4 })
+      expect(document.querySelector('[data-test="confirm-all"]')).toBeNull()
+      expect(wrapper.get('[data-test="confirm-all-result"]').text()).toContain(
+        'Closed: 1667 movements confirmed, 1051 given a category.',
+      )
+    })
+
+    it('offers nothing to close when the queue is empty', async () => {
+      const { wrapper } = await mountView('/review', { movements: json(EMPTY_PAGE) })
+
+      expect(wrapper.find('[data-test="confirm-all-open"]').exists()).toBe(false)
     })
   })
 

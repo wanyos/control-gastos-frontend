@@ -4,6 +4,8 @@ import { defineStore } from 'pinia'
 import { useNetWorthStore } from '@/features/net-worth/store'
 import { useOverviewStore } from '@/features/overview/store'
 import { useReviewStore } from '@/features/review/store'
+import { useStatementStore } from '@/features/statement/store'
+import { useTransfersStore } from '@/features/transfers/store'
 import type { HttpClient } from '@/services/http'
 import { ValidationError, toAppError } from '@/shared/errors'
 
@@ -76,13 +78,30 @@ export const useImportStore = defineStore('import', () => {
     } finally {
       void refreshPending(client)
       // An import always adds movements to the review queue, whatever the outcome.
-      void useReviewStore().refreshPendingCount(client)
+      const reviewStore = useReviewStore()
+      void reviewStore.refreshPendingCount(client)
       const netWorthStore = useNetWorthStore()
       if (netWorthStore.netWorth !== null) {
         void netWorthStore.load(client)
       }
       // The month at a glance drops what it read, if it had read anything (feature 25).
       void useOverviewStore().refreshIfLoaded(client)
+      // The list the user has in front of them is asked for again too (2026-10-16):
+      // the import button sits in the topbar, so it can be pressed from any screen,
+      // and the page, the month or the pairs on screen were the ones from before.
+      if (reviewStore.result !== null) void reviewStore.refreshAfterAction(client)
+      const statementStore = useStatementStore()
+      if (statementStore.result !== null) {
+        void statementStore.show(
+          statementStore.month,
+          statementStore.filters,
+          statementStore.hideNoise,
+          client,
+        )
+      }
+      // A new account created by the import must reach the `Account` selector.
+      void statementStore.reloadAccounts(client)
+      void useTransfersStore().reloadIfLoaded()
     }
   }
 

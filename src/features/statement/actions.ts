@@ -97,7 +97,7 @@ export function writeErrorMessage(error: AppError, gesture: WriteGesture = 'cate
       : 'Nothing changed: the movement or the category no longer exists. Reloading the month.'
   }
   if (error.code === API_NETWORK) {
-    return "Couldn't reach the server. Nothing changed."
+    return "Couldn't reach the server. Reloading, to be sure of what was written."
   }
   if (error instanceof ValidationError) {
     return "The server answered, but the reply couldn't be read. Reloading the month to show what really happened."

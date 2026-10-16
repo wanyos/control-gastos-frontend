@@ -4,7 +4,7 @@
 > **qué viene después** y **por qué en ese orden**. Es el mapa del recorrido
 > completo, no el detalle de ninguna parada.
 >
-> **Última revisión:** 2026-10-04.
+> **Última revisión:** 2026-10-16.
 
 ## Este documento frente a los otros
 
@@ -24,22 +24,33 @@ es el `intent` de una feature.
 
 ## Dónde estás ahora mismo 📍
 
-**Ya hay aplicación, y ya escribe.** 26 features cerradas. Las pantallas que
-existen: **Patrimonio** (F9), **Review** con su cola, filtros y búsqueda (F15) y sus
-acciones de categorizar y confirmar (F16), **Rules** con las reglas de categorización
-y su previsualización (F17, F18), el **botón de importar** con su informe (F13, F14),
-el **extracto mes a mes** en `/movements` con sus filtros, su búsqueda, la corrección de
-categoría desde la propia línea, el marcado en bloque de lo que no cuenta en las sumas y el
-interruptor que esconde ese ruido (F19, F20, F21, F22, F23), **Transfers** en
-`/transfers`, para revisar las parejas de traspaso, deshacer las falsas y emparejar las
-dudosas (F24) y, nueva, **Overview** en `/overview`, que deja de ser un placeholder y
-enseña el mes de un vistazo: una frase interpretada, lo que entró, lo que salió, el ahorro
-y si fue un mes habitual (F25); debajo, los veinticuatro meses que acaban en el del último
-dato, con lo que entró y salió en cada uno y lo ahorrado en el periodo (F26).
-Etapas E0 a E7 cerradas; **la E8 está a medias**, con dos features cerradas.
+**Ya hay aplicación, y ya escribe.** 31 features cerradas (la última, la F31, el
+2026-10-16). Las pantallas que existen: **Patrimonio** (F9), **Review** con su cola,
+filtros y búsqueda (F15) y sus acciones de categorizar y confirmar (F16), **Rules** con
+las reglas de categorización y su previsualización (F17, F18) y el resultado de
+aplicarlas (F30), el **botón de importar** con su informe (F13, F14), el **extracto mes
+a mes** en `/movements` con sus filtros, su búsqueda, la corrección de categoría desde
+la propia línea, el marcado en bloque de lo que no cuenta en las sumas y el interruptor
+que esconde ese ruido (F19, F20, F21, F22, F23, F29), **Transfers** en `/transfers`,
+para revisar las parejas de traspaso, deshacer las falsas y emparejar las dudosas (F24)
+y **Overview** en `/overview`, el mes de un vistazo (F25) con los veinticuatro meses
+anteriores debajo (F26). El aviso de lo último hecho y su `Undo` se ven desde donde
+estés (F27), los textos repetidos están resueltos (F28) y cada movimiento de depósito
+dice cuánto cuenta (F31). Etapas E0 a E7 cerradas; **la E8 está a medias**.
 
-**Lo siguiente en la E8** (plan aprobado por el humano el 2026-10-02): **lo que ganó cada depósito** en Patrimonio. Detalle en
-la sección de la E8.
+**Sin feature, el 2026-10-16**, en una revisión del humano con Claude: importar
+vuelve a pedir la lista que tienes delante (`Review`, `Movements`, `Transfers` y
+las cuentas del desplegable); un fallo de red al escribir recarga en vez de dar
+por hecho que no se escribió (cabo 9, segunda mitad); las peticiones tienen un
+tiempo límite de 30 s salvo la importación; una dirección desconocida va a
+`Net Worth`; la barra lateral se queda con los iconos en pantallas pequeñas; y
+`Review` tiene el botón `Close everything pending…`, que da una categoría a todo
+lo que no la tiene y confirma todo lo pendiente de una vez
+(`POST /api/movements/confirm-all` del backend, mismo día). Está en la guía,
+sección `Review`, pasos 20 a 22.
+
+**Lo siguiente en la E8**: los recurrentes (traspaso `../docs/handoff-recurrentes.md`,
+backend primero). Detalle en la sección de la E8.
 
 **El ruido de las sumas está resuelto en el extracto.** La **F22** (cerrada el
 2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
@@ -430,7 +441,8 @@ datos bancarios reales. No es urgente; es que no estaba.
 | ~~6~~ | ~~`GET /api/ingestion/pending` cuenta también los archivos sin parser, así que el aviso «N new files» no bajaría a 0~~ | ✅ **retirado el 2026-09-15**: el humano confirma que todos los bancos tienen parser (Revolut incluido) y en Drive no hay PDFs, así que todo lo pendiente es importable |
 | ~~7~~ | ~~`GET /api/movements` con `pageSize=100` devuelve 1.605 movimientos distintos de 1.607: la cola de revisión esconde dos~~ | ✅ **arreglado en el backend** (commit `f10fe8c`: el orden acaba en `id` descendente) y **comprobado el 2026-10-04** contra los datos reales: la cola recorre sus 17 páginas con 1.607 ids distintos. El detalle de la medición está en el commit `d75f044` de este repositorio; el traspaso `handoff-paginacion-estable.md` se borró al cerrarse |
 | 8 | La propuesta de texto de una regla arrastra una palabra de trámite y puntuación («ANUL. /VivaGym» propone `anul. /vivagym`) y se queda corta con nombres de canal (`trans inm`, `tpv virtual`). Anotado al cerrar la F18 | sin etapa |
-| 9 | Los tests unitarios no tienen nada que haga fallar por defecto una llamada a `fetch` sin responder: el origen de jsdom coincide con el del backend real (`localhost:3000`), así que un test que olvide `mockBackend` hablaría con él. Y un fallo de red al escribir se cuenta como «no cambió nada» en las F16, F21, F22 y F24. Anotado por el reviewer | sin etapa |
+| 9 | Los tests unitarios no tienen nada que haga fallar por defecto una llamada a `fetch` sin responder: el origen de jsdom coincide con el del backend real (`localhost:3000`), así que un test que olvide `mockBackend` hablaría con él. ~~Y un fallo de red al escribir se cuenta como «no cambió nada» en las F16, F21, F22 y F24.~~ Anotado por el reviewer. **La segunda mitad se cerró el 2026-10-16**: `needsReload` (`src/shared/movements.ts`) recarga también tras un fallo de red, porque la escritura pudo llegar y perderse solo la respuesta; la frase pasa a «Couldn't reach the server. Reloading, to be sure of what was written.» | la primera mitad, sin etapa |
+| 37 | **Restos de la revisión del 2026-10-16.** (a) `refreshQuietly` de `features/statement/store.ts` vuelve a `page = 1` pero deja en `extra` las filas de las páginas 2..n; el siguiente `Load more` pide la página 2 otra vez y pueden salir filas repetidas. Solo pasa en un mes con más de 200 movimientos; el más cargado real tiene unos 93. (b) La casilla `Hide what does not count` manda `excluded=none` y `transfer=none`, y un vencimiento de depósito marcado o con `transferId` desaparecería de la lista aunque siga sumando su interés; hoy no hay ninguno así. (c) En pantallas pequeñas la barra lateral se queda solo con los iconos (hecho ese día); el resto de la pantalla no se ha probado en móvil | sin etapa |
 | 10 | Traspasos a cuentas propias sin pareja ni marca siguen contando en las sumas; hacen que la comparación del mes (F25) y lo ahorrado en el periodo (F26) salgan peor de lo que son | **deber del humano**: marcarlos desde el extracto (F22). El traspaso de las sumas dejó dicho, como fuera de su alcance, que hay cuentas propias que no están dadas de alta y que mientras no existan como cuenta sus traspasos no pueden tener pareja: es una conversación de producto, sin abrir |
 | ~~11~~ | En `Movements`, un mes sin ningún movimiento abierto con la casilla `Hide what does not count` puesta dice «Nothing left to show in …: everything in this month is hidden», junto a «Hiding 0 movements»: atribuye a la casilla un vacío que no es suyo. Ocurre en el mes en curso mientras no tiene datos (comprobado el 2026-10-05 con octubre de 2026). El reviewer de la F23 lo señaló y el leader lo dio por no reproducido tras probarlo con un parámetro de URL equivocado | ✅ **arreglado por la F29** (2026-10-12). Sin ver todavía con sus datos reales en el navegador |
 | ~~12~~ | No era un cabo suelto sino una idea de mejora. Pasada el 2026-10-10 a `../docs/ideas-de-mejora.md`, idea 1 | — |

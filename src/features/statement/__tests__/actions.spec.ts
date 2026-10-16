@@ -113,7 +113,7 @@ describe('writeErrorMessage (R14, R15)', () => {
 
   it('a network failure says nothing changed', () => {
     expect(writeErrorMessage(new ApiError('down', API_NETWORK))).toBe(
-      "Couldn't reach the server. Nothing changed.",
+      "Couldn't reach the server. Reloading, to be sure of what was written.",
     )
   })
 
@@ -138,9 +138,9 @@ describe('writeErrorMessage (R14, R15)', () => {
     expect(sentence).not.toContain('14')
   })
 
-  it('only a 400 and a network failure are sure nothing was written (R15)', () => {
+  it('only a 400 is sure nothing was written; a lost answer reloads too (R15, 2026-10-16)', () => {
     expect(needsReload(apiError(400))).toBe(false)
-    expect(needsReload(new ApiError('down', API_NETWORK))).toBe(false)
+    expect(needsReload(new ApiError('down', API_NETWORK))).toBe(true)
     expect(needsReload(apiError(404))).toBe(true)
     expect(needsReload(new ValidationError('nope'))).toBe(true)
     expect(needsReload(new AppError('boom', 'UNKNOWN'))).toBe(true)
@@ -193,7 +193,7 @@ describe('writeErrorMessage for the exclusion (R15)', () => {
 
   it('shares the other three sentences with the category write', () => {
     expect(writeErrorMessage(new ApiError('down', API_NETWORK), 'exclusion')).toBe(
-      "Couldn't reach the server. Nothing changed.",
+      "Couldn't reach the server. Reloading, to be sure of what was written.",
     )
     expect(
       writeErrorMessage(new ValidationError('response.id is not an integer'), 'exclusion'),

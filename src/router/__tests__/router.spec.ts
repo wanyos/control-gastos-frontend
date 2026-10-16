@@ -82,8 +82,11 @@ describe('router', () => {
     expect(HOME_ROUTE_NAME).toBe('net-worth')
   })
 
-  it('no longer resolves /import: importing lives in the topbar (feature 13)', () => {
-    expect(newRouter().resolve('/import').matched).toEqual([])
+  it('no longer resolves /import: importing lives in the topbar (feature 13)', async () => {
+    const router = newRouter()
+    await router.push('/import')
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe(HOME_ROUTE_NAME)
     expect(routes.some((route) => route.name === 'import')).toBe(false)
   })
 
@@ -99,8 +102,11 @@ describe('router', () => {
     expect(movements).not.toBe(PlaceholderView)
   })
 
-  it('does not resolve an unknown path to any component', () => {
-    expect(newRouter().resolve('/nope').matched).toEqual([])
+  it('sends an unknown path to the net worth home instead of a blank screen (2026-10-16)', async () => {
+    const router = newRouter()
+    await router.push('/nope/at/all')
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe(HOME_ROUTE_NAME)
   })
 
   it('exposes one navigation entry per navigable route, in sidebar order', () => {

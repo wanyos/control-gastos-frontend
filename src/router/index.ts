@@ -88,6 +88,8 @@ export const routes: RouteRecordRaw[] = [
     component: PlaceholderView,
     meta: { label: 'Investments', icon: ChartLine },
   },
+  // A mistyped address used to leave the main area blank (2026-10-16): it goes home.
+  { path: '/:pathMatch(.*)*', redirect: { name: HOME_ROUTE_NAME } },
 ]
 
 export interface NavEntry {

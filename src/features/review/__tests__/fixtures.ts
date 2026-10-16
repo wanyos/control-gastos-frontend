@@ -354,6 +354,8 @@ export function mockApi(answers: {
   patch?: Answer | ((call: ApiCall) => Promise<Response>)
   /** Anything under /api/category-rules (feature 17). */
   rules?: Answer | ((call: ApiCall) => Promise<Response>)
+  /** `POST /api/movements/confirm-all` (2026-10-16). */
+  confirmAll?: Answer | ((call: ApiCall) => Promise<Response>)
 }) {
   const calls: ApiCall[] = []
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
@@ -367,6 +369,9 @@ export function mockApi(answers: {
       contentType: readContentType(init),
     }
     calls.push(call)
+    if (method === 'POST' && url.pathname === CONFIRM_ALL && answers.confirmAll) {
+      return answers.confirmAll(call)
+    }
     if (method === 'PATCH' && url.pathname.startsWith('/api/movements') && answers.patch) {
       return answers.patch(call)
     }
@@ -396,6 +401,9 @@ export function mockApi(answers: {
 }
 
 export const MOVEMENTS = '/api/movements'
+export const CONFIRM_ALL = '/api/movements/confirm-all'
+/** What `POST /api/movements/confirm-all` answers. */
+export const CONFIRM_ALL_RESULT = { categorized: { expense: 980, income: 71 }, confirmed: 1667 }
 export const CATEGORIES = '/api/categories'
 export const RULES = '/api/category-rules'
 export const APPLY_RULES = '/api/category-rules/apply'

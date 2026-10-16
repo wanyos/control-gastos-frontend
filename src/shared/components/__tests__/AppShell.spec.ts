@@ -84,11 +84,12 @@ describe('AppShell', () => {
     expect(wrapper.get('[data-test="placeholder"]').text()).toContain('Investments')
   })
 
-  it('renders no title and no active entry on a route outside the navigation', async () => {
-    const { wrapper } = await mountShell('/nope')
+  it('lands on the net worth home from a route outside the navigation (2026-10-16)', async () => {
+    const { wrapper, router } = await mountShell('/nope')
 
-    expect(wrapper.get('[data-test="topbar-title"]').text()).toBe('')
-    expect(wrapper.findAll('nav a[aria-current="page"]')).toHaveLength(0)
+    expect(router.currentRoute.value.name).toBe('net-worth')
+    expect(wrapper.get('[data-test="topbar-title"]').text()).toBe('Net Worth')
+    expect(wrapper.findAll('nav a[aria-current="page"]')).toHaveLength(1)
   })
 
   it.each(['/net-worth', '/overview', '/nope'])(

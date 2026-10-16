@@ -18,6 +18,14 @@ export { needsReload }
 // imported it from here had to change.
 export { MAX_IDS }
 
+/**
+ * The names of the two generic categories the backend seeds (`Otros gastos` since
+ * 2026-10-16, `Otros ingresos` since its feature 37): what the dialog that closes
+ * everything pending proposes when they exist.
+ */
+export const GENERIC_EXPENSE_NAME = 'Otros gastos'
+export const GENERIC_INCOME_NAME = 'Otros ingresos'
+
 /** Finds a category anywhere in the tree: the children are one level deep, but this walks it whole. */
 export function findCategory(categories: Category[] | null, id: number | null): Category | null {
   if (id === null) return null
@@ -109,7 +117,7 @@ export function actionErrorMessage(error: AppError): string {
     return 'Nothing changed: a movement or the category no longer exists. Reloading the list.'
   }
   if (error.code === API_NETWORK) {
-    return "Couldn't reach the server. Nothing changed."
+    return "Couldn't reach the server. Reloading, to be sure of what was written."
   }
   if (error instanceof ValidationError) {
     return "The server answered, but the reply couldn't be read. Reloading the list to show what really happened."

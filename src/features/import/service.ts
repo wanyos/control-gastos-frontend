@@ -280,7 +280,9 @@ export async function getPendingFiles(client: HttpClient = http): Promise<Pendin
  * 400 to an empty body declared as JSON. The call is synchronous and has no timeout.
  */
 export async function runImport(client: HttpClient = http): Promise<ImportReport> {
-  return parseImportReport(await client<unknown>(IMPORT_PATH, { method: 'POST' }))
+  // No timeout: the backend downloads and parses every pending file of Drive, and
+  // only it knows how long that takes (see REQUEST_TIMEOUT_MS in services/http).
+  return parseImportReport(await client<unknown>(IMPORT_PATH, { method: 'POST', signal: null }))
 }
 
 /** True when the backend said it could not talk to Google Drive. */

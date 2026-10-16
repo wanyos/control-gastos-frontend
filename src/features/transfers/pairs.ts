@@ -95,7 +95,8 @@ export function unlinkConsequence(pair: TransferPair): string {
 /** The English sentence of a failed write; `gesture` only tells a DELETE from a POST. */
 export function transferWriteError(error: AppError, gesture: Gesture): string {
   if (error instanceof ApiError) {
-    if (error.code === API_NETWORK) return "Couldn't reach the server. Nothing changed."
+    if (error.code === API_NETWORK)
+      return "Couldn't reach the server. Reloading, to be sure of what was written."
     const deleting = gesture === 'unlink' || gesture === 'undo-link'
     if (error.status === 400) return 'Nothing changed. The server rejected that pair.'
     if (error.status === 404) {

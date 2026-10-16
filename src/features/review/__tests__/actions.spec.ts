@@ -126,7 +126,7 @@ describe('actionErrorMessage (R12)', () => {
 
   it('says nothing changed when the server was unreachable', () => {
     expect(actionErrorMessage(new ApiError('down', API_NETWORK))).toBe(
-      "Couldn't reach the server. Nothing changed.",
+      "Couldn't reach the server. Reloading, to be sure of what was written.",
     )
   })
 
@@ -150,9 +150,9 @@ describe('actionErrorMessage (R12)', () => {
     expect(actionErrorMessage(backend)).not.toContain('movimiento')
   })
 
-  it('only reloads when the change may have gone through', () => {
+  it('reloads unless a 400 proved nothing was written; a lost answer reloads too', () => {
     expect(needsReload(apiError(400))).toBe(false)
-    expect(needsReload(new ApiError('down', API_NETWORK))).toBe(false)
+    expect(needsReload(new ApiError('down', API_NETWORK))).toBe(true)
     expect(needsReload(apiError(404))).toBe(true)
     expect(needsReload(new ValidationError('boom'))).toBe(true)
     expect(needsReload(new AppError('boom', 'UNKNOWN'))).toBe(true)

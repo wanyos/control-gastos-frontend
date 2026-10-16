@@ -657,15 +657,17 @@ describe('useStatementStore', () => {
       expect(store.lastAction).toBeNull()
     })
 
-    it('a network failure says nothing changed and does NOT reload (R14, R15)', async () => {
+    it('a network failure reloads the month: the write may have been heard (2026-10-16)', async () => {
       const api = mockApi({ movements: json(MONTH_PAGE), patch: networkDown })
       const store = useStatementStore()
       await store.show('2026-09')
 
       await store.categorize(10, 2)
 
-      expect(store.actionMessage).toBe("Couldn't reach the server. Nothing changed.")
-      expect(api.queries()).toHaveLength(1)
+      expect(store.actionMessage).toBe(
+        "Couldn't reach the server. Reloading, to be sure of what was written.",
+      )
+      expect(api.queries()).toHaveLength(2)
     })
 
     it('a 404 reloads the month before believing what is on screen (R15)', async () => {
@@ -1027,7 +1029,7 @@ describe('useStatementStore', () => {
       expect(store.lastExclusion).toBeNull()
     })
 
-    it('a network failure says nothing changed and reloads nothing', async () => {
+    it('a network failure reloads the month: the write may have been heard (2026-10-16)', async () => {
       const api = mockApi({ movements: json(MONTH_PAGE), bulkPatch: networkDown })
       const store = useStatementStore()
       await store.show('2026-09')
@@ -1035,8 +1037,10 @@ describe('useStatementStore', () => {
 
       await expect(store.setExcluded(true)).resolves.toBeUndefined()
 
-      expect(api.queries()).toHaveLength(1)
-      expect(store.actionMessage).toBe("Couldn't reach the server. Nothing changed.")
+      expect(api.queries()).toHaveLength(2)
+      expect(store.actionMessage).toBe(
+        "Couldn't reach the server. Reloading, to be sure of what was written.",
+      )
     })
 
     it('never computes a figure itself: they are the ones of the last answer (C3)', async () => {

@@ -1,8 +1,11 @@
 <template>
+  <!-- Below the `md` breakpoint the sidebar keeps only the icons (2026-10-16): on a
+       phone the full width ate most of the screen. The labels stay for assistive
+       technology through the anchors' `aria-label`. -->
   <aside
-    class="sticky top-0 flex h-screen w-[var(--sidebar-w)] shrink-0 flex-col bg-surface-inverse px-4 py-5 text-ink-on-dark"
+    class="sticky top-0 flex h-screen w-14 shrink-0 flex-col bg-surface-inverse px-2 py-5 text-ink-on-dark md:w-[var(--sidebar-w)] md:px-4"
   >
-    <div class="flex items-center gap-3 px-2 pt-1 pb-6">
+    <div class="hidden items-center gap-3 px-2 pt-1 pb-6 md:flex">
       <span
         class="font-display text-lg font-extrabold tracking-tight text-ink-on-dark"
         data-test="wordmark"
@@ -22,6 +25,8 @@
         <a
           :href="href"
           :aria-current="isExactActive ? 'page' : undefined"
+          :aria-label="entry.label"
+          :title="entry.label"
           class="block rounded-md transition-colors"
           :class="isExactActive ? 'bg-accent/15' : 'hover:bg-ink-on-dark/5'"
           @click="navigate"
@@ -30,12 +35,15 @@
                system's base.css paints every `a` with --ink-link from outside
                Tailwind's layers, so a text utility on the anchor would lose. -->
           <span
-            class="flex items-center gap-3 px-3 py-2 text-sm"
+            class="flex items-center justify-center gap-3 px-2 py-2 text-sm md:justify-start md:px-3"
             :class="isExactActive ? 'font-semibold text-accent' : 'font-medium text-ink-on-dark/70'"
           >
             <component :is="entry.icon" :size="17" aria-hidden="true" />
-            {{ entry.label }}
-            <ReviewCountBadge v-if="entry.name === REVIEW_ROUTE_NAME" />
+            <span class="hidden md:inline">{{ entry.label }}</span>
+            <ReviewCountBadge
+              v-if="entry.name === REVIEW_ROUTE_NAME"
+              class="hidden md:inline-flex"
+            />
           </span>
         </a>
       </RouterLink>

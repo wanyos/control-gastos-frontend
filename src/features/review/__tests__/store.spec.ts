@@ -13,6 +13,8 @@ import type { ReviewFilters } from '../types'
 import {
   CATEGORIES,
   CATEGORY_TREE,
+  CONFIRM_ALL,
+  CONFIRM_ALL_RESULT,
   COUNT_PAGE,
   DEPOSIT_MATURITY,
   DEPOSIT_PAGE,
@@ -593,14 +595,16 @@ describe('useReviewStore', () => {
       expect(store.actionMessage).toContain("the reply couldn't be read")
     })
 
-    it('says nothing changed when the server is unreachable, without reloading', async () => {
+    it('reloads when the server is unreachable: the write may have been heard (2026-10-16)', async () => {
       const { api, store, reads } = await selectedAll(networkDown)
 
       await store.confirmSelected()
 
-      expect(api.movementQueries().length - reads).toBe(0)
-      expect(store.actionMessage).toBe("Couldn't reach the server. Nothing changed.")
-      expect(store.selectedIds).toEqual([10, 11, 12])
+      // The page again and the number without a category: a lost answer proves nothing.
+      expect(api.movementQueries().length - reads).toBe(2)
+      expect(store.actionMessage).toBe(
+        "Couldn't reach the server. Reloading, to be sure of what was written.",
+      )
     })
   })
 
@@ -916,5 +920,58 @@ describe('useReviewStore', () => {
     expect(api.patches()).toHaveLength(2)
     expect(back?.status).toBe('pending_review')
     expect(back?.deposit).toEqual(before)
+  })
+})
+
+describe('closing everything still pending (2026-10-16)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('confirmAll() sends the two categories, keeps the answer and asks the queue again', async () => {
+    const queue = fakeQueue()
+    const api = mockApi({
+      movements: queue.movements,
+      confirmAll: json(CONFIRM_ALL_RESULT),
+    })
+    const store = useReviewStore()
+    await store.load()
+    store.selectPage(true)
+    const reads = api.movementQueries().length
+
+    const done = await store.confirmAll({ expenseCategoryId: 1, incomeCategoryId: 4 })
+
+    expect(done).toBe(true)
+    const posts = api.calls.filter((call) => call.method === 'POST')
+    expect(posts).toHaveLength(1)
+    expect(posts[0]?.path).toBe(CONFIRM_ALL)
+    expect(posts[0]?.body).toEqual({ expenseCategoryId: 1, incomeCategoryId: 4 })
+    expect(posts[0]?.contentType).toBe('application/json')
+    expect(store.closedAll).toEqual(CONFIRM_ALL_RESULT)
+    expect(store.selectedIds).toEqual([])
+    // The page, the number without a category and the sidebar count, from the backend.
+    expect(api.movementQueries().length).toBe(reads + 3)
+    expect(store.actionMessage).toBeNull()
+
+    store.dismissClosedAll()
+    expect(store.closedAll).toBeNull()
+  })
+
+  it('paints the failure and keeps nothing when the backend refuses it', async () => {
+    const queue = fakeQueue()
+    mockApi({ movements: queue.movements, confirmAll: json(NOT_FOUND_BODY, 404) })
+    const store = useReviewStore()
+    await store.load()
+
+    const done = await store.confirmAll({ expenseCategoryId: 99, incomeCategoryId: 4 })
+
+    expect(done).toBe(false)
+    expect(store.closedAll).toBeNull()
+    expect(store.actionMessage).not.toBeNull()
+    expect(store.isActing).toBe(false)
   })
 })

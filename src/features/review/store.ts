@@ -6,7 +6,8 @@ import type { HttpClient } from '@/services/http'
 import { withKnownDeposit } from '@/shared/deposits'
 import { API_NETWORK, ApiError, ValidationError, toAppError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
-import type { MovementDeposit } from '@/shared/movements'
+import { confirmAllMovements } from '@/shared/movements'
+import type { ConfirmAllInput, ConfirmAllResult, MovementDeposit } from '@/shared/movements'
 
 import {
   UNDO_PARTIAL,
@@ -440,6 +441,41 @@ export const useReviewStore = defineStore('review', () => {
     })
   }
 
+  // ─── Closing everything still open (2026-10-16) ───────────────────────────
+
+  /** What the last `confirmAll` did; null until one has run in this session. */
+  const closedAll = ref<ConfirmAllResult | null>(null)
+
+  /**
+   * One request that gives a category to every movement without one and confirms
+   * every pending one (`POST /api/movements/confirm-all`). It cannot be undone, so
+   * the dialog that calls it says so. Afterwards the queue, both counts and the
+   * number without a category are asked for again: the backend is the only one
+   * who knows what is left. A failure is painted like any other action's.
+   */
+  async function confirmAll(input: ConfirmAllInput, client?: HttpClient): Promise<boolean> {
+    if (isActing.value) return false
+    isActing.value = true
+    clearSelection()
+    try {
+      closedAll.value = await confirmAllMovements(input, client)
+      return true
+    } catch (rejection) {
+      const failure = toAppError(rejection)
+      actionError.value = failure
+      actionMessage.value = actionErrorMessage(failure)
+      return false
+    } finally {
+      isActing.value = false
+      if (result.value) await refreshAfterAction(client)
+      await refreshPendingCount(client)
+    }
+  }
+
+  function dismissClosedAll(): void {
+    closedAll.value = null
+  }
+
   // ─── After a rules pass (feature 17, R14) ─────────────────────────────────
 
   /**
@@ -496,5 +532,9 @@ export const useReviewStore = defineStore('review', () => {
     refreshPendingCount,
     refreshUncategorizedCount,
     refreshAfterRules,
+    refreshAfterAction,
+    closedAll,
+    confirmAll,
+    dismissClosedAll,
   }
 })

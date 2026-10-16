@@ -213,15 +213,16 @@ describe('transfers store', () => {
       expect(api.reads(AMBIGUOUS)).toBe(2)
     })
 
-    it('a network failure says nothing changed and does not reload', async () => {
+    it('a network failure reloads both lists: the write may have been heard (2026-10-16)', async () => {
       const { api, store } = await loaded({ unlink: networkDown })
       store.requestUnlink(fineOf(store))
 
       await store.confirmUnlink()
 
-      expect(store.notice.error).toBe("Couldn't reach the server. Nothing changed.")
-      expect(api.reads(TRANSFERS)).toBe(1)
-      expect(store.pairs).toHaveLength(4)
+      expect(store.notice.error).toBe(
+        "Couldn't reach the server. Reloading, to be sure of what was written.",
+      )
+      expect(api.reads(TRANSFERS)).toBe(2)
     })
 
     it('a failed Undo says so in English and reloads when it could have written', async () => {

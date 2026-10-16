@@ -7,7 +7,27 @@
         :pagination="store.result.pagination"
         :totals="store.result.totals"
       />
-      <UncategorizedCount :count="store.uncategorizedCount" />
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <UncategorizedCount :count="store.uncategorizedCount" />
+        <!-- Everything still open, closed in one request (2026-10-16). Only while
+             there is something to close: a caught-up queue has nothing to offer. -->
+        <BaseButton
+          v-if="(store.pendingCount ?? 0) > 0"
+          variant="secondary"
+          size="sm"
+          :disabled="store.isActing || store.categories === null"
+          data-test="confirm-all-open"
+          @click="closingAll = true"
+        >
+          Close everything pending…
+        </BaseButton>
+      </div>
+      <p v-if="store.closedAll" class="text-sm text-ink-body" data-test="confirm-all-result">
+        {{ closedAllSentence }}
+        <button type="button" class="ml-2 underline" @click="store.dismissClosedAll()">
+          Dismiss
+        </button>
+      </p>
     </header>
 
     <!-- What the last rules pass did (feature 30). In the normal flow, never inside the
@@ -131,6 +151,14 @@
       @close="rules.closeApply()"
     />
 
+    <ConfirmAllDialog
+      :open="closingAll"
+      :categories="store.categories"
+      :busy="store.isActing"
+      @confirm="onConfirmAll"
+      @cancel="closingAll = false"
+    />
+
     <BulkConfirmDialog
       v-if="pending"
       :open="true"
@@ -161,9 +189,12 @@ import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
 import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 
-import { BULK_CONFIRM_THRESHOLD, eligibleForCategory, findCategory } from '../actions'
+import type { ConfirmAllInput } from '@/shared/movements'
+
+import { BULK_CONFIRM_THRESHOLD, countOf, eligibleForCategory, findCategory } from '../actions'
 import ActionNotice from '../components/ActionNotice.vue'
 import BulkConfirmDialog from '../components/BulkConfirmDialog.vue'
+import ConfirmAllDialog from '../components/ConfirmAllDialog.vue'
 import MovementList from '../components/MovementList.vue'
 import type { EmptyState } from '../components/MovementList.vue'
 import ReviewActionBar from '../components/ReviewActionBar.vue'
@@ -279,6 +310,23 @@ function runPending(): void {
 
 const onConfirmSelected = (): void => askOrRun('confirm', store.selectedIds.length)
 const onApplyCategory = (): void => askOrRun('category', eligibleCount.value)
+
+// ─── Closing everything still open (2026-10-16) ───────────────────────────
+
+const closingAll = ref(false)
+
+async function onConfirmAll(input: ConfirmAllInput): Promise<void> {
+  touchedRow.value = null
+  rules.dismissCreated()
+  if (await store.confirmAll(input)) closingAll.value = false
+}
+
+const closedAllSentence = computed(() => {
+  const done = store.closedAll
+  if (!done) return ''
+  const categorized = done.categorized.expense + done.categorized.income
+  return `Closed: ${countOf(done.confirmed)} confirmed, ${categorized} given a category.`
+})
 
 // ─── Rules (feature 17) ────────────────────────────────────────────────────
 // A rule is born from a row, but creating it writes nothing on that movement

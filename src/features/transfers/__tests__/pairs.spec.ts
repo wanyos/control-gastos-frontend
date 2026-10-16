@@ -189,7 +189,9 @@ describe('transferWriteError (R13)', () => {
   it('network: the server was not reached', () => {
     const down = new ApiError('Network request failed: /api/transfers', API_NETWORK)
 
-    expect(transferWriteError(down, 'unlink')).toBe("Couldn't reach the server. Nothing changed.")
+    expect(transferWriteError(down, 'unlink')).toBe(
+      "Couldn't reach the server. Reloading, to be sure of what was written.",
+    )
   })
 
   it('an unreadable answer and a 500 promise a reload, not that nothing happened', () => {

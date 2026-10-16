@@ -78,6 +78,33 @@ describe('createHttp', () => {
     })
   })
 
+  it('gives every request a timeout signal unless the caller names its own (2026-10-16)', async () => {
+    const spy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(() => Promise.resolve(jsonResponse({})))
+    const http = createHttp({ apiUrl: BASE_URL })
+
+    await http('/expenses')
+    await http('/import', { method: 'POST', signal: null })
+
+    const first = spy.mock.calls[0]?.[1] as RequestInit
+    const second = spy.mock.calls[1]?.[1] as RequestInit
+    expect(first.signal).toBeInstanceOf(AbortSignal)
+    expect(second.signal).toBeNull()
+  })
+
+  it('reports a timed-out request as a network ApiError that says so', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(
+      new DOMException('The operation was aborted due to timeout', 'TimeoutError'),
+    )
+    const http = createHttp({ apiUrl: BASE_URL })
+
+    await expect(http('/expenses')).rejects.toMatchObject({
+      code: API_NETWORK,
+      message: 'Network request timed out: /expenses',
+    })
+  })
+
   it('builds URLs exclusively from the injected config apiUrl (R11)', async () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')

@@ -7,7 +7,7 @@
           <ImportButton />
         </template>
       </AppTopBar>
-      <main class="mx-auto w-full max-w-[var(--container-max)] flex-1 p-7">
+      <main class="mx-auto w-full max-w-[var(--container-max)] flex-1 p-4 md:p-7">
         <RouterView />
       </main>
     </div>

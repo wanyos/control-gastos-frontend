@@ -579,6 +579,18 @@ export const useStatementStore = defineStore('statement', () => {
     }
   }
 
+  /**
+   * Asks for the accounts again even if they were already read (2026-10-16): an
+   * import can create an account, and the selector has to show it without a reload
+   * of the page. Only when they were asked for before: a screen that never needed
+   * them does not start needing them.
+   */
+  async function reloadAccounts(client?: HttpClient): Promise<void> {
+    if (!accountsRequested) return
+    accountsRequested = false
+    await loadAccounts(client)
+  }
+
   async function loadCategories(client?: HttpClient): Promise<void> {
     if (categoriesRequested) return
     categoriesRequested = true
@@ -645,6 +657,7 @@ export const useStatementStore = defineStore('statement', () => {
     applyFilters,
     loadMore,
     loadAccounts,
+    reloadAccounts,
     loadCategories,
     loadAmbiguous,
     openEditor,

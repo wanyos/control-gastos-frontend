@@ -19,7 +19,7 @@
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
 import { CATEGORY_KINDS } from '@/shared/categories'
-import { API_NETWORK, ApiError } from '@/shared/errors'
+import { ApiError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
 import type { CategoryKind } from '@/shared/categories'
 import { createValidators } from '@/shared/validation'
@@ -410,14 +410,73 @@ export async function updateMovement(
 
 /**
  * True when the failure leaves the screen possibly lying: the list must be reloaded.
- * It describes the contract of the PATCH — all or nothing, and only a 400 and a
- * network failure prove nothing was written — not any one screen (feature 21).
+ * It describes the contract of the PATCH — all or nothing, and only a 400 proves
+ * nothing was written — not any one screen (feature 21).
+ *
+ * A network failure does NOT prove it (2026-10-16, the roadmap's loose end 9): the
+ * request may have reached the backend and been written, with only the answer lost
+ * (a restart, a dropped connection, the timeout of `services/http`). Reloading is
+ * the only way to know, so it reloads too.
  */
 export function needsReload(error: AppError): boolean {
-  if (error instanceof ApiError && (error.status === 400 || error.code === API_NETWORK)) {
+  if (error instanceof ApiError && error.status === 400) {
     return false
   }
   return true
+}
+
+// ─── Closing everything still open (2026-10-16) ───────────────────────────
+
+/** Body of `POST /api/movements/confirm-all`: one category per kind, both required. */
+export interface ConfirmAllInput {
+  expenseCategoryId: number
+  incomeCategoryId: number
+}
+
+/** What `POST /api/movements/confirm-all` answers: how many rows each step changed. */
+export interface ConfirmAllResult {
+  categorized: { expense: number; income: number }
+  confirmed: number
+}
+
+export const CONFIRM_ALL_PATH = `${MOVEMENTS_PATH}/confirm-all`
+
+const confirmAllChecks = createValidators(`POST ${CONFIRM_ALL_PATH}`)
+
+/** Maps `POST /api/movements/confirm-all`, or throws ValidationError. */
+export function parseConfirmAllResult(raw: unknown): ConfirmAllResult {
+  const v = confirmAllChecks
+  const body = v.asObject(raw, 'response')
+  const categorized = v.asObject(body.categorized, 'categorized')
+  return {
+    categorized: {
+      expense: v.asInteger(categorized.expense, 'categorized.expense'),
+      income: v.asInteger(categorized.income, 'categorized.income'),
+    },
+    confirmed: v.asInteger(body.confirmed, 'confirmed'),
+  }
+}
+
+/**
+ * Gives a category to every movement that has none (by its type) and confirms every
+ * pending one, in one request. The backend validates the two categories and writes
+ * all or nothing; there is no undo for this one.
+ */
+export async function confirmAllMovements(
+  input: ConfirmAllInput,
+  client: HttpClient = http,
+): Promise<ConfirmAllResult> {
+  const body: ConfirmAllInput = {
+    expenseCategoryId: input.expenseCategoryId,
+    incomeCategoryId: input.incomeCategoryId,
+  }
+  return parseConfirmAllResult(
+    await client<unknown>(CONFIRM_ALL_PATH, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  )
 }
 
 // ─── The bulk PATCH, shared since feature 22 ──────────────────────────────

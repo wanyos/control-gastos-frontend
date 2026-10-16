@@ -8,6 +8,19 @@ import { ApiError, API_HTTP, API_NETWORK, ValidationError } from '@/shared/error
 
 export type HttpClient = <T>(path: string, init?: RequestInit) => Promise<T>
 
+/**
+ * How long a request may take before it is given up (2026-10-16). A backend that
+ * hangs used to leave every spinner turning for ever. A caller that needs longer —
+ * `POST /api/import` downloads and parses every pending file of Drive — passes its
+ * own `signal` (or `signal: null` for none), which replaces this one.
+ */
+export const REQUEST_TIMEOUT_MS = 30_000
+
+/** The signal a request gets when its `init` names none; null when the runtime cannot make one. */
+function timeoutSignal(): AbortSignal | null {
+  return typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(REQUEST_TIMEOUT_MS) : null
+}
+
 /** Reads the message and the backend's stable `code` from an error response body, if any. */
 async function readErrorBody(response: Response): Promise<{ message: string; apiCode?: string }> {
   let message = response.statusText
@@ -50,9 +63,19 @@ export function createHttp(config: Pick<AppConfig, 'apiUrl'>): HttpClient {
       response = await fetch(url, {
         ...init,
         headers: { Accept: 'application/json', ...init?.headers },
+        signal: init !== undefined && 'signal' in init ? init.signal : timeoutSignal(),
       })
     } catch (cause) {
-      throw new ApiError(`Network request failed: ${url.pathname}`, API_NETWORK, { cause })
+      // A timed-out request is a network failure like any other: the answer is lost,
+      // and whoever wrote may have been heard (see `needsReload` in shared/movements).
+      const timedOut = cause instanceof DOMException && cause.name === 'TimeoutError'
+      throw new ApiError(
+        timedOut
+          ? `Network request timed out: ${url.pathname}`
+          : `Network request failed: ${url.pathname}`,
+        API_NETWORK,
+        { cause },
+      )
     }
 
     if (!response.ok) {

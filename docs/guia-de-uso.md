@@ -755,8 +755,35 @@ cambia ninguno.
 - No se resuelven aquí los traspasos dudosos ni los choques entre reglas.
 - Si actúas con filtros puestos y la relectura posterior falla, el número del
   menú puede quedar un poco desfasado hasta la siguiente carga.
-- No existe: marcar un rango con Mayúsculas, recordar la última categoría
-  aplicada, ni un botón que categorice y confirme a la vez.
+- No existe: marcar un rango con Mayúsculas ni recordar la última categoría
+  aplicada.
+
+### Qué probar — cerrar todo lo pendiente de una vez (escribe y no se deshace)
+
+Añadido el **2026-10-16**, por tu decisión de que categorizar a mano no te
+compensa y de que lo que quieres es que ninguna cifra quede incompleta.
+
+20. Con pendientes en la cola, **debes ver** arriba a la derecha, junto a la
+    frase de cuántos no tienen categoría, el botón `Close everything pending…`.
+    Si la cola está vacía, el botón no sale.
+
+21. Púlsalo. **Debes ver** una pregunta con dos desplegables: la categoría para
+    los gastos sin categoría y la categoría para los ingresos sin categoría.
+    Vienen propuestas `Otros gastos` y `Otros ingresos` si existen (el backend
+    las crea con `pnpm run seed:categories`). Y la frase
+    `This cannot be undone.` Pulsa `Cancel`: no cambia nada.
+
+22. Vuelve a pulsarlo y acepta con `Yes, close everything`. **Debes ver** que la
+    cola se vacía, el número del menú desaparece, la frase pasa a
+    `Every pending movement has a category.` y debajo del título una línea
+    `Closed: N movements confirmed, M given a category.` con `Dismiss`.
+
+**Qué escribe exactamente:** a cada gasto sin categoría le pone la primera; a
+cada ingreso sin categoría, la segunda; y pasa a confirmado todo lo pendiente.
+Las piernas de un traspaso enlazado y los movimientos de un producto de
+inversión se quedan sin categoría. Ningún importe, fecha, concepto ni suma
+cambia. **No se deshace**: la categoría de cualquier movimiento se sigue
+pudiendo cambiar desde `Movements`, pero de confirmado no vuelve a pendiente.
 
 > **Mis notas de esta prueba**
 > - Falla:
