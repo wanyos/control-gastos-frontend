@@ -20,9 +20,11 @@ describe('BalanceMismatchList (R4, R5)', () => {
     const wrapper = mountList(FULL_REPORT)
 
     const row = wrapper.get('[data-test="balance-mismatch"]')
+    // The account is named as the bank and its last four digits, not by the alias (cabo 33).
     expect(row.get('[data-test="mismatch-where"]').text()).toBe(
-      `bankinter 0236 · ${formatDate('2026-07-21')}`,
+      `Bankinter ···0236 · ${formatDate('2026-07-21')}`,
     )
+    expect(wrapper.text()).not.toContain('bankinter 0236')
     expect(row.get('[data-test="mismatch-check"]').text()).toBe('Line-by-line check')
     expect(row.get('[data-test="mismatch-explanation"]').text()).toBe(
       "A line's amount doesn't match how the running balance changed.",

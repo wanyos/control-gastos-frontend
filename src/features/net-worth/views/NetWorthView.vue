@@ -51,7 +51,7 @@
             :key="bank"
             :label="bankLabel(bank)"
             :amount="bankAmounts.get(bank) ?? null"
-            :as-of="netWorth.asOf"
+            :last-data-date="netWorth.lastDataDate"
             :accounts="netWorth.accounts.accounts.filter((account) => account.bank === bank)"
             :products="netWorth.investments.products.filter((product) => product.bank === bank)"
             :tile-class="bankFills[bank] ?? BANK_FILLS[0]"

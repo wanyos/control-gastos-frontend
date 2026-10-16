@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-// Transfer matching or categorization that did not finish. Always unfolded; no
+// Transfer matching, categorization or closing that did not finish. Always unfolded; no
 // role of its own: the headline is already announced by the dialog's live region.
 import { TriangleAlert } from '@lucide/vue'
 

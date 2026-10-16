@@ -89,7 +89,10 @@ export interface NetWorthInvestments {
 }
 
 export interface NetWorth {
+  /** The day everything is computed for: today. */
   asOf: DateOnly
+  /** The most recent date written in the whole base (movements, valuations, snapshots); null when empty. */
+  lastDataDate: DateOnly | null
   total: DecimalString
   accounts: NetWorthAccounts
   investments: NetWorthInvestments

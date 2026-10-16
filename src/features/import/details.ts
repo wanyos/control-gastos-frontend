@@ -38,7 +38,7 @@ export function moreLabel(hidden: number, singular: string, plural: string): str
 }
 
 export interface FinalPassFailure {
-  id: 'transfers' | 'categorization'
+  id: 'transfers' | 'categorization' | 'closing'
   title: string
   /** The backend's original message (Spanish); null when it came empty. */
   details: string | null
@@ -63,7 +63,31 @@ export function finalPassFailures(report: ImportReport): FinalPassFailure[] {
       details: categorization.error.message || null,
     })
   }
+  if (report.closingError !== null) {
+    failures.push({
+      id: 'closing',
+      title: "Closing the pending movements didn't finish",
+      details: report.closingError.message || null,
+    })
+  }
   return failures
+}
+
+/**
+ * What the closing pass did, one sentence; null when nothing has to be said: it ran and
+ * wrote nothing, or it failed (the failure is already an alert).
+ */
+export function closingLine(report: ImportReport): string | null {
+  const { closing } = report
+  if (closing === null) {
+    return report.closingError === null
+      ? 'Pending movements were not closed: the two generic categories are missing.'
+      : null
+  }
+  const categorized = closing.categorized.expense + closing.categorized.income
+  if (closing.confirmed === 0 && categorized === 0) return null
+  const confirmed = `${closing.confirmed} ${closing.confirmed === 1 ? 'movement' : 'movements'}`
+  return `Closed: ${confirmed} confirmed, ${categorized} given a category.`
 }
 
 /** The visible sections, in their fixed order. Counts come from the report totals. */

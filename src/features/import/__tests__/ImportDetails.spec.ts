@@ -10,6 +10,7 @@ import { parseImportReport } from '../service'
 import type { ImportReport } from '../types'
 import {
   CLEAN_REPORT,
+  CLOSING_ERROR,
   DETAILS_REPORT,
   EMPTY_REPORT,
   FULL_REPORT,
@@ -92,6 +93,43 @@ describe('ImportDetails (R1, R2)', () => {
 
     expect(wrapper.find('[data-test="import-details"]').exists()).toBe(false)
     expect(wrapper.text()).toBe('')
+  })
+})
+
+describe('ImportDetails closing line (closing pass, 2026-10-16)', () => {
+  it('ends with what the closing pass did, after the sections', () => {
+    const wrapper = mountDetails(FULL_REPORT)
+
+    const line = wrapper.get('[data-test="closing-line"]')
+    expect(line.text()).toBe('Closed: 41 movements confirmed, 5 given a category.')
+    expect(wrapper.get('[data-test="import-details"]').element.lastElementChild).toBe(line.element)
+  })
+
+  it('shows no line when the closing wrote nothing', () => {
+    const wrapper = mountDetails(CLEAN_REPORT)
+
+    expect(wrapper.find('[data-test="closing-line"]').exists()).toBe(false)
+  })
+
+  it('says the generic categories are missing, even on a report without files', () => {
+    const wrapper = mountDetails({ ...EMPTY_REPORT, closing: null })
+
+    expect(wrapper.get('[data-test="closing-line"]').text()).toBe(
+      'Pending movements were not closed: the two generic categories are missing.',
+    )
+  })
+
+  it('shows a failed closing as a final pass alert, without the line', () => {
+    const wrapper = mountDetails({ ...CLEAN_REPORT, closing: null, closingError: CLOSING_ERROR })
+
+    expect(wrapper.find('[data-test="closing-line"]').exists()).toBe(false)
+    const alert = wrapper.get('[data-test="final-pass-failure"]')
+    expect(alert.attributes('data-failure')).toBe('closing')
+    expect(alert.get('[data-test="final-pass-title"]').text()).toBe(
+      "Closing the pending movements didn't finish",
+    )
+    expect(alert.text()).toContain('Your imported movements are safe.')
+    expect(alert.get('[data-test="final-pass-details"]').text()).toBe(CLOSING_ERROR.message)
   })
 })
 

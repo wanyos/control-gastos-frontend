@@ -17,6 +17,9 @@ export interface AmbiguousMovement {
   id: number
   accountId: number
   accountAlias: string
+  /** Bank slug and IBAN of the account, to name it as the other screens do (accountLabel). */
+  accountBank: string
+  accountIban: string
   type: 'expense' | 'income'
   bookingDate: DateOnly
   description: string

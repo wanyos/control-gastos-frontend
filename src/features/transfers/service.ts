@@ -56,6 +56,8 @@ export function parseAmbiguousGroups(raw: unknown): AmbiguousGroup[] {
         id: v.asInteger(movement.id, `${at}.id`),
         accountId: v.asInteger(movement.accountId, `${at}.accountId`),
         accountAlias: v.asString(movement.accountAlias, `${at}.accountAlias`),
+        accountBank: v.asText(movement.accountBank, `${at}.accountBank`),
+        accountIban: v.asText(movement.accountIban, `${at}.accountIban`),
         type: v.asMember(movement.type, LEG_TYPES, `${at}.type`),
         bookingDate: v.asDateOnly(movement.bookingDate, `${at}.bookingDate`),
         description: v.asString(movement.description, `${at}.description`),

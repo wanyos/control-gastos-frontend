@@ -23,7 +23,9 @@
           >
             <span>{{ formatDate(movement.bookingDate) }}</span>
             <span>·</span>
-            <span>{{ movement.accountAlias }}</span>
+            <span>{{
+              accountLabel({ bank: movement.accountBank, iban: movement.accountIban })
+            }}</span>
             <BaseBadge size="sm" tone="neutral" data-test="ambiguous-direction">
               {{ directionLabel(movement.type) }}
             </BaseBadge>
@@ -44,6 +46,7 @@
 // Movements that could be transfers but could not be paired: read only, nothing to resolve here.
 import { computed } from 'vue'
 
+import { accountLabel } from '@/shared/accounts'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { formatDate, formatMoney } from '@/shared/money'
 

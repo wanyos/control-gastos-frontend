@@ -4,6 +4,7 @@ import { formatDate } from '@/shared/money'
 
 import {
   checkLabel,
+  closingLine,
   detailSections,
   directionLabel,
   finalPassFailures,
@@ -20,6 +21,7 @@ import {
   AMBIGUOUS_12,
   CATEGORIZATION_ERROR,
   CLEAN_REPORT,
+  CLOSING_ERROR,
   CONFLICTS_11,
   DETAILS_REPORT,
   EMPTY_REPORT,
@@ -39,7 +41,7 @@ describe('detailSections (R1, R2)', () => {
     const sections = detailSections(report(DETAILS_REPORT))
 
     expect(sections).toEqual([
-      { id: 'final-passes', title: 'Final passes', count: 2 },
+      { id: 'final-passes', title: 'Final passes', count: 3 },
       { id: 'mismatches', title: 'Balance mismatches', count: 1 },
       { id: 'unread', title: 'Unread lines', count: 1 },
       { id: 'transfers', title: 'Transfers to match', count: 1 },
@@ -107,6 +109,52 @@ describe('finalPassFailures (R3)', () => {
     }
 
     expect(finalPassFailures(report(raw))[0]?.details).toBeNull()
+  })
+
+  it('returns the closing failure last, with the same shape as the other two', () => {
+    expect(finalPassFailures(report(DETAILS_REPORT)).map((f) => f.id)).toEqual([
+      'transfers',
+      'categorization',
+      'closing',
+    ])
+    const raw = { ...CLEAN_REPORT, closing: null, closingError: CLOSING_ERROR }
+
+    expect(finalPassFailures(report(raw))).toEqual([
+      {
+        id: 'closing',
+        title: "Closing the pending movements didn't finish",
+        details: CLOSING_ERROR.message,
+      },
+    ])
+  })
+})
+
+describe('closingLine (closing pass, 2026-10-16)', () => {
+  it('says what was confirmed and categorized when the closing wrote something', () => {
+    expect(closingLine(report(FULL_REPORT))).toBe(
+      'Closed: 41 movements confirmed, 5 given a category.',
+    )
+    const one = {
+      ...CLEAN_REPORT,
+      closing: { categorized: { expense: 2, income: 1 }, confirmed: 1 },
+    }
+    expect(closingLine(report(one))).toBe('Closed: 1 movement confirmed, 3 given a category.')
+  })
+
+  it('says nothing when the closing ran and nothing was left open', () => {
+    expect(closingLine(report(CLEAN_REPORT))).toBeNull()
+  })
+
+  it('says the generic categories are missing when closing is null without an error', () => {
+    expect(closingLine(report({ ...CLEAN_REPORT, closing: null }))).toBe(
+      'Pending movements were not closed: the two generic categories are missing.',
+    )
+  })
+
+  it('leaves a failed closing to the alert', () => {
+    expect(
+      closingLine(report({ ...CLEAN_REPORT, closing: null, closingError: CLOSING_ERROR })),
+    ).toBeNull()
   })
 })
 

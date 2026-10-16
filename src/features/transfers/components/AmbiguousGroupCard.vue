@@ -39,7 +39,9 @@
             <span class="block text-xs text-ink-muted">
               <span data-test="doubtful-date">{{ formatDate(movement.bookingDate) }}</span>
               <span aria-hidden="true"> · </span>
-              <span data-test="doubtful-account">{{ movement.accountAlias }}</span>
+              <span data-test="doubtful-account">
+                {{ accountLabel({ bank: movement.accountBank, iban: movement.accountIban }) }}
+              </span>
             </span>
             <span lang="es" class="block break-words" data-test="doubtful-description">
               {{ movement.description }}
@@ -73,6 +75,7 @@
 // pick two of the same type; the account is the one check left to do here (R11).
 import { computed } from 'vue'
 
+import { accountLabel } from '@/shared/accounts'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import { formatDate, formatMoney } from '@/shared/money'
 

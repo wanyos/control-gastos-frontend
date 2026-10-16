@@ -18,6 +18,7 @@ import type {
   FileError,
   FileReport,
   ImportAccount,
+  ImportClosing,
   ImportReport,
   PendingBank,
   PendingFile,
@@ -178,6 +179,8 @@ function parseFile(v: Validators, value: unknown, path: string): FileReport {
         return {
           accountId: v.asInteger(mismatch.accountId, `${itemPath}.accountId`),
           accountAlias: v.asString(mismatch.accountAlias, `${itemPath}.accountAlias`),
+          accountBank: v.asText(mismatch.accountBank, `${itemPath}.accountBank`),
+          accountIban: v.asText(mismatch.accountIban, `${itemPath}.accountIban`),
           date: v.asDateOnly(mismatch.date, `${itemPath}.date`),
           computed: v.asDecimal(mismatch.computed, `${itemPath}.computed`),
           fromFile: v.asDecimal(mismatch.fromFile, `${itemPath}.fromFile`),
@@ -208,6 +211,8 @@ function parseTransfers(v: Validators, value: unknown, path: string): TransferDe
               id: v.asInteger(movement.id, `${mPath}.id`),
               accountId: v.asInteger(movement.accountId, `${mPath}.accountId`),
               accountAlias: v.asString(movement.accountAlias, `${mPath}.accountAlias`),
+              accountBank: v.asText(movement.accountBank, `${mPath}.accountBank`),
+              accountIban: v.asText(movement.accountIban, `${mPath}.accountIban`),
               type: v.asText(movement.type, `${mPath}.type`),
               bookingDate: v.asDateOnly(movement.bookingDate, `${mPath}.bookingDate`),
               description: v.asString(movement.description, `${mPath}.description`),
@@ -250,6 +255,22 @@ function parseCategorization(v: Validators, value: unknown, path: string): Categ
   }
 }
 
+/** `closing` is always present: an object with the three counters, or null. */
+function parseClosing(v: Validators, value: unknown, path: string): ImportClosing | null {
+  if (value === null) {
+    return null
+  }
+  const closing = v.asObject(value, path)
+  const categorized = v.asObject(closing.categorized, `${path}.categorized`)
+  return {
+    categorized: {
+      expense: v.asInteger(categorized.expense, `${path}.categorized.expense`),
+      income: v.asInteger(categorized.income, `${path}.categorized.income`),
+    },
+    confirmed: v.asInteger(closing.confirmed, `${path}.confirmed`),
+  }
+}
+
 /** Maps the whole `POST /api/import` report, or throws ValidationError. */
 export function parseImportReport(raw: unknown): ImportReport {
   const v = reportChecks
@@ -267,6 +288,8 @@ export function parseImportReport(raw: unknown): ImportReport {
     files: v.asArray(body.files, 'files').map((item, i) => parseFile(v, item, `files[${i}]`)),
     transfers: parseTransfers(v, body.transfers, 'transfers'),
     categorization: parseCategorization(v, body.categorization, 'categorization'),
+    closing: parseClosing(v, body.closing, 'closing'),
+    closingError: parseOptionalError(v, body.closingError, 'closingError'),
   }
 }
 

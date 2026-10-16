@@ -27,6 +27,7 @@ import BaseCard from '@/shared/components/BaseCard.vue'
 import { formatDate, formatMoney } from '@/shared/money'
 
 import { holdingTypeLabel } from '../issues'
+import { dataUpTo } from '../sentence'
 import type {
   DateOnly,
   DecimalString,
@@ -40,7 +41,8 @@ const props = defineProps<{
   label: string
   /** Same figure as the bank row of the breakdown; `null` if it has no row. */
   amount: DecimalString | null
-  asOf: DateOnly
+  /** How far the data goes; null on an empty base. */
+  lastDataDate: DateOnly | null
   accounts: NetWorthAccount[]
   products: InvestmentProduct[]
   tileClass: string
@@ -79,7 +81,7 @@ const rows = computed<Row[]>(() => {
     name: accountLabel(account),
     typeLabel: holdingTypeLabel(account.type),
     amount: account.balance,
-    detail: `As of ${formatDate(props.asOf)}`,
+    detail: dataUpTo(props.lastDataDate),
   }))
   const productRows = [...props.products]
     .sort(

@@ -26,6 +26,7 @@ function hexToRgb(hex: string): string {
 // it with a small coherent sample so it proves the boot, not a running backend.
 const NET_WORTH_SAMPLE = {
   asOf: '2026-09-12',
+  lastDataDate: '2026-09-12',
   total: '1500.00',
   accounts: {
     total: '1500.00',

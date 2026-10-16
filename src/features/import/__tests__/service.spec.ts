@@ -10,6 +10,8 @@ import {
   runImport,
 } from '../service'
 import {
+  CLOSING_ERROR,
+  CLOSING_EXAMPLE,
   DEPOSIT_IMPORTED,
   DRIVE_ERROR_BODY,
   FULL_REPORT,
@@ -88,6 +90,8 @@ describe('import service', () => {
       expect(report.transfers.error).toBeNull()
       expect(report.categorization.conflicts[0]?.matches[1]?.categoryName).toBe('Compras')
       expect(report.categorization.error).toBeNull()
+      expect(report.closing).toEqual(CLOSING_EXAMPLE)
+      expect(report.closingError).toBeNull()
 
       const [statement] = report.files
       expect(statement).toMatchObject({
@@ -98,6 +102,76 @@ describe('import service', () => {
         balanceMismatches: [{ difference: '-20.00', check: 'per-line' }],
         error: null,
       })
+    })
+
+    // Cabo 33: the bank slug and the IBAN travel with every doubtful movement and mismatch.
+    it('reads the bank and the IBAN of a doubtful movement and of a mismatch', () => {
+      const report = parseImportReport(FULL_REPORT)
+
+      expect(report.transfers.ambiguous[0]?.movements[0]).toMatchObject({
+        accountAlias: 'bankinter 0236',
+        accountBank: 'bankinter',
+        accountIban: 'ES0000000000000000000236',
+      })
+      const [statement] = report.files
+      expect(statement?.kind === 'statement' && statement.balanceMismatches[0]).toMatchObject({
+        accountBank: 'bankinter',
+        accountIban: 'ES0000000000000000000236',
+      })
+    })
+
+    it('rejects a doubtful movement or a mismatch without its bank or IBAN', () => {
+      const [group] = FULL_REPORT.transfers.ambiguous
+      const [movement] = group?.movements ?? []
+      if (!group || !movement) throw new Error('fixture without ambiguous movement')
+      const { accountIban: _iban, ...withoutIban } = movement
+      const { accountBank: _bank, ...mismatchWithoutBank } =
+        STATEMENT_IMPORTED.balanceMismatches[0]!
+
+      expect(() =>
+        parseImportReport({
+          ...FULL_REPORT,
+          transfers: {
+            ...FULL_REPORT.transfers,
+            ambiguous: [{ ...group, movements: [withoutIban] }],
+          },
+        }),
+      ).toThrow('POST /api/import: transfers.ambiguous[0].movements[0].accountIban')
+      expect(() =>
+        parseImportReport({
+          ...FULL_REPORT,
+          files: [{ ...STATEMENT_IMPORTED, balanceMismatches: [mismatchWithoutBank] }],
+        }),
+      ).toThrow('POST /api/import: files[0].balanceMismatches[0].accountBank')
+    })
+
+    // The closing pass (2026-10-16): `closing` is always present, `closingError` only on a failure.
+    it('maps a null closing, and a closingError when the closing failed', () => {
+      const missingCategory = parseImportReport({ ...FULL_REPORT, closing: null })
+      expect(missingCategory.closing).toBeNull()
+      expect(missingCategory.closingError).toBeNull()
+
+      const failed = parseImportReport({
+        ...FULL_REPORT,
+        closing: null,
+        closingError: CLOSING_ERROR,
+      })
+      expect(failed.closing).toBeNull()
+      expect(failed.closingError).toEqual(CLOSING_ERROR)
+    })
+
+    it('rejects a report without closing or with a closing that is not whole', () => {
+      const { closing: _closing, ...withoutClosing } = FULL_REPORT
+
+      expect(() => parseImportReport(withoutClosing)).toThrow(
+        'POST /api/import: closing is not an object',
+      )
+      expect(() =>
+        parseImportReport({
+          ...FULL_REPORT,
+          closing: { categorized: { expense: 1 }, confirmed: 2 },
+        }),
+      ).toThrow('POST /api/import: closing.categorized.income')
     })
 
     it('tells a failed product apart by the product key, even when it is null', () => {

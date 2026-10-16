@@ -69,6 +69,9 @@ export interface UnparsedRow {
 export interface BalanceMismatch {
   accountId: number
   accountAlias: string
+  /** Bank slug and IBAN of the account, to name it as the other screens do (accountLabel). */
+  accountBank: string
+  accountIban: string
   date: DateOnly
   computed: DecimalString
   fromFile: DecimalString
@@ -123,6 +126,9 @@ export interface AmbiguousMovement {
   id: number
   accountId: number
   accountAlias: string
+  /** Bank slug and IBAN of the account, to name it as the other screens do (accountLabel). */
+  accountBank: string
+  accountIban: string
   type: string
   bookingDate: DateOnly
   description: string
@@ -162,6 +168,12 @@ export interface Categorization {
   error: FileError | null
 }
 
+/** What the closing pass wrote after the rules: the same three counters as confirm-all. */
+export interface ImportClosing {
+  categorized: { expense: number; income: number }
+  confirmed: number
+}
+
 export interface ImportReport {
   importedCount: number
   duplicateCount: number
@@ -175,6 +187,10 @@ export interface ImportReport {
   files: FileReport[]
   transfers: TransferDetection
   categorization: Categorization
+  /** Null when a generic category was missing or the closing failed (nothing written). */
+  closing: ImportClosing | null
+  /** Absent in the JSON → null; present only when the closing failed. */
+  closingError: FileError | null
 }
 
 // The dialog's state machine (design.md §5)

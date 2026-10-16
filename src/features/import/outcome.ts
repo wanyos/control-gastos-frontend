@@ -18,7 +18,8 @@ function hasThingsToCheck(report: ImportReport, skipped: number): boolean {
     report.transfers.ambiguousCount > 0 ||
     report.categorization.conflictCount > 0 ||
     report.transfers.error !== null ||
-    report.categorization.error !== null
+    report.categorization.error !== null ||
+    report.closingError !== null
   )
 }
 

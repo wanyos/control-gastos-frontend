@@ -84,6 +84,10 @@ export const PENDING_UNKNOWN_BANK = {
 
 const EMPTY_TRANSFERS = { pairsCreated: 0, ambiguousCount: 0, ambiguous: [] }
 const EMPTY_CATEGORIZATION = { categorized: 0, conflictCount: 0, conflicts: [], unmatched: 0 }
+/** The closing pass ran and found nothing left open. */
+export const CLOSING_NOTHING = { categorized: { expense: 0, income: 0 }, confirmed: 0 }
+/** The contract's example: 41 confirmed, 5 given the generic expense category. */
+export const CLOSING_EXAMPLE = { categorized: { expense: 5, income: 0 }, confirmed: 41 }
 
 const ZERO_TOTALS = {
   importedCount: 0,
@@ -124,6 +128,8 @@ export const STATEMENT_IMPORTED = {
     {
       accountId: 3,
       accountAlias: 'bankinter 0236',
+      accountBank: 'bankinter',
+      accountIban: 'ES0000000000000000000236',
       date: '2026-07-21',
       computed: '-40.00',
       fromFile: '-20.00',
@@ -260,6 +266,8 @@ export const FULL_REPORT = {
             id: 12,
             accountId: 1,
             accountAlias: 'bankinter 0236',
+            accountBank: 'bankinter',
+            accountIban: 'ES0000000000000000000236',
             type: 'expense',
             bookingDate: '2026-08-01',
             description: 'TRANSFERENCIA',
@@ -268,6 +276,8 @@ export const FULL_REPORT = {
             id: 40,
             accountId: 2,
             accountAlias: 'openbank 1111',
+            accountBank: 'openbank',
+            accountIban: 'ES0000000000000000001111',
             type: 'income',
             bookingDate: '2026-08-01',
             description: 'TRANSFERENCIA RECIBIDA',
@@ -292,6 +302,7 @@ export const FULL_REPORT = {
     ],
     unmatched: 5,
   },
+  closing: CLOSING_EXAMPLE,
 }
 
 /** Edge: nothing was pending by the time the import ran. */
@@ -300,6 +311,7 @@ export const EMPTY_REPORT = {
   files: [],
   transfers: EMPTY_TRANSFERS,
   categorization: EMPTY_CATEGORIZATION,
+  closing: CLOSING_NOTHING,
 }
 
 /** Edge: every line was already stored. */
@@ -320,6 +332,7 @@ export const ALL_DUPLICATES_REPORT = {
   ],
   transfers: EMPTY_TRANSFERS,
   categorization: EMPTY_CATEGORIZATION,
+  closing: CLOSING_NOTHING,
 }
 
 /** Edge: only product files, all stored. */
@@ -329,6 +342,7 @@ export const ONLY_PRODUCTS_REPORT = {
   files: [PRODUCT_IMPORTED, DEPOSIT_IMPORTED],
   transfers: EMPTY_TRANSFERS,
   categorization: EMPTY_CATEGORIZATION,
+  closing: CLOSING_NOTHING,
 }
 
 /** Edge: every file failed. */
@@ -338,6 +352,7 @@ export const ALL_FAILED_REPORT = {
   files: [STATEMENT_MISSING_ACCOUNT, PRODUCT_FAILED],
   transfers: EMPTY_TRANSFERS,
   categorization: EMPTY_CATEGORIZATION,
+  closing: CLOSING_NOTHING,
 }
 
 /** 1 statement in, 1 statement failed with NOT_UTF8. */
@@ -356,6 +371,7 @@ export const PARTIAL_REPORT = {
   ],
   transfers: { ...EMPTY_TRANSFERS, pairsCreated: 2 },
   categorization: { ...EMPTY_CATEGORIZATION, categorized: 12 },
+  closing: CLOSING_NOTHING,
 }
 
 /** Everything went in and there is nothing to check. */
@@ -376,6 +392,7 @@ export const CLEAN_REPORT = {
   ],
   transfers: EMPTY_TRANSFERS,
   categorization: EMPTY_CATEGORIZATION,
+  closing: CLOSING_NOTHING,
 }
 
 export const DRIVE_ERROR_BODY = {
@@ -455,7 +472,7 @@ export const PENDING_COUNT_PAGE = {
 /** A clean imported statement to build the other reports on. */
 const CLEAN_STATEMENT = CLEAN_REPORT.files[0]!
 
-/** Every detail section has something: FULL_REPORT plus both final pass failures. */
+/** Every detail section has something: FULL_REPORT plus the three final pass failures. */
 export const DETAILS_REPORT = {
   ...FULL_REPORT,
   transfers: {
@@ -469,6 +486,8 @@ export const DETAILS_REPORT = {
     ...FULL_REPORT.categorization,
     error: { code: 'INTERNAL_SERVER_ERROR', message: 'Fallo al aplicar las reglas de categoría.' },
   },
+  closing: null,
+  closingError: { code: 'INTERNAL_SERVER_ERROR', message: 'Fallo al cerrar los pendientes.' },
 }
 
 export const TRANSFERS_ERROR = {
@@ -478,6 +497,10 @@ export const TRANSFERS_ERROR = {
 export const CATEGORIZATION_ERROR = {
   code: 'INTERNAL_SERVER_ERROR',
   message: 'No se pudo completar la categorización automática.',
+}
+export const CLOSING_ERROR = {
+  code: 'INTERNAL_SERVER_ERROR',
+  message: 'No se pudo completar el cierre de los movimientos pendientes.',
 }
 
 /** `n` unread rows starting at line 10. */
@@ -541,6 +564,8 @@ const ambiguousGroup = (i: number) => ({
       id: 1000 + i * 2,
       accountId: 1,
       accountAlias: 'bankinter 0236',
+      accountBank: 'bankinter',
+      accountIban: 'ES0000000000000000000236',
       type: 'expense',
       bookingDate: '2026-08-02',
       description: `TRANSFERENCIA EMITIDA ${i}`,
@@ -549,6 +574,8 @@ const ambiguousGroup = (i: number) => ({
       id: 1001 + i * 2,
       accountId: 2,
       accountAlias: 'openbank 1111',
+      accountBank: 'openbank',
+      accountIban: 'ES0000000000000000001111',
       type: 'income',
       bookingDate: '2026-08-02',
       description: `TRANSFERENCIA RECIBIDA ${i}`,
@@ -606,6 +633,7 @@ export const THINGS_TO_CHECK_REPORTS: [string, unknown][] = [
     'a categorization error',
     { ...CLEAN_REPORT, categorization: { ...EMPTY_CATEGORIZATION, error: CATEGORIZATION_ERROR } },
   ],
+  ['a closing error', { ...CLEAN_REPORT, closing: null, closingError: CLOSING_ERROR }],
 ]
 
 /** Only imported files, with the per-file notes and every product shape. */

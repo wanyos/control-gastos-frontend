@@ -16,6 +16,7 @@ import type { NetWorth } from '../types'
 export function coherentNetWorth(): NetWorth {
   return {
     asOf: '2026-09-12',
+    lastDataDate: '2026-08-31',
     total: '39924.05',
     accounts: {
       total: '9404.90',
@@ -131,6 +132,7 @@ export function inconsistentNetWorth(): NetWorth {
 export function emptyNetWorth(): NetWorth {
   return {
     asOf: '2026-09-12',
+    lastDataDate: null,
     total: '0.00',
     accounts: { total: '0.00', accounts: [] },
     investments: { total: '0.00', products: [], issues: [] },

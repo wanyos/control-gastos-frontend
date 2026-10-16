@@ -119,7 +119,7 @@ describe('NetWorthView', () => {
     const { wrapper } = await mountLoaded(coherentNetWorth())
 
     expect(wrapper.get('[data-test="net-worth-block-a"]').text()).toContain(
-      `As of ${formatDate('2026-09-12')}, you have ${euros('39.924,05')} across 5 banks.`,
+      `Data up to ${formatDate('2026-08-31')}, you have ${euros('39.924,05')} across 5 banks.`,
     )
   })
 
@@ -228,7 +228,7 @@ describe('NetWorthView', () => {
     expect(account.text()).toContain('Checking account')
     expect(account.text()).toContain('1332')
     expect(account.get('[data-test="holding-date"]').text()).toBe(
-      `As of ${formatDate('2026-09-12')}`,
+      `Data up to ${formatDate('2026-08-31')}`,
     )
     const myInvestor = rowByLabel(wrapper, 'bank-card', 'MyInvestor')
     expect(myInvestor.findAll('[data-test="holding-row"]')).toHaveLength(4)
@@ -258,7 +258,9 @@ describe('NetWorthView', () => {
       const row = holdingRow(wrapper, name)
       expect(row.text().split(tail)).toHaveLength(2)
       // The line under the name keeps the type and the data date.
-      expect(row.get('[data-test="holding-date"]').text()).toBe(`As of ${formatDate('2026-09-12')}`)
+      expect(row.get('[data-test="holding-date"]').text()).toBe(
+        `Data up to ${formatDate('2026-08-31')}`,
+      )
     }
     expect(holdingRow(wrapper, 'Bankinter ···1332').text()).toContain('Checking account')
   })

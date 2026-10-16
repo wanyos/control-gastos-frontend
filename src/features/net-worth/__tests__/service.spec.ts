@@ -11,6 +11,7 @@ import type { DepositProduct, MarketProduct, SavingsAccountProduct } from '../ty
 function contractPayload() {
   return {
     asOf: '2026-09-06',
+    lastDataDate: '2026-08-29',
     total: '23708.90',
     accounts: {
       total: '5500.00',
@@ -125,6 +126,7 @@ describe('getNetWorth', () => {
     const netWorth = await getNetWorth()
 
     expect(netWorth.asOf).toBe('2026-09-06')
+    expect(netWorth.lastDataDate).toBe('2026-08-29')
     expect(netWorth.total).toBe('23708.90')
     expect(netWorth.accounts.total).toBe('5500.00')
     expect(netWorth.accounts.accounts).toHaveLength(1)
@@ -238,6 +240,7 @@ describe('getNetWorth', () => {
   it('accepts an empty database: empty lists and totals at "0.00"', async () => {
     mockApi({
       asOf: '2026-09-06',
+      lastDataDate: null,
       total: '0.00',
       accounts: { total: '0.00', accounts: [] },
       investments: { total: '0.00', products: [], issues: [] },
@@ -246,9 +249,17 @@ describe('getNetWorth', () => {
     const netWorth = await getNetWorth()
 
     expect(netWorth.total).toBe('0.00')
+    expect(netWorth.lastDataDate).toBeNull()
     expect(netWorth.accounts.accounts).toEqual([])
     expect(netWorth.investments.products).toEqual([])
     expect(netWorth.investments.issues).toEqual([])
+  })
+
+  it('requires lastDataDate: a date or null, never absent (cabo 13)', async () => {
+    const { lastDataDate: _date, ...withoutDate } = contractPayload()
+    mockApi(withoutDate)
+
+    await expect(getNetWorth()).rejects.toThrowError(/lastDataDate is not a YYYY-MM-DD date/)
   })
 
   it('throws a ValidationError naming the field when the payload drifts', async () => {

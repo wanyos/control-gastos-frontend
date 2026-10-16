@@ -80,6 +80,7 @@ const COUNT_PAGE = {
 /** The home the menu is reached from asks for this on mount (feature 9). */
 const NET_WORTH_SAMPLE = {
   asOf: '2026-09-12',
+  lastDataDate: '2026-09-12',
   total: '1500.00',
   accounts: {
     total: '1500.00',

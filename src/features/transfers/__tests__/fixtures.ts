@@ -161,6 +161,8 @@ const doubtful = (
   id,
   accountId: account.id,
   accountAlias: account.alias,
+  accountBank: account.bank,
+  accountIban: account.iban,
   type,
   bookingDate,
   description,

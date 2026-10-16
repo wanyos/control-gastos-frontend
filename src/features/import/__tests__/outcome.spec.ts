@@ -63,6 +63,7 @@ describe('importOutcome (R9)', () => {
       'a failed categorization',
       { categorization: { ...CLEAN_REPORT.categorization, error: FAILED_PASS } },
     ],
+    ['a failed closing', { closing: null, closingError: FAILED_PASS }],
   ])('is Imported, with a few things to check with %s', (_name, change) => {
     expect(outcomeOf({ ...CLEAN_REPORT, ...change })).toEqual({
       headline: 'Imported, with a few things to check',

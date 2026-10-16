@@ -115,6 +115,8 @@ describe('transfers service', () => {
       id: 840,
       accountId: 7318,
       accountAlias: 'openbank ···3954',
+      accountBank: 'openbank',
+      accountIban: 'ES0000000000000000003954',
       type: 'income',
       bookingDate: '2026-08-01',
       description: 'TRANSFERENCIA RECIBIDA',

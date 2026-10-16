@@ -18,6 +18,8 @@ const CONTRACT_GROUP = {
       id: 12,
       accountId: 1,
       accountAlias: 'bankinter 0236',
+      accountBank: 'bankinter',
+      accountIban: 'ES0000000000000000000236',
       type: 'expense',
       bookingDate: '2026-08-01',
       description: 'TRANSFERENCIA',
@@ -26,6 +28,8 @@ const CONTRACT_GROUP = {
       id: 40,
       accountId: 2,
       accountAlias: 'openbank 1111',
+      accountBank: 'openbank',
+      accountIban: 'ES0000000000000000001111',
       type: 'income',
       bookingDate: '2026-08-01',
       description: 'TRANSFERENCIA RECIBIDA',
@@ -34,6 +38,8 @@ const CONTRACT_GROUP = {
       id: 41,
       accountId: 4,
       accountAlias: 'n26 9999',
+      accountBank: 'n26',
+      accountIban: 'DE00000000000000009999',
       type: 'income',
       bookingDate: '2026-08-02',
       description: 'BIZUM RECIBIDO',
@@ -55,13 +61,16 @@ describe('AmbiguousTransferList (R7, R12)', () => {
     expect(group.get('[data-test="ambiguous-amount"]').text()).toBe(formatMoney('500.00'))
     const movements = group.findAll('[data-test="ambiguous-movement"]')
     expect(movements).toHaveLength(3)
+    // The account is named as the bank and its last four digits, not by the alias (cabo 33).
     expect(movements[0]?.findAll('span').map((part) => part.text())).toEqual([
       formatDate('2026-08-01'),
       '·',
-      'bankinter 0236',
+      'Bankinter ···0236',
       'Out',
       'TRANSFERENCIA',
     ])
+    expect(movements[2]?.text()).toContain('N26 ···9999')
+    expect(wrapper.text()).not.toContain('bankinter 0236')
     expect(movements.map((m) => m.get('[data-test="ambiguous-direction"]').text())).toEqual([
       'Out',
       'In',

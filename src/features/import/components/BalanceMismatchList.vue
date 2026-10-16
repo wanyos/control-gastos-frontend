@@ -15,7 +15,8 @@
           data-test="balance-mismatch"
         >
           <span class="text-sm text-ink-body" data-test="mismatch-where">
-            {{ mismatch.accountAlias }} · {{ formatDate(mismatch.date) }}
+            {{ accountLabel({ bank: mismatch.accountBank, iban: mismatch.accountIban }) }} ·
+            {{ formatDate(mismatch.date) }}
           </span>
           <span class="text-sm font-semibold text-ink-strong" data-test="mismatch-check">
             {{ checkLabel(mismatch.check).name }}
@@ -50,6 +51,7 @@
 // stacked so they fit the dialog width.
 import { computed } from 'vue'
 
+import { accountLabel } from '@/shared/accounts'
 import { formatDate, formatMoney } from '@/shared/money'
 
 import { checkLabel, mismatchGroups } from '../details'

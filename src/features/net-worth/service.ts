@@ -142,6 +142,7 @@ export function parseNetWorth(raw: unknown): NetWorth {
   const body = asObject(raw, 'response')
   return {
     asOf: asDateOnly(body.asOf, 'asOf'),
+    lastDataDate: asNullableDateOnly(body.lastDataDate, 'lastDataDate'),
     total: asDecimal(body.total, 'total'),
     accounts: parseAccounts(body.accounts, 'accounts'),
     investments: parseInvestments(body.investments, 'investments'),

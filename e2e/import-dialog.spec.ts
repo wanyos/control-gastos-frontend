@@ -7,6 +7,7 @@ import type { Page, Request } from '@playwright/test'
 
 const NET_WORTH_SAMPLE = {
   asOf: '2026-09-15',
+  lastDataDate: '2026-09-15',
   total: '1500.00',
   accounts: {
     total: '1500.00',
@@ -86,6 +87,7 @@ const PARTIAL_REPORT = {
   ],
   transfers: { pairsCreated: 0, ambiguousCount: 0, ambiguous: [] },
   categorization: { categorized: 0, conflictCount: 0, conflicts: [], unmatched: 0 },
+  closing: { categorized: { expense: 0, income: 0 }, confirmed: 0 },
 }
 
 interface Watch {
@@ -219,6 +221,8 @@ function largeReport() {
             id: 100 + i * 2,
             accountId: 1,
             accountAlias: 'bankinter 0236',
+            accountBank: 'bankinter',
+            accountIban: 'ES0000000000000000000236',
             type: 'expense',
             bookingDate: '2026-08-02',
             description: `TRANSFERENCIA EMITIDA ${i}`,
@@ -227,6 +231,8 @@ function largeReport() {
             id: 101 + i * 2,
             accountId: 2,
             accountAlias: 'openbank 1111',
+            accountBank: 'openbank',
+            accountIban: 'ES0000000000000000001111',
             type: 'income',
             bookingDate: '2026-08-02',
             description: `TRANSFERENCIA RECIBIDA ${i}`,

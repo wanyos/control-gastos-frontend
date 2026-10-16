@@ -1,5 +1,9 @@
 <template>
-  <div v-if="sections.length > 0" class="flex flex-col gap-3" data-test="import-details">
+  <div
+    v-if="sections.length > 0 || closing !== null"
+    class="flex flex-col gap-3"
+    data-test="import-details"
+  >
     <h3 v-if="hasThingsToCheck" class="text-base font-semibold text-ink-strong">Things to check</h3>
 
     <template v-for="section in sections" :key="section.id">
@@ -25,15 +29,21 @@
         <ImportedFileList v-else :report="report" />
       </ReportSection>
     </template>
+
+    <!-- The closing pass runs last, after the rules: its line goes last too. -->
+    <p v-if="closing !== null" class="text-sm text-ink-muted" data-test="closing-line">
+      {{ closing }}
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
 // The detail under the import summary (feature 14): what to check, in a fixed order,
-// then the files that went in. Read only: no actions and no requests.
+// then the files that went in, then what the closing pass did. Read only: no actions
+// and no requests.
 import { computed } from 'vue'
 
-import { detailSections, finalPassFailures } from '../details'
+import { closingLine, detailSections, finalPassFailures } from '../details'
 import type { ImportReport } from '../types'
 import AmbiguousTransferList from './AmbiguousTransferList.vue'
 import BalanceMismatchList from './BalanceMismatchList.vue'
@@ -47,6 +57,7 @@ const props = defineProps<{ report: ImportReport }>()
 
 const sections = computed(() => detailSections(props.report))
 const failures = computed(() => finalPassFailures(props.report))
+const closing = computed(() => closingLine(props.report))
 const hasThingsToCheck = computed(() =>
   sections.value.some((section) => section.id !== 'imported-files'),
 )
