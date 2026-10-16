@@ -1522,6 +1522,43 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 31,
+      "name": "deposit-counted-amount",
+      "title": "Ver cuánto cuenta cada movimiento de depósito",
+      "intent": {
+        "que_quiero": "Que en la lista de `Movements` vea, en cada movimiento de depósito, cuánto cuenta de verdad en las sumas. Que una apertura o una cancelación se distinga como algo que no cuenta. Que un vencimiento diga que solo cuenta su interés, y cuánto es. Que un depósito dudoso se vea como dudoso, con el motivo. Y que la frase de debajo de las cifras diga lo que de verdad dejan fuera.",
+        "por_que": "Porque la lista sirve para comprobar las cifras de arriba. Si un vencimiento de 25.037,07 € sale en verde como si fuera un ingreso entero, y arriba solo cuentan 37,07 €, no puedo cuadrar una cosa con la otra. Y un depósito dudoso que no cuenta nada sin decirlo es justo un dato que se pierde sin que me entere.",
+        "como_se_que_esta_bien": [
+          "En octubre de 2026, las aperturas y cancelaciones de depósito se distinguen a simple vista como movimientos que no cuentan.",
+          "El vencimiento de 25.037,07 € dice que solo cuentan 37,07 €, que son los intereses.",
+          "Sigo viendo el importe que dio el banco en cada movimiento.",
+          "El vencimiento de agosto de 2025 se ve como dudoso, con el motivo, y que de momento no cuenta.",
+          "La frase de debajo de las cifras dice también que los depósitos solo cuentan por sus intereses.",
+          "La casilla `Hide what does not count` esconde las aperturas y cancelaciones, y no esconde un vencimiento que cuenta sus intereses.",
+          "Las cifras de arriba no cambian: son las del backend."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend: ya manda lo que hace falta.",
+          "No quiero poder cambiar desde aquí cuánto cuenta un depósito.",
+          "No quiero que cambie nada de cómo se ven los demás movimientos."
+        ],
+        "delego_en_agente": [
+          "Cómo se enseña cuánto cuenta un vencimiento sin que se confunda con el importe del banco.",
+          "Qué texto exacto lleva cada clase de movimiento de depósito, en inglés como el resto de la aplicación, con su traducción en la hoja de decisiones.",
+          "Si la casilla `Hide what does not count` cuenta los movimientos de depósito en su recuento de escondidos."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-10-16: los depósitos dudosos se ven solo en su línea de `Movements`, con su motivo (opción A); un sitio que los junte todos queda para la idea de mejora 6.",
+          "Del 2026-10-16: entra también `Review`, con el mismo aspecto que en `Movements`.",
+          "Del 2026-10-16: no recuerda de qué depósito era el vencimiento dudoso de agosto de 2025; resolverlo a mano queda fuera."
+        ]
+      },
+      "acceptance": [],
+      "checks": [],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
