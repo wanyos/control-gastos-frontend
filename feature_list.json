@@ -1552,7 +1552,8 @@
         "respuestas_del_humano": [
           "Del 2026-10-16: los depósitos dudosos se ven solo en su línea de `Movements`, con su motivo (opción A); un sitio que los junte todos queda para la idea de mejora 6.",
           "Del 2026-10-16: entra también `Review`, con el mismo aspecto que en `Movements`.",
-          "Del 2026-10-16: no recuerda de qué depósito era el vencimiento dudoso de agosto de 2025; resolverlo a mano queda fuera."
+          "Del 2026-10-16: no recuerda de qué depósito era el vencimiento dudoso de agosto de 2025; resolverlo a mano queda fuera.",
+          "Del 2026-10-16: aprobó la hoja de decisiones; la casilla `Hide what does not count` esconde aperturas y cancelaciones calculándolo en la pantalla, sin pedir un filtro nuevo al backend (se queda como propone la hoja)."
         ]
       },
       "acceptance": [],
@@ -1599,7 +1600,7 @@
         }
       ],
       "sdd": true,
-      "status": "spec_ready"
+      "status": "in_progress"
     }
   ]
 }
