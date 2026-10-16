@@ -9,10 +9,11 @@ Los nombres de test van entre comillas invertidas tal cual: los `checks` de
 `feature_list.json` los filtran por ese nombre exacto. No los cambies.
 
 ## Lote A — leer `deposit` y pintarlo en `Movements` y `Review`
-Archivos: `src/shared/movements.ts`, `src/shared/deposits.ts`, `src/shared/__tests__/movements.spec.ts`, `src/shared/__tests__/deposits.spec.ts`, `src/assets/theme-dark.css`, `src/features/statement/components/StatementRow.vue`, `src/features/statement/components/MonthTotals.vue`, `src/features/statement/components/StatementList.vue`, `src/features/statement/store.ts`, `src/features/statement/views/StatementView.vue`, `src/features/statement/__tests__/fixtures.ts`, `src/features/statement/__tests__/StatementRow.spec.ts`, `src/features/statement/__tests__/MonthTotals.spec.ts`, `src/features/statement/__tests__/StatementList.spec.ts`, `src/features/statement/__tests__/StatementView.spec.ts`, `src/features/statement/__tests__/store.spec.ts`, `src/features/statement/__tests__/service.spec.ts`, `src/features/review/components/MovementRow.vue`, `src/features/review/store.ts`, `src/features/review/__tests__/fixtures.ts`, `src/features/review/__tests__/MovementRow.spec.ts`, `src/features/review/__tests__/store.spec.ts`, `src/features/review/__tests__/service.spec.ts`, `src/features/review/__tests__/ReviewView.spec.ts`, `src/features/overview/__tests__/fixtures.ts`, `src/features/category-rules/__tests__/fixtures.ts`, `src/features/import/__tests__/fixtures.ts`
+Archivos: `src/shared/movements.ts`, `src/shared/deposits.ts`, `src/shared/__tests__/movements.spec.ts`, `src/shared/__tests__/deposits.spec.ts`, `src/assets/theme-dark.css`, `src/features/statement/components/StatementRow.vue`, `src/features/statement/components/MonthTotals.vue`, `src/features/statement/components/StatementList.vue`, `src/features/statement/store.ts`, `src/features/statement/views/StatementView.vue`, `src/features/statement/__tests__/fixtures.ts`, `src/features/statement/__tests__/StatementRow.spec.ts`, `src/features/statement/__tests__/MonthTotals.spec.ts`, `src/features/statement/__tests__/StatementList.spec.ts`, `src/features/statement/__tests__/StatementView.spec.ts`, `src/features/statement/__tests__/store.spec.ts`, `src/features/statement/__tests__/service.spec.ts`, `src/features/review/components/MovementRow.vue`, `src/features/review/store.ts`, `src/features/review/__tests__/fixtures.ts`, `src/features/review/__tests__/MovementRow.spec.ts`, `src/features/review/__tests__/store.spec.ts`, `src/features/review/__tests__/service.spec.ts`, `src/features/review/__tests__/ReviewView.spec.ts`, `src/features/overview/__tests__/fixtures.ts`, `src/features/category-rules/__tests__/fixtures.ts`, `src/features/import/__tests__/fixtures.ts`, `e2e/action-notice-in-view.spec.ts`, `e2e/category-rules.spec.ts`, `e2e/overview.spec.ts`, `e2e/review-actions.spec.ts`, `e2e/review-queue.spec.ts`, `e2e/statement-exclude-from-totals.spec.ts`, `e2e/statement-fix-category.spec.ts`, `e2e/statement-noise-toggle.spec.ts`, `e2e/statement.spec.ts`
+> **Corrección del leader (2026-10-16):** se añaden a esta cabecera los nueve archivos de `e2e/` cuyas respuestas simuladas de `GET /api/movements` no traen `deposit`. Desde R1 la pantalla da error si falta, y design §2 ya pedía añadir `deposit: null` a los movimientos de prueba. Solo se les añade ese campo; ninguna aserción cambia.
 Depende de: —
 
-- [ ] T1 — `src/shared/movements.ts`: tipos `DepositKind`, `DepositReason`,
+- [x] T1 — `src/shared/movements.ts`: tipos `DepositKind`, `DepositReason`,
   `MovementDeposit`; `Movement.deposit?`; `parseDeposit`; cuarto argumento de
   `parseMovement` (`'required' | 'absent'`), `'required'` solo desde `parseMovementPage`
   (design §2). Test en `movements.spec.ts`:
@@ -20,25 +21,25 @@ Depende de: —
   del contrato y `null`; falta la clave → `ValidationError` con `movements[0].deposit`;
   `kind` o `reason` fuera de la enumeración → `ValidationError`; un PATCH sin la clave se
   lee sin error). Cubre: R1.
-- [ ] T2 — Añadir `deposit: null` a los movimientos crudos de `GET /api/movements` en los
+- [x] T2 — Añadir `deposit: null` a los movimientos crudos de `GET /api/movements` en los
   fixtures de `statement`, `review`, `overview`, `category-rules` e `import` (y en las
   respuestas crudas escritas dentro de los specs de la cabecera, si las hay). Nada más en
   esos archivos de otras features. Toda la suite en verde tras T1 + T2. Cubre: R1.
-- [ ] T3 — `src/shared/deposits.ts` con `hiddenWhenHiding`, `depositCountsNothing`,
+- [x] T3 — `src/shared/deposits.ts` con `hiddenWhenHiding`, `depositCountsNothing`,
   `depositLine`, `countedLine`, `withKnownDeposit` y los textos de design §4. Tests en
   `deposits.spec.ts`: `writes the line of each kind of deposit movement and of each doubtful reason`
   y `keeps the deposit a PATCH answer does not carry`. Cubre: R2, R4, R5, R7.
-- [ ] T4 — `src/assets/theme-dark.css`: línea
+- [x] T4 — `src/assets/theme-dark.css`: línea
   `contrast: --warning on --surface-sunken >= 4.5 (deposit: doubtful text on a hovered row)`.
   `theme-dark.spec.ts` la mide sin tocarlo; si no llega a 4.5, para y repórtalo (no cambies
   colores del tema). Cubre: R15.
-- [ ] T5 — Fixtures de depósito en `src/features/statement/__tests__/fixtures.ts`: una
+- [x] T5 — Fixtures de depósito en `src/features/statement/__tests__/fixtures.ts`: una
   apertura de 25000.00, una cancelación, un vencimiento resuelto de 25037.07 con
   `countedAmount` 37.07 y un vencimiento dudoso `principal_not_found`, en octubre de 2026,
   con descripciones inventadas del estilo `APERTURA DEP. 000001` (sin números de cuenta
   reales). Mismos cuatro en `src/features/review/__tests__/fixtures.ts`, `status`
   `pending_review`. Cubre: R3–R9 (soporte).
-- [ ] T6 — `StatementRow.vue`: R3–R8 según design §3. Tests en `StatementRow.spec.ts`:
+- [x] T6 — `StatementRow.vue`: R3–R8 según design §3. Tests en `StatementRow.spec.ts`:
   `crosses out a deposit opening and a deposit cancellation and greys their description`,
   `writes the kind of deposit movement under the description next to the account`,
   `shows on a deposit maturity the bank amount and under it only the interest that counts`
@@ -48,16 +49,16 @@ Depende de: —
   `never writes Transfer or Not counted on a deposit movement` (con `transferId` y
   `excludedFromTotals: true` puestos en el fixture). Los tests de la F29 siguen pasando
   sin tocarlos. Cubre: R3, R4, R5, R6, R7, R8.
-- [ ] T7 — `MovementRow.vue` de `Review`: mismas reglas con `deposit.ts`. Tests en
+- [x] T7 — `MovementRow.vue` de `Review`: mismas reglas con `deposit.ts`. Tests en
   `src/features/review/__tests__/MovementRow.spec.ts`:
   `paints a deposit line in Review the same way as in Movements` y
   `leaves the lines of Review that are not deposits as they were`. Cubre: R9.
-- [ ] T8 — `MonthTotals.vue`: `FIGURES_LINE` nueva y sexta frase plegada (design §4).
+- [x] T8 — `MonthTotals.vue`: `FIGURES_LINE` nueva y sexta frase plegada (design §4).
   En `MonthTotals.spec.ts` actualiza el texto esperado y el número de frases (5 → 6) del
   test de la F29 `shows one sentence and keeps the rest folded until it is opened` **sin
   renombrarlo**, y añade `says under the figures that a deposit counts only by its interest`.
   Cubre: R10.
-- [ ] T9 — `statement/store.ts`, `StatementList.vue`, `StatementView.vue`: design §5
+- [x] T9 — `statement/store.ts`, `StatementList.vue`, `StatementView.vue`: design §5
   (`visibleMovements`, `hiddenInBrowser`, `visibleTotal`, `hiddenCount` computed, `gone`
   de `adoptUpdated`). Tests en `StatementView.spec.ts`:
   `the checkbox hides deposit openings and cancellations and keeps a maturity that counts its interest`
@@ -65,13 +66,13 @@ Depende de: —
   `counts the hidden deposit openings and cancellations in Hiding`,
   `a month whose movements are all deposit openings says everything is hidden`
   (con el número de movimientos de la tarjeta igual a las filas visibles). Cubre: R11, R12, R13.
-- [ ] T10 — `adoptUpdated` conserva `deposit` (design §5) y `review/store.ts` guarda el mapa
+- [x] T10 — `adoptUpdated` conserva `deposit` (design §5) y `review/store.ts` guarda el mapa
   y lo aplica en `applyUpdated` (design §6). Tests:
   `keeps the deposit of a line after changing its category` en
   `src/features/statement/__tests__/store.spec.ts` y
   `keeps the deposit of a line that comes back with Undo` en
   `src/features/review/__tests__/store.spec.ts`. Cubre: R2.
-- [ ] T11 — Test en `StatementView.spec.ts`:
+- [x] T11 — Test en `StatementView.spec.ts`:
   `paints the backend totals untouched in a month with deposit movements` (respuesta con
   `income` 203.92 y las cuatro filas de depósito; la tarjeta enseña 203,92 € y nada sumado
   en el navegador). Cubre: R14.
