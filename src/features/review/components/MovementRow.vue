@@ -17,13 +17,26 @@
     <span class="size-2 shrink-0 rounded-full" :class="dotClass" aria-hidden="true" />
 
     <div class="min-w-0 flex-1">
-      <p class="truncate text-sm font-semibold text-ink-strong" data-test="movement-description">
+      <p
+        class="truncate text-sm font-semibold"
+        :class="countsNothing ? 'text-ink-muted' : 'text-ink-strong'"
+        data-test="movement-description"
+      >
         {{ movement.description }}
       </p>
       <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
         <span data-test="movement-account">{{ accountName }}</span>
         <span aria-hidden="true">·</span>
         <span data-test="movement-date">{{ formatDate(movement.bookingDate) }}</span>
+        <!-- Feature 31: the same words as in Movements, only on a deposit movement. -->
+        <span
+          v-if="depositText !== null"
+          class="font-semibold"
+          :class="isDoubtful ? 'text-warning' : 'text-ink-muted'"
+          data-test="movement-deposit"
+        >
+          {{ depositText }}
+        </span>
       </p>
     </div>
 
@@ -35,13 +48,22 @@
       {{ movement.category?.name ?? 'Uncategorized' }}
     </BaseBadge>
 
-    <span
-      class="w-28 shrink-0 text-right font-mono text-sm font-semibold tabular-nums"
-      :class="amountClass"
-      data-test="movement-amount"
-    >
-      {{ amount }}
-    </span>
+    <div class="flex w-28 shrink-0 flex-col items-end">
+      <span
+        class="text-right font-mono text-sm font-semibold tabular-nums"
+        :class="amountClass"
+        data-test="movement-amount"
+      >
+        {{ amount }}
+      </span>
+      <span
+        v-if="counted !== null"
+        class="text-right font-mono text-xs tabular-nums text-positive"
+        data-test="movement-counted"
+      >
+        {{ counted }}
+      </span>
+    </div>
 
     <MovementCategorySelect
       :movement="movement"
@@ -88,6 +110,7 @@ import { accountLabel } from '@/shared/accounts'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
+import { countedLine, depositCountsNothing, depositLine } from '@/shared/deposits'
 import { formatDate, formatMoney } from '@/shared/money'
 
 import MovementCategorySelect from './MovementCategorySelect.vue'
@@ -144,7 +167,17 @@ const amount = computed(() =>
   ),
 )
 
+// Feature 31: only a deposit movement changes look, the same way as in Movements; the
+// other lines of Review keep theirs (R9).
+const isDeposit = computed(() => props.movement.deposit != null)
+const isDoubtful = computed(() => props.movement.deposit?.ambiguous === true)
+const countsNothing = computed(() => depositCountsNothing(props.movement))
+const depositText = computed(() => depositLine(props.movement))
+const counted = computed(() => countedLine(props.movement))
+
 const amountClass = computed(() => {
+  if (countsNothing.value) return 'text-ink-faint line-through'
+  if (isDeposit.value) return 'text-ink-muted'
   if (props.movement.type === 'income') return 'text-positive'
   return props.movement.type === 'neutral' ? 'text-ink-muted' : 'text-ink-strong'
 })

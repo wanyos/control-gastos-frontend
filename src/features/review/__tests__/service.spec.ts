@@ -118,6 +118,8 @@ describe('parseMovementPage (R3, R4, R9)', () => {
       daySequence: 2,
       createdAt: '2026-08-06T18:30:00.000Z',
       updatedAt: '2026-08-06T18:30:00.000Z',
+      // Since feature 31: the one field only `GET /api/movements` carries.
+      deposit: null,
     })
   })
 

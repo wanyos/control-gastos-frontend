@@ -43,7 +43,7 @@ la sección de la E8.
 
 **El ruido de las sumas está resuelto en el extracto.** La **F22** (cerrada el
 2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
-**los 29 apuntes de depósito ya están marcados**: el histórico pasa de 446.014 / 439.372 €
+**los 29 apuntes de depósito ya están marcados**: el histórico pasa de 446.014 / 439.372 € *(Nota del 2026-10-16: ya no llevan la marca; desde la feature 57 del backend cuentan solo por sus intereses.)*
 a **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90 /
 4.096,05 €**. Lo que se le pidió al backend para esto (el traspaso `handoff-sumas-honestas.md`, cerrado
 y borrado el 2026-10-05) lo sirve la **feature 49 del backend** (respuestas con `excludedFromTotals`, filtros
@@ -228,7 +228,7 @@ texto: la vista del histórico completo, confirmados incluidos.
 > `transferId`. Spec en `specs/19-statement-by-month/`.
 >
 > ⚠️ ~~**Las sumas que hoy enseña la pantalla están infladas por los depósitos**~~ —
-> **resuelto el 2026-09-29 por la F22**: los 29 apuntes de depósito de myinvestor
+> **resuelto el 2026-09-29 por la F22**: los 29 apuntes de depósito de myinvestor *(Nota del 2026-10-16: ya no llevan la marca; desde la feature 57 del backend cuentan solo por sus intereses.)*
 > (285.000 €, el 58 % de la base) ya están marcados y no cuentan. Lo que se le pidió
 > al backend (traspaso `handoff-sumas-honestas.md`, cerrado y borrado el 2026-10-05) lo
 > sirvió su feature 49
@@ -284,7 +284,7 @@ texto: la vista del histórico completo, confirmados incluidos.
 > agosto bajando de 2.590,26 € a 2.240,26 € al marcarlo y volviendo al deshacer, con dos
 > `PATCH` en bloque de cuerpo limpio. Spec en `specs/22-statement-exclude-from-totals/`.
 >
-> 💡 **Los 29 apuntes de depósito ya están marcados** (los marcó la sesión del backend al
+> 💡 **Los 29 apuntes de depósito ya están marcados** (los marcó la sesión del backend al *(Nota del 2026-10-16: ya no llevan la marca; desde la feature 57 del backend cuentan solo por sus intereses.)*
 > probar su feature 49 contra datos reales): el histórico pasa de 446.014 / 439.372 € a
 > **170.512 / 154.522 €**, y julio de 2026 de 57.948 / 59.096 € a **2.785,90 /
 > 4.096,05 €**. Filtrar por cuenta ya no es la única forma de ver el gasto real.
@@ -458,7 +458,7 @@ datos bancarios reales. No es urgente; es que no estaba.
 | 34 | **Restos de la F29, medidos en Chromium (2026-10-12).** (a) Con el ratón encima de una línea de `Movements`, el fondo de la fila y el de la etiqueta de categoría son el mismo color: el recuadro de la etiqueta deja de distinguirse y queda solo su texto; sin el ratón ya se distingue muy poco (cociente 1,09). (b) El gris tachado de un importe que no cuenta y el verde de un ingreso tienen casi la misma luminosidad (1,03); se distinguen por el color y el tachado. (c) Un lector de pantalla lee el importe tachado sin decir que está tachado, aunque sí lee `Not counted` o `Transfer` en la misma línea. Ninguno incumple lo aprobado; los juzga el humano al verlo | sin etapa |
 | ~~35~~ | **Un check de una feature cerrada deja de pasar por el trabajo de otra.** El último check de la F27 compara `src/features/statement/store.ts` con el commit `8f0dce6` (`git diff --quiet`), y desde la F29, que añade 12 líneas a ese archivo, sale con 1. Avisado en el design de la F29. `./init.sh --checks 27` ya no sale en verde, sin que la F27 esté rota | ✅ **cerrado el 2026-10-13**: retirados los checks de ese tipo de las F26, F27 y F29, y apuntada la lección 3 de `docs/lessons.md` |
 | 36 | Dos pasajes de `docs/guia-de-uso.md` fuera de la sección `Movements` (el apartado A de «El trabajo que solo puedes hacer tú», paso 4, y `Transfers`) siguen hablando de «la etiqueta `Transfer` / `Not counted`» y de la nota gris como estaban antes de la F29 | leader, al reescribir la guía para la segunda revisión (cabo 29) |
-| 37 | **Los movimientos de depósito se ven como si contaran enteros.** Desde la feature 57 del backend (migración aplicada a la base real el 2026-10-16), las sumas cuentan una apertura o una cancelación como 0 y un vencimiento solo por su interés, y los 29 movimientos de depósito ya no llevan la marca de «no cuenta». Comprobado en el navegador ese día: en `Movements`, octubre de 2026, las tres `APERTURA DEP.` salen en blanco y sin tachar, las dos `CANCELACION DEP` y el `INTERESES DEP.` de 25.037,07 € en verde y sin tachar, mientras las cifras de arriba ya los dejan fuera (`Money in` 203,92 €). Y la frase bajo las cifras dice que solo se dejan fuera los `Transfer` y `Not counted`, que ya no es verdad. El backend manda en cada uno un campo `deposit` con lo que cuenta (`countedAmount`) y, si es dudoso, el motivo | parte 2 de `../docs/handoff-depositos.md`, en el frontend |
+| ~~37~~ | **Los movimientos de depósito se ven como si contaran enteros.** Desde la feature 57 del backend (migración aplicada a la base real el 2026-10-16), las sumas cuentan una apertura o una cancelación como 0 y un vencimiento solo por su interés, y los 29 movimientos de depósito ya no llevan la marca de «no cuenta». Comprobado en el navegador ese día: en `Movements`, octubre de 2026, las tres `APERTURA DEP.` salen en blanco y sin tachar, las dos `CANCELACION DEP` y el `INTERESES DEP.` de 25.037,07 € en verde y sin tachar, mientras las cifras de arriba ya los dejan fuera (`Money in` 203,92 €). Y la frase bajo las cifras dice que solo se dejan fuera los `Transfer` y `Not counted`, que ya no es verdad. El backend manda en cada uno un campo `deposit` con lo que cuenta (`countedAmount`) y, si es dudoso, el motivo | ✅ **arreglado por la F31** (2026-10-16), comprobado por el reviewer con datos reales |
 
 > Los cabos 3, 4 y 5 **no son tuyos**: son del backend. Está aquí porque bloquea bloques
 > de la vista de Patrimonio y la regla de oro del workspace dice que el backend

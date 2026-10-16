@@ -14,6 +14,8 @@ import {
   CATEGORIES,
   CATEGORY_TREE,
   COUNT_PAGE,
+  DEPOSIT_MATURITY,
+  DEPOSIT_PAGE,
   EMPTY_PAGE,
   EXPENSE,
   MOVEMENTS,
@@ -22,6 +24,7 @@ import {
   PAGE_OF_THREE,
   PAGE_TWO,
   VALIDATION_ERROR_BODY,
+  asPatchAnswer,
   bulkResult,
   changed,
   deferred,
@@ -882,5 +885,36 @@ describe('useReviewStore', () => {
 
     expect(api.calls.every((call) => call.method === 'GET')).toBe(true)
     expect([...new Set(api.calls.map((call) => call.path))].sort()).toEqual([CATEGORIES, MOVEMENTS])
+  })
+
+  // Feature 31: the PATCH answers never carry `deposit`, and a row that comes back with
+  // `Undo` is no longer on the page; the store finds it in what it read before (R2).
+  it('keeps the deposit of a line that comes back with Undo', async () => {
+    let reads = 0
+    const api = mockApi({
+      // Only the first read answers: what is checked is what the store kept, not a reload.
+      movements: () => (reads++ === 0 ? json(DEPOSIT_PAGE)() : networkDown()),
+      patch: (call) => {
+        const body = (call.body ?? {}) as { ids?: number[]; status?: string }
+        const answer = asPatchAnswer(
+          changed(DEPOSIT_MATURITY, { status: body.status ?? 'confirmed' }),
+        )
+        return json(body.ids ? bulkResult([answer]) : answer)()
+      },
+    })
+    const store = useReviewStore()
+    await store.load()
+    const before = store.result?.movements.find((row) => row.id === 52)?.deposit
+    expect(before?.countedAmount).toBe('37.07')
+
+    await store.confirmOne(52)
+    expect(store.result?.movements.some((row) => row.id === 52)).toBe(false)
+
+    await store.undoLast()
+
+    const back = store.result?.movements.find((row) => row.id === 52)
+    expect(api.patches()).toHaveLength(2)
+    expect(back?.status).toBe('pending_review')
+    expect(back?.deposit).toEqual(before)
   })
 })

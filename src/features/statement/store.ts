@@ -4,6 +4,7 @@ import { defineStore } from 'pinia'
 import type { HttpClient } from '@/services/http'
 import { getAccounts } from '@/shared/accounts'
 import { getCategories } from '@/shared/categories'
+import { hiddenWhenHiding, withKnownDeposit } from '@/shared/deposits'
 import { toAppError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
 import { MAX_IDS, getMovements, needsReload } from '@/shared/movements'
@@ -66,12 +67,6 @@ export const useStatementStore = defineStore('statement', () => {
    */
   const hideNoise = ref<HideNoise>(false)
   /**
-   * How many movements the switch is holding back: the count of the month WITHOUT
-   * hiding minus the one on screen, both of them the backend's (R7). Null when the
-   * switch is off or when that extra read failed, and then nothing is painted (R9).
-   */
-  const hiddenCount = ref<number | null>(null)
-  /**
    * How many movements the month (with its filters) has when nothing is hidden: the
    * `pagination.total` of the read `loadHiddenCount` already makes. Null while the
    * checkbox is off, while that read has not answered, and after it failed.
@@ -130,13 +125,53 @@ export const useStatementStore = defineStore('statement', () => {
   let categoriesRequested = false
   let ambiguousRequested = false
 
-  /** The whole month on screen, grouped by day in the order the API sent it (R8). */
-  const days = computed<DayGroup[]>(() =>
-    groupByDay([...(result.value?.movements ?? []), ...extra.value]),
+  /** Every row loaded: the first page plus whatever `Load more` added. */
+  const loadedMovements = computed<Movement[]>(() => [
+    ...(result.value?.movements ?? []),
+    ...extra.value,
+  ])
+
+  /**
+   * The loaded rows the list paints. With the checkbox on, the resolved deposit openings
+   * and cancellations are taken off HERE: the backend has no filter for them (feature 31,
+   * R11). Everything else the checkbox hides, the backend already left out.
+   */
+  const visibleMovements = computed<Movement[]>(() =>
+    hideNoise.value
+      ? loadedMovements.value.filter((movement) => !hiddenWhenHiding(movement))
+      : loadedMovements.value,
   )
 
+  /** How many loaded rows the line above took off; 0 with the checkbox off (R12). */
+  const hiddenInBrowser = computed(
+    () => loadedMovements.value.length - visibleMovements.value.length,
+  )
+
+  /**
+   * The month's count as the list shows it: the backend's `pagination.total` minus what
+   * was taken off in the browser (R13). Only rows already loaded can be subtracted.
+   */
+  const visibleTotal = computed(() =>
+    Math.max((result.value?.pagination.total ?? 0) - hiddenInBrowser.value, 0),
+  )
+
+  /**
+   * How many movements the switch is holding back: the count of the month WITHOUT
+   * hiding minus the one the backend sent, both of them the backend's (R7), plus the
+   * deposit openings and cancellations taken off in the browser (feature 31, R12). Null
+   * when the switch is off or when that extra read failed, and then nothing is painted.
+   */
+  const hiddenCount = computed<number | null>(() => {
+    if (!hideNoise.value || totalWithoutHiding.value === null) return null
+    const byBackend = Math.max(totalWithoutHiding.value - (result.value?.pagination.total ?? 0), 0)
+    return byBackend + hiddenInBrowser.value
+  })
+
+  /** The whole month on screen, grouped by day in the order the API sent it (R8). */
+  const days = computed<DayGroup[]>(() => groupByDay(visibleMovements.value))
+
   /** Rows on screen right now: the first page plus whatever `Load more` added. */
-  const shown = computed(() => (result.value?.movements.length ?? 0) + extra.value.length)
+  const shown = computed(() => visibleMovements.value.length)
 
   /** True while this month still has pages nobody asked for. */
   const hasMore = computed(() => {
@@ -163,7 +198,6 @@ export const useStatementStore = defineStore('statement', () => {
     extra.value = []
     page.value = 0
     // A stale number would say how much of ANOTHER month is hidden (R7).
-    hiddenCount.value = null
     totalWithoutHiding.value = null
     // A new month or a new filter is a new context: the open editor and the Undo of
     // the last write go with it (R13), and so does the selection — a ticked id that is
@@ -210,19 +244,17 @@ export const useStatementStore = defineStore('statement', () => {
    */
   async function loadHiddenCount(run: number, client?: HttpClient): Promise<void> {
     if (!hideNoise.value) {
-      hiddenCount.value = null
       totalWithoutHiding.value = null
       return
     }
     try {
       const all = await getMovements(hiddenCountQuery(month.value, filters.value), client)
       if (run !== loadRun) return
-      hiddenCount.value = Math.max(all.pagination.total - (result.value?.pagination.total ?? 0), 0)
-      // Kept as it came: it tells an empty month from one whose rows are all hidden.
+      // Kept as it came: it tells an empty month from one whose rows are all hidden, and
+      // `hiddenCount` is computed from it.
       totalWithoutHiding.value = all.pagination.total
     } catch {
       if (run !== loadRun) return
-      hiddenCount.value = null
       totalWithoutHiding.value = null
     }
   }
@@ -284,13 +316,18 @@ export const useStatementStore = defineStore('statement', () => {
    * out when it no longer belongs under the active category filter (R8). `totals` and
    * `pagination` are NEVER touched here: they are the backend's (R10).
    */
-  function adoptUpdated(updated: Movement): void {
-    // Two ways of no longer belonging to what is on screen: the category filter of the
+  function adoptUpdated(answer: Movement): void {
+    // The PATCH answers never carry `deposit`: the row keeps the one of the last read,
+    // or a maturity would be painted as a whole income until the next load (feature 31, R2).
+    const updated = withKnownDeposit(answer, rowOf(answer.id)?.deposit)
+    // Three ways of no longer belonging to what is on screen: the category filter of the
     // F21 and — since the F23 — the switch, when what was just marked is exactly what
-    // the switch promises to hide. The Undo of the notice line brings it back (R13).
+    // the switch promises to hide, or (F31) a deposit opening or cancellation. The Undo
+    // of the notice line brings it back (R13).
     const gone =
       (hasCategoryFilter(filters.value) && !matchesCategoryFilter(updated, filters.value)) ||
-      (hideNoise.value && (updated.excludedFromTotals || updated.transferId !== null))
+      (hideNoise.value && (updated.excludedFromTotals || updated.transferId !== null)) ||
+      (hideNoise.value && hiddenWhenHiding(updated))
     const rows = result.value?.movements
     const at = rows?.findIndex((row) => row.id === updated.id) ?? -1
     if (rows && at !== -1) {
@@ -412,10 +449,7 @@ export const useStatementStore = defineStore('statement', () => {
   // ─── Marking movements as not counted (feature 22: R1 … R16) ──────────────
 
   /** Every movement on screen right now, in the order the month is read. */
-  const shownMovements = computed<Movement[]>(() => [
-    ...(result.value?.movements ?? []),
-    ...extra.value,
-  ])
+  const shownMovements = computed<Movement[]>(() => visibleMovements.value)
 
   /** How many of the rows on screen are ticked; the bar says it out loud (R5). */
   const selectedCount = computed(() => selectedIds.value.length)
@@ -600,6 +634,8 @@ export const useStatementStore = defineStore('statement', () => {
     actionNotice,
     days,
     shown,
+    visibleTotal,
+    hiddenInBrowser,
     hasMore,
     shownMovements,
     selectedCount,

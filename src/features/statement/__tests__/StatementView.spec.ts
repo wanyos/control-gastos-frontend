@@ -13,6 +13,9 @@ import {
   BIG_MONTH_PAGE_TWO,
   COUNT_PAGE,
   CREATED_RULE,
+  DEPOSIT_MONTH_PAGE,
+  DEPOSIT_OPENING,
+  DEPOSIT_TOTALS,
   EMPTY_MONTH_PAGE,
   HIDDEN_MONTH_PAGE,
   ambiguousGroups,
@@ -302,7 +305,7 @@ describe('StatementView', () => {
       // Feature 23: the note no longer names a month nor carries a single digit (R14).
       // Feature 29: its first sentence is the one always in sight.
       expect(wrapper.get('[data-test="statement-totals-line"]').text()).toBe(
-        'These figures leave out the movements labelled "Transfer" or "Not counted".',
+        'These figures leave out the movements labelled "Transfer" or "Not counted", and count a deposit only by its interest.',
       )
       expect(wrapper.get('[data-test="statement-totals-note"]').text()).not.toMatch(/\d/)
     })
@@ -1297,6 +1300,117 @@ describe('StatementView', () => {
       expect(afterBlock()?.matches('[data-test="statement-selection-bar"]')).toBe(true)
       expect(afterBlock()?.querySelector('[data-test="statement-exclude"]')).not.toBeNull()
       expect(afterBlock()?.querySelector('[data-test="statement-include"]')).not.toBeNull()
+    })
+  })
+
+  // ─── Deposit movements (feature 31) ───────────────────────────────────────
+  // The backend has no filter for them: with the checkbox on, the resolved openings and
+  // cancellations still come in the answer and are taken off the list here (R11 … R14).
+  describe('deposit movements (feature 31)', () => {
+    /** The month with the checkbox on; the read without hiding answers `total`. */
+    const october = (page: Record<string, unknown>, total: number): Answers => ({
+      movements: (query) =>
+        query.get('pageSize') === '1'
+          ? json({
+              ...EMPTY_MONTH_PAGE,
+              pagination: { page: 1, pageSize: 1, total, totalPages: total },
+            })()
+          : json(page)(),
+    })
+
+    const rowIds = (wrapper: Awaited<ReturnType<typeof mountView>>['wrapper']) =>
+      wrapper
+        .findAll('[data-test="statement-row"]')
+        .map((row) => row.attributes('data-movement-id'))
+
+    it('the checkbox hides deposit openings and cancellations and keeps a maturity that counts its interest', async () => {
+      const off = await mountView('/movements?month=2026-10', october(DEPOSIT_MONTH_PAGE, 4))
+      expect(rowIds(off.wrapper)).toEqual(['53', '52', '51', '50'])
+      off.wrapper.unmount()
+
+      const on = await mountView(
+        '/movements?month=2026-10&hide=true',
+        october(DEPOSIT_MONTH_PAGE, 4),
+      )
+
+      // The maturity that counts its interest and the doubtful one stay.
+      expect(rowIds(on.wrapper)).toEqual(['53', '52'])
+      expect(on.wrapper.text()).toContain('Deposit maturity · only the interest counts')
+      expect(on.wrapper.text()).toContain('Doubtful deposit maturity')
+      expect(on.wrapper.text()).not.toContain('Deposit opening')
+      expect(on.wrapper.text()).not.toContain('Deposit cancellation')
+      // Nothing new is asked: the same two reads as before the feature.
+      expect(on.api.queries()).toEqual([
+        'from=2026-10-01&to=2026-10-31&excluded=none&transfer=none&page=1&pageSize=200',
+        'from=2026-10-01&to=2026-10-31&page=1&pageSize=1',
+      ])
+    })
+
+    it('counts the hidden deposit openings and cancellations in Hiding', async () => {
+      // 250 movements in October for the backend, 4 of them loaded; without hiding there
+      // is one more, marked as not counted, that the backend left out itself.
+      const page = {
+        ...DEPOSIT_MONTH_PAGE,
+        pagination: { page: 1, pageSize: 200, total: 250, totalPages: 2 },
+      }
+      const { wrapper } = await mountView('/movements?month=2026-10&hide=true', october(page, 251))
+
+      // 1 left out by the backend + the opening and the cancellation taken off here.
+      expect(wrapper.get('[data-test="statement-hidden-count"]').text()).toBe('Hiding 3 movements')
+      // The count of the month, the list and `Showing` leave the two out too (R13).
+      expect(wrapper.get('[data-test="statement-totals-count"]').text()).toBe('248 movements')
+      expect(wrapper.get('[data-test="statement-showing"]').text()).toBe('Showing 2 of 248')
+    })
+
+    it('a month whose movements are all deposit openings says everything is hidden', async () => {
+      const second = rawMovement({
+        ...DEPOSIT_OPENING,
+        id: 54,
+        bookingDate: '2026-10-20',
+        valueDate: '2026-10-20',
+        amount: '8000.00',
+        description: 'APERTURA DEP. 000005',
+        deposit: { ...(DEPOSIT_OPENING.deposit as Record<string, unknown>), principal: '8000.00' },
+      })
+      const page = {
+        movements: [second, DEPOSIT_OPENING],
+        pagination: { page: 1, pageSize: 200, total: 2, totalPages: 1 },
+        totals: { income: '0.00', expense: '0.00', net: '0.00' },
+      }
+      const { wrapper } = await mountView('/movements?month=2026-10&hide=true', october(page, 2))
+
+      expect(wrapper.get('[data-test="statement-empty-line"]').text()).toBe(
+        'Nothing left to show in October 2026: everything in this month is hidden.',
+      )
+      expect(wrapper.find('[data-test="statement-nothing-left"]').exists()).toBe(true)
+      expect(wrapper.find('[data-test="statement-empty"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="statement-row"]')).toHaveLength(0)
+      // The count of the card is the rows that are left: none.
+      expect(wrapper.get('[data-test="statement-totals-count"]').text()).toBe('0 movements')
+      expect(wrapper.get('[data-test="statement-hidden-count"]').text()).toBe('Hiding 2 movements')
+      expect(wrapper.get('[data-test="statement-show-everything"]').text()).toBe('Show everything')
+    })
+
+    it('paints the backend totals untouched in a month with deposit movements', async () => {
+      const { wrapper } = await mountView(
+        '/movements?month=2026-10',
+        october(DEPOSIT_MONTH_PAGE, 4),
+      )
+
+      expect(wrapper.get('[data-test="statement-totals-in"]').text()).toBe(
+        formatMoney(DEPOSIT_TOTALS.income),
+      )
+      expect(wrapper.get('[data-test="statement-totals-in"]').text()).toBe(
+        `203,92${String.fromCharCode(0xa0)}€`,
+      )
+      expect(wrapper.get('[data-test="statement-totals-out"]').text()).toBe(formatMoney('0.00'))
+      expect(wrapper.get('[data-test="statement-totals-net"]').text()).toBe(formatMoney('203.92'))
+      // Nothing added up in the browser: neither the bank amounts nor what each counts.
+      const card = wrapper.get('[data-test="statement-totals"]').text()
+      for (const made of ['37.07', '50058.37', '25037.07', '35037.07']) {
+        expect(card).not.toContain(formatMoney(made))
+      }
+      expect(wrapper.get('[data-test="statement-totals-count"]').text()).toBe('4 movements')
     })
   })
 })

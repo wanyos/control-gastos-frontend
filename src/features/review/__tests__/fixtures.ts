@@ -36,6 +36,8 @@ const base = {
   transferId: null,
   createdAt: '2026-08-06T18:30:00.000Z',
   updatedAt: '2026-08-06T18:30:00.000Z',
+  /** Since the backend's feature 57 `GET /api/movements` carries it; null = not a deposit. */
+  deposit: null,
 }
 
 /** An expense with a category. */
@@ -87,6 +89,112 @@ export const NEUTRAL = {
   categoryId: null,
   category: null,
   daySequence: 1,
+}
+
+// ─── Feature 31: deposit movements ─────────────────────────────────────────
+// The same four as in the statement fixtures, pending review. Invented, shaped like the
+// contract (`movements[].deposit`, backend feature 57).
+
+const MYINVESTOR = {
+  id: 3,
+  iban: 'ES6301289999990123456789',
+  bank: 'myinvestor',
+  alias: 'myinvestor ···6789',
+  type: 'checking',
+}
+
+const depositMovement = (
+  id: number,
+  day: string,
+  type: 'expense' | 'income',
+  amount: string,
+  description: string,
+  deposit: Record<string, unknown>,
+): Record<string, unknown> => ({
+  ...base,
+  id,
+  type,
+  bookingDate: `2026-10-${day}`,
+  valueDate: `2026-10-${day}`,
+  amount,
+  description,
+  balanceAfter: null,
+  accountId: 3,
+  account: MYINVESTOR,
+  categoryId: null,
+  category: null,
+  daySequence: 1,
+  deposit,
+})
+
+const resolvedDeposit = (
+  kind: 'opening' | 'cancellation' | 'maturity',
+  principal: string,
+  countedAmount = '0.00',
+): Record<string, unknown> => ({
+  kind,
+  principal,
+  countedAmount,
+  ambiguous: false,
+  reason: null,
+  candidateMovementIds: [],
+})
+
+export const DEPOSIT_OPENING = depositMovement(
+  50,
+  '02',
+  'expense',
+  '25000.00',
+  'APERTURA DEP. 000001',
+  resolvedDeposit('opening', '25000.00'),
+)
+
+export const DEPOSIT_CANCELLATION = depositMovement(
+  51,
+  '05',
+  'income',
+  '10000.00',
+  'CANCELACION DEP. 000002',
+  resolvedDeposit('cancellation', '10000.00'),
+)
+
+export const DEPOSIT_MATURITY = depositMovement(
+  52,
+  '09',
+  'income',
+  '25037.07',
+  'INTERESES DEP. 000003',
+  resolvedDeposit('maturity', '25000.00', '37.07'),
+)
+
+export const DEPOSIT_DOUBTFUL = depositMovement(
+  53,
+  '14',
+  'income',
+  '15021.30',
+  'INTERESES DEP. 000004',
+  {
+    kind: 'maturity',
+    principal: null,
+    countedAmount: '0.00',
+    ambiguous: true,
+    reason: 'principal_not_found',
+    candidateMovementIds: [],
+  },
+)
+
+/** The queue with the four deposit movements and one that is not a deposit. */
+export const DEPOSIT_PAGE = {
+  movements: [DEPOSIT_DOUBTFUL, DEPOSIT_MATURITY, DEPOSIT_CANCELLATION, DEPOSIT_OPENING, EXPENSE],
+  pagination: { page: 1, pageSize: 100, total: 5, totalPages: 1 },
+  totals: { income: '37.07', expense: '45.37', net: '-8.30' },
+}
+
+/** A movement as a PATCH answers it: everything but `deposit`, which only a GET carries. */
+export const asPatchAnswer = (raw: object): object => {
+  const answer: Record<string, unknown> = { ...raw }
+  delete answer.deposit
+  return answer
 }
 
 const TOTALS = { income: '1200.00', expense: '845.37', net: '354.63' }

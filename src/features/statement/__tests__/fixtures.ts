@@ -37,6 +37,8 @@ const base = {
   daySequence: 1,
   createdAt: '2026-09-12T18:30:00.000Z',
   updatedAt: '2026-09-12T18:30:00.000Z',
+  // Since the backend's feature 57 `GET /api/movements` carries it; null = not a deposit.
+  deposit: null,
 }
 
 /** A raw movement of the month, as the API sends it. */
@@ -490,4 +492,102 @@ export function fakeMonth(seed: readonly Record<string, unknown>[] = MONTH_PAGE.
       return Promise.resolve(jsonResponse({ updated: movements.length, movements }))
     },
   }
+}
+
+// ─── Feature 31: deposit movements ─────────────────────────────────────────
+// Invented, shaped like the contract (`movements[].deposit`, backend feature 57): an
+// opening, a cancellation, a maturity whose interest is all that counts, and a doubtful
+// maturity, all in October 2026 on the MyInvestor account.
+
+/** The `deposit` object of a resolved opening, cancellation or maturity. */
+const resolvedDeposit = (
+  kind: 'opening' | 'cancellation' | 'maturity',
+  principal: string,
+  countedAmount = '0.00',
+): Record<string, unknown> => ({
+  kind,
+  principal,
+  countedAmount,
+  ambiguous: false,
+  reason: null,
+  candidateMovementIds: [],
+})
+
+const october = (day: string): Record<string, unknown> => ({
+  bookingDate: `2026-10-${day}`,
+  valueDate: `2026-10-${day}`,
+  accountId: 2,
+  account: MYINVESTOR,
+})
+
+/** Money put into a deposit: counts 0. */
+export const DEPOSIT_OPENING = movement({
+  ...october('02'),
+  id: 50,
+  type: 'expense',
+  amount: '25000.00',
+  description: 'APERTURA DEP. 000001',
+  deposit: resolvedDeposit('opening', '25000.00'),
+})
+
+/** A deposit cancelled before it matured: its money comes back and counts 0. */
+export const DEPOSIT_CANCELLATION = movement({
+  ...october('05'),
+  id: 51,
+  type: 'income',
+  amount: '10000.00',
+  description: 'CANCELACION DEP. 000002',
+  deposit: resolvedDeposit('cancellation', '10000.00'),
+})
+
+/** A maturity: 25.037,07 € from the bank, of which only the 37,07 € of interest count. */
+export const DEPOSIT_MATURITY = movement({
+  ...october('09'),
+  id: 52,
+  type: 'income',
+  amount: '25037.07',
+  description: 'INTERESES DEP. 000003',
+  deposit: resolvedDeposit('maturity', '25000.00', '37.07'),
+})
+
+/** A maturity with no deposit amount found for it: counts 0 for now. */
+export const DEPOSIT_DOUBTFUL = movement({
+  ...october('14'),
+  id: 53,
+  type: 'income',
+  amount: '15021.30',
+  description: 'INTERESES DEP. 000004',
+  deposit: {
+    kind: 'maturity',
+    principal: null,
+    countedAmount: '0.00',
+    ambiguous: true,
+    reason: 'principal_not_found',
+    candidateMovementIds: [],
+  },
+})
+
+/** The four of them, newest first, as the API sends a month. */
+export const DEPOSIT_ROWS = [
+  DEPOSIT_DOUBTFUL,
+  DEPOSIT_MATURITY,
+  DEPOSIT_CANCELLATION,
+  DEPOSIT_OPENING,
+]
+
+/** The backend's figures for October: they never match a sum made from the rows. */
+export const DEPOSIT_TOTALS = { income: '203.92', expense: '0.00', net: '203.92' }
+
+/** October 2026: the four deposit movements in one page. */
+export const DEPOSIT_MONTH_PAGE = {
+  movements: DEPOSIT_ROWS,
+  pagination: { page: 1, pageSize: 200, total: 4, totalPages: 1 },
+  totals: DEPOSIT_TOTALS,
+}
+
+/** A movement as a PATCH answers it: everything but `deposit`, which only a GET carries. */
+export const asPatchAnswer = (raw: Record<string, unknown>): Record<string, unknown> => {
+  const answer = { ...raw }
+  delete answer.deposit
+  return answer
 }

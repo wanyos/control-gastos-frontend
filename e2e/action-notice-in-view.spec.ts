@@ -86,6 +86,7 @@ const movement = (id: number, day: string, index: number, extra: Raw = {}): Raw 
   origin: 'imported',
   status: 'pending_review',
   excludedFromTotals: false,
+  deposit: null,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-09-12T18:30:00.000Z',

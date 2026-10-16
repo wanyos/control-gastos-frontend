@@ -65,9 +65,13 @@ describe('MonthTotals (R5, R6, R7)', () => {
   describe('the permanent note (R14, R15)', () => {
     const note = () => mountTotals().get('[data-test="statement-totals-note"]')
 
-    /** The sentence always in sight, letter by letter (feature 29, R8). */
+    /** The sentence always in sight, letter by letter (feature 29, R8; feature 31, R10). */
     const FIGURES_LINE =
-      'These figures leave out the movements labelled "Transfer" or "Not counted".'
+      'These figures leave out the movements labelled "Transfer" or "Not counted", and count a deposit only by its interest.'
+
+    /** The sixth folded sentence, about deposits (feature 31, R10). */
+    const DEPOSIT_LINE =
+      'Opening or cancelling a deposit is not counted. When one matures, only its interest counts. A doubtful one counts nothing until the app knows how much was put in.'
 
     /** The folded sentences, in order and letter by letter (feature 29, R10). */
     const MORE_LINES = [
@@ -76,6 +80,7 @@ describe('MonthTotals (R5, R6, R7)', () => {
       'A movement that is left out keeps its category: the category says what it was, the label says it is not in the sums.',
       'If only one of the two movements of a transfer was imported, it still counts until you mark it as "Not counted".',
       'The app can pair two movements that are not a transfer. Unlink them in "Transfers".',
+      DEPOSIT_LINE,
     ]
 
     const AMBIGUOUS_TWO = '2 groups look like transfers but could not be paired automatically.'
@@ -105,16 +110,16 @@ describe('MonthTotals (R5, R6, R7)', () => {
       expect(more.get('summary').text()).toBe('More about what counts')
       expect(totals.findAll('details')).toHaveLength(1)
 
-      // Five sentences, each in its own list item, in order (R10).
+      // Six sentences, each in its own list item, in order (R10; the sixth since feature 31).
       expect(items().map((item) => item.text())).toEqual(MORE_LINES)
       expect(more.findAll('ul')).toHaveLength(1)
 
-      // The doubtful groups are the sixth item, and only with a count above zero (R11).
+      // The doubtful groups are the seventh item, and only with a count above zero (R11).
       const withGroups = items(2)
       expect(withGroups.map((item) => item.text())).toEqual([...MORE_LINES, AMBIGUOUS_TWO])
       expect(withGroups.at(-1)?.attributes('data-test')).toBe('statement-ambiguous-note')
       for (const none of [null, 0]) {
-        expect(items(none)).toHaveLength(5)
+        expect(items(none)).toHaveLength(6)
         expect(
           mountTotals({ ambiguousGroups: none })
             .find('[data-test="statement-ambiguous-note"]')
@@ -131,6 +136,18 @@ describe('MonthTotals (R5, R6, R7)', () => {
       ]
 
       expect(texts).toEqual(FIXED_TEXTS)
+    })
+
+    it('says under the figures that a deposit counts only by its interest', () => {
+      const line = note().get('[data-test="statement-totals-line"]')
+      expect(line.text()).toBe(FIGURES_LINE)
+      expect(line.text()).toContain('count a deposit only by its interest')
+      expect(line.element.closest('details')).toBeNull()
+
+      // Folded, after the five of feature 29 and before the doubtful groups.
+      const folded = items(2).map((item) => item.text())
+      expect(folded.indexOf(DEPOSIT_LINE)).toBe(5)
+      expect(folded.at(-1)).toBe(AMBIGUOUS_TWO)
     })
 
     it('carries no figure of any kind: not one digit (R14)', () => {

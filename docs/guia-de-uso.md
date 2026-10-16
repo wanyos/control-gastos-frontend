@@ -351,9 +351,16 @@ nombre del mes. Pulsa `Previous`.
    cuenta, y el importe tachado y en gris. Es un
    movimiento marcado como que no cuenta. **Tampoco está en las sumas.** Su
    etiqueta de categoría sigue a la derecha: dice qué fue el movimiento. El
-   2026-09-29 los 29 apuntes de depósito de la cuenta de myinvestor ya estaban
-   marcados así.
+   2026-09-29 los 29 apuntes de depósito de la cuenta de myinvestor estaban
+   marcados así; hoy ya no (ver el párrafo de debajo de tu nota).
    -- la cantidad no esta en gris, pone not counted, pero al lado en verde intereses, ademas en español
+
+   **Nuevo desde la feature 31, sin probar en tu primera revisión:** los
+   apuntes de depósito ya no son un ejemplo de este paso. Desde su feature 57,
+   el backend decide solo cuánto cuenta cada movimiento de depósito, sin que
+   nadie lo marque, y su cambio quitó la marca `Not counted` a los que la
+   tenían. En una línea de depósito ya no salen `Transfer` ni `Not counted`:
+   sale lo que cuenta de verdad. Cómo se ve, en el paso que hay después del 13.
 
 5. Marca la casilla `Hide what does not count`. **Debes ver** que desaparecen
    de la lista las líneas `Transfer` y `Not counted`, que a la derecha sale
@@ -362,6 +369,13 @@ nombre del mes. Pulsa `Previous`.
    porque nunca contaron esas líneas: lo que cambia es que la lista deja de
    enseñarlas.
    -- ok
+
+   **Nuevo desde la feature 31, sin probar en tu primera revisión:** la
+   casilla quita también las aperturas y cancelaciones de depósito
+   (`Deposit opening` y `Deposit cancellation` bajo el concepto), y las suma
+   al número de `Hiding`. **No quita** un vencimiento de depósito que cuenta
+   sus intereses ni uno dudoso. El número de movimientos de la tarjeta baja con
+   lo que se quita. Las tres cifras siguen sin moverse.
 
 6. Con la casilla puesta, pulsa `Previous`. **Debe** seguir puesta en el mes
    anterior. Recarga la página: **debe** seguir puesta. Quítala: **vuelven**
@@ -399,15 +413,53 @@ nombre del mes. Pulsa `Previous`.
     **sigue puesto**. Pulsa atrás en el navegador: vuelves al mes anterior.
    -- ok
 
-13. Lee la nota gris bajo las cifras. A la vista hay una sola frase:
+13. Lee la nota gris bajo las cifras. Hasta la feature 31, a la vista había
+    una sola frase:
     `These figures leave out the movements labelled "Transfer" or "Not counted".`
-    Debajo, pulsa `More about what counts`: **se abren** cinco frases más. Dicen
+    Debajo, al pulsar `More about what counts`, **se abrían** cinco frases más. Dicen
     que esos movimientos siguen en la lista con el importe tachado, quién pone
     `Transfer` y quién `Not counted`, que un movimiento que no cuenta conserva
     su categoría, y avisan de dos cosas que la aplicación no puede saber. Esa
     parte sale plegada cada vez que entras. La nota no se puede cerrar, a
     propósito.
     -- esta parte no la entiendo
+
+    **Nuevo desde la feature 31, sin probar en tu primera revisión:** la frase
+    a la vista es ahora
+    `These figures leave out the movements labelled "Transfer" or "Not counted", and count a deposit only by its interest.`
+    Al pulsar `More about what counts` se abren **seis** frases fijas; la
+    sexta es
+    `Opening or cancelling a deposit is not counted. When one matures, only its interest counts. A doubtful one counts nothing until the app knows how much was put in.`
+    Si hay grupos que parecen traspasos y no se pudieron emparejar, su frase
+    sigue saliendo la última, después de esas seis.
+
+**Nuevo desde la feature 31, sin probar en tu primera revisión: los
+movimientos de depósito.** Desde su feature 57, el backend reconoce solo los
+movimientos de depósito de myinvestor y decide cuánto cuenta cada uno en las
+cifras: abrir un depósito o cancelarlo no cuenta nada, y de un vencimiento
+solo cuentan sus intereses. La pantalla lo enseña así:
+
+- Ve a octubre de 2026 con `Jump to month` y la casilla
+  `Hide what does not count` quitada. **Debes ver** las aperturas con
+  `Deposit opening` bajo el concepto, junto a la cuenta, y las cancelaciones
+  con `Deposit cancellation`: las dos con el importe tachado y en gris y el
+  concepto en gris, como lo que no cuenta. El 2026-10-16 ese mes tenía tres
+  aperturas y dos cancelaciones.
+- En el mismo mes, busca el vencimiento. **Debes ver**
+  `Deposit maturity · only the interest counts` bajo el concepto, el importe
+  que dio el banco en gris y **sin** tachar, y debajo de él, en verde,
+  `Counts 37,07 €`: lo único que entra en `Money in`.
+- En todas esas líneas el importe es el que dio el banco, con su signo: no se
+  cambia por lo que cuenta.
+- Ve a agosto de 2025. **Debes ver** un vencimiento con el importe tachado y
+  en gris y, bajo el concepto, en ámbar,
+  `Doubtful deposit maturity · no deposit amount found for it · not counted for now`.
+  Es dudoso: el backend no encuentra con qué depósito casa, y de momento no
+  cuenta nada. Resolverlo a mano no es de esta feature.
+- Pon la casilla `Hide what does not count` en octubre de 2026. **Debes ver**
+  que desaparecen las aperturas y cancelaciones, que siguen el vencimiento con
+  `Counts 37,07 €` y que las tres cifras no se mueven. En agosto de 2025, con
+  la casilla puesta, el vencimiento dudoso **sigue** en la lista.
 
 ### Qué probar — corregir la categoría de un movimiento (escribe)
 
@@ -454,6 +506,11 @@ nombre del mes. Pulsa `Previous`.
     -- escojo un movimiento, al pulsar en exclude total, baja la cantidad con ese valor, pulso el boton reload y vuelve todo como estaba
        cantidad en gris nunca la vi
 
+    **Nuevo desde la feature 31, sin probar en tu primera revisión:** para
+    esta prueba no elijas un movimiento de depósito. En ellos la marca se
+    guarda, pero desde la feature 57 del backend no cambia ninguna cifra, y la
+    línea no enseña `Not counted`: sigue enseñando lo que cuenta de verdad.
+
 21. Pulsa `Undo`. **Debes ver** que `Not counted` desaparece y el importe deja de estar tachado, que las tres cifras
     **vuelven a ser las que apuntaste**, y el texto `1 movement back in totals`.
     -- ok
@@ -473,7 +530,7 @@ nombre del mes. Pulsa `Previous`.
 | Acción | Qué cambia exactamente | Qué no cambia nunca | Cómo se deshace |
 |---|---|---|---|
 | Elegir una categoría en una línea | Solo la categoría de ese movimiento. Funciona igual si está pendiente o confirmado | Importe, fecha, concepto y estado (no se puede confirmar ni devolver a pendiente desde aquí) | `Undo` en la línea verde. O volviendo a abrir el editor y eligiendo la categoría de antes (o `No category`) |
-| `Exclude from totals` / `Include in totals` | Solo la marca de «no cuenta en las sumas» de los movimientos marcados. Las tres cifras se vuelven a pedir al backend | Importe, fecha, concepto, categoría y estado. El movimiento **no se borra ni se esconde** | `Undo`, que devuelve exactamente los que cambiaron. O seleccionándolos y pulsando la acción contraria |
+| `Exclude from totals` / `Include in totals` | Solo la marca de «no cuenta en las sumas» de los movimientos marcados. Las tres cifras se vuelven a pedir al backend. En un movimiento de depósito la marca se guarda, pero no cambia ninguna cifra (desde la feature 57 del backend) | Importe, fecha, concepto, categoría y estado. El movimiento **no se borra ni se esconde** | `Undo`, que devuelve exactamente los que cambiaron. O seleccionándolos y pulsando la acción contraria |
 | `Create rule` desde el editor | Crea una regla. **No toca** el movimiento del que sale | Todo lo del movimiento | Borrando la regla en `Rules` |
 
 **El `Undo` dura poco.** Solo deshace la última acción, y desaparece al cambiar
@@ -492,11 +549,23 @@ veces, una por mes.
   backend no envía ese importe.
 - **Con la casilla `Hide what does not count` quitada, el recuento y las
   cifras no cuadran a ojo**: el número de movimientos cuenta también los
-  `Transfer` y los `Not counted`, y las tres cifras no. Con la casilla puesta,
-  cuadran.
+  `Transfer`, los `Not counted` y las aperturas y cancelaciones de depósito, y
+  las tres cifras no. Con la casilla puesta, cuadran salvo en dos casos que la
+  casilla deja a la vista a propósito: un vencimiento de depósito, que en la
+  lista enseña lo que dio el banco y en las cifras solo suma lo que dice
+  `Counts …`, y uno dudoso, que no suma nada.
 - **Nada se marca solo.** Ni las reglas ni la importación marcan un movimiento
-  como que no cuenta. Lo marcas siempre tú, y también los movimientos nuevos
-  de depósito cada vez que importes.
+  como que no cuenta. Lo marcas siempre tú. Los movimientos de depósito son
+  aparte: desde su feature 57, el backend los reconoce solo y cuenta cada uno
+  por sus intereses, también los que entren en cada importación, así que ya no
+  hay que marcarlos.
+- **Con más de 200 movimientos en un mes**, la casilla no resta las aperturas
+  y cancelaciones de depósito de lo que aún no se ha cargado hasta pulsar
+  `Load more`: hasta entonces `Hiding` dice menos de lo que esconderá.
+- **La marca `Not counted` no cambia lo que suma un movimiento de depósito**
+  (lo decide el backend desde su feature 57), pero la casilla sí esconde un
+  vencimiento marcado o emparejado como traspaso, aunque cuente sus
+  intereses: eso lo filtra el backend.
 - **Un traspaso tuyo cuyo otro movimiento nunca se importó sigue contando**
   como entrada o salida hasta que lo marques. La nota gris lo avisa, dentro de
   `More about what counts`.
@@ -567,6 +636,15 @@ uno en uno o varios a la vez. Lo confirmado sale de esta lista.
    cuenta y la fecha, la categoría (o `Uncategorized`), el importe, un
    desplegable de categoría, un botón `Confirm` y un botón `Create rule`.
    -- ok
+
+   **Nuevo desde la feature 31, sin probar en tu primera revisión:** una fila
+   de un movimiento de depósito se ve igual que en `Movements` (ver el paso
+   que hay después del 13 de `Movements`): `Deposit opening`,
+   `Deposit cancellation`, `Deposit maturity · only the interest counts` o el
+   texto de dudoso en ámbar, en el renglón de la cuenta y la fecha; el importe
+   tachado y en gris en las aperturas, cancelaciones y dudosos; y en un
+   vencimiento, el importe del banco en gris y debajo `Counts …` en verde. Las
+   demás filas no cambian.
 
 4. Baja al final. **Debes ver** `Page 1 of` y el total de páginas, con
    `Previous` y `Next`. Van de 100 en 100. Pulsa `Next` y luego el botón de
@@ -1141,9 +1219,12 @@ mano ese día, no un dato que la aplicación calcule.
 10. Vuelve a `Overview`. Mira otra vez enero de 2026 y la frase del periodo:
     las dos deben haber cambiado.
 
-**Y cada vez que importes:** los movimientos nuevos de depósito de la cuenta
-de myinvestor tampoco se marcan solos. Repite los pasos 2 a 7 con esa cuenta
-en los meses nuevos.
+**Los movimientos de depósito de myinvestor ya no se marcan.** Hasta la
+feature 57 del backend había que marcarlos a mano cada vez que importabas.
+Desde ella, el backend los reconoce solo y cuenta cada uno por sus intereses
+(abrir o cancelar un depósito no cuenta nada), también los que entren en cada
+importación; su cambio quitó la marca a los que la tenían. Este trabajo queda
+solo para los traspasos a tus cuentas.
 
 ## B. Poner categoría al gasto
 

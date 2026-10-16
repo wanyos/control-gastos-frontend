@@ -82,7 +82,9 @@ src/
                           # selección, acciones y deshacer (#16);
                           # `uncategorizedCount` y `refreshUncategorizedCount`: cuántos
                           # pendientes no tienen categoría, con una petición propia de
-                          # `pageSize=1` al abrir la pantalla y tras cada acción (#30)
+                          # `pageSize=1` al abrir la pantalla y tras cada acción (#30);
+                          # `knownDeposits`: el `deposit` de la última lectura de cada
+                          # movimiento, que se vuelve a poner en la línea tras un PATCH (#31)
       service.ts          # GET /api/movements, GET /api/categories (#15);
                           # PATCH /api/movements (#16). El PATCH de UN movimiento bajó a
                           # shared/movements.ts en la #21 y se re-exporta desde aquí
@@ -117,7 +119,10 @@ src/
       store.ts            # useStatementStore: mes, página del mes, carga, error, Load more,
                           # filtros (#20), editor abierto, escritura y deshacer (#21);
                           # `totalWithoutHiding`: cuántos movimientos tiene el mes sin
-                          # esconder nada, tomado de la lectura que ya hacía `hiddenCount` (#29)
+                          # esconder nada, tomado de la lectura que ya hacía `hiddenCount` (#29);
+                          # `visibleMovements`, `hiddenInBrowser` y `visibleTotal`: con la
+                          # casilla puesta, quita de lo cargado las aperturas y cancelaciones
+                          # de depósito y las cuenta; `hiddenCount` pasa a computed (#31)
       months.ts           # todo lo puro del mes: rango, salto, URL, agrupación por día y textos
       filters.ts          # los cuatro filtros ↔ querystring de la API y de la URL (#20);
                           # el interruptor `hideNoise` (`hide=true` en la URL, `excluded=none`
@@ -185,7 +190,12 @@ src/
                           # `transfer` / `excluded` de la #23), parseo, GET /api/movements y la espera tras la
                           # última tecla (#18); y la escritura de uno solo —changesBody,
                           # patch, parseUpdatedMovement, updateMovement, MovementChanges y
-                          # needsReload— desde la #21, y el PATCH en bloque desde la #22
+                          # needsReload— desde la #21, y el PATCH en bloque desde la #22;
+                          # desde la #31 lee `deposit` (obligatorio en GET /api/movements,
+                          # ausente en las respuestas de los PATCH)
+    deposits.ts           # lo puro de los movimientos de depósito (#31): qué esconde la
+                          # casilla, si cuentan 0, sus textos y `withKnownDeposit`. Vive en
+                          # shared/ porque lo usan `statement` y `review`, que no se importan
     transfers.ts          # las dos rutas de la API de traspasos (feature #24): las leen
                           # el extracto (recuento de dudosos, #23) y la pantalla Transfers
   services/
@@ -294,6 +304,15 @@ src/
 > `transfer=only` el contrato devuelve los tres `totals` a `"0.00"` por construcción, así
 > que el importe no existe en ninguna respuesta y calcularlo aquí sería justo la
 > aritmética inventada que esta pantalla lleva cinco features evitando.
+>
+> **La excepción de los movimientos de depósito (feature #31).** El backend no tiene
+> filtro por depósito, así que, con la casilla puesta, las aperturas y cancelaciones de
+> depósito (las que suman 0 según `deposit`) se quitan **en el navegador** de lo ya
+> cargado (`hiddenWhenHiding` de `shared/deposits.ts`). Se cuentan en número, nunca en
+> importe: `hiddenInBrowser` se suma al `Hiding` y se resta de `pagination.total` para el
+> número de movimientos, la lista vacía y `Showing x of y`. Las tres cifras siguen siendo
+> las del backend tal cual. Límite: con más de 200 movimientos en un mes, lo de las
+> páginas aún no cargadas no se resta hasta `Load more`.
 >
 > **Lo que el extracto escribe, y nada más.** Nació de solo lectura (feature #19). Desde
 > la #21 manda `PATCH /api/movements/:id` con **solo** `categoryId`, y desde la #22

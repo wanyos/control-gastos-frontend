@@ -59,7 +59,7 @@
         data-test="statement-more"
       >
         <p class="text-sm text-ink-muted" data-test="statement-showing">
-          {{ showingLine(shown, pagination.total) }}
+          {{ showingLine(shown, total) }}
         </p>
         <BaseButton
           variant="secondary"
@@ -104,6 +104,12 @@ const props = withDefaults(
     pagination: Pagination
     /** Rows on screen right now, first page plus whatever `Load more` added. */
     shown: number
+    /**
+     * Feature 31: the month's count as the list shows it — `pagination.total` minus the
+     * deposit openings and cancellations the checkbox took off in the browser (R13).
+     * Absent, `pagination.total`.
+     */
+    visibleTotal?: number
     /** Which empty sentence to paint when the API answered `total: 0`. */
     emptyState?: 'month' | 'noMatches' | 'nothingLeft' | 'unknown'
     /** Feature 23: the filters are on too, so the empty sentence can name both causes. */
@@ -122,6 +128,7 @@ const props = withDefaults(
     selectedIds?: number[]
   }>(),
   {
+    visibleTotal: undefined,
     emptyState: 'month',
     filtered: false,
     hasMore: false,
@@ -145,8 +152,11 @@ const emit = defineEmits<{
   toggle: [number]
 }>()
 
+/** The count of the month as the list shows it (feature 31, R13). */
+const total = computed(() => props.visibleTotal ?? props.pagination.total)
+
 /** The API's own count, not the length of the list: the month is what is empty. */
-const isEmpty = computed(() => props.pagination.total === 0)
+const isEmpty = computed(() => total.value === 0)
 
 const isFiltered = computed(() => props.emptyState === 'noMatches')
 

@@ -6,7 +6,17 @@ import { formatDate, formatMoney } from '@/shared/money'
 import MovementRow from '../components/MovementRow.vue'
 import { parseCategories, parseMovementPage } from '../service'
 import type { Movement } from '../types'
-import { CATEGORY_TREE, EXPENSE, INCOME, NEUTRAL, PAGE_OF_THREE } from './fixtures'
+import {
+  CATEGORY_TREE,
+  DEPOSIT_CANCELLATION,
+  DEPOSIT_DOUBTFUL,
+  DEPOSIT_MATURITY,
+  DEPOSIT_OPENING,
+  EXPENSE,
+  INCOME,
+  NEUTRAL,
+  PAGE_OF_THREE,
+} from './fixtures'
 
 const categories = parseCategories(CATEGORY_TREE)
 
@@ -175,5 +185,90 @@ describe('MovementRow (R4)', () => {
         .find(`[data-movement-id="${movementOf(INCOME).id}"]`)
         .exists(),
     ).toBe(true)
+  })
+
+  // Feature 31: a deposit movement looks the same as in Movements (R9): the same words
+  // under the description, the same crossed-out grey, the same `Counts …` under the
+  // amount. Every other line of Review keeps its look.
+  describe('a deposit movement (feature 31, R9)', () => {
+    const AMOUNT = '[data-test="movement-amount"]'
+    const DESCRIPTION = '[data-test="movement-description"]'
+    const DEPOSIT = '[data-test="movement-deposit"]'
+    const COUNTED = '[data-test="movement-counted"]'
+    const NBSP = String.fromCharCode(0xa0)
+
+    it('paints a deposit line in Review the same way as in Movements', () => {
+      // Opening and cancellation: crossed out, grey, the kind under the description.
+      for (const [raw, kind, bank] of [
+        [DEPOSIT_OPENING, 'Deposit opening', formatMoney('-25000.00')],
+        [DEPOSIT_CANCELLATION, 'Deposit cancellation', formatMoney('10000.00')],
+      ] as const) {
+        const row = rowOf(raw)
+        expect(row.get(AMOUNT).text()).toBe(bank)
+        expect(row.get(AMOUNT).classes()).toEqual(
+          expect.arrayContaining([cls('line', 'through'), cls('text', 'ink', 'faint')]),
+        )
+        expect(row.get(DESCRIPTION).classes()).toContain(cls('text', 'ink', 'muted'))
+        expect(row.get(DEPOSIT).text()).toBe(kind)
+        expect(row.get(DEPOSIT).classes()).toContain(cls('text', 'ink', 'muted'))
+        expect(row.find(COUNTED).exists()).toBe(false)
+      }
+
+      // Maturity: the bank amount in grey and not crossed out, what counts under it.
+      const maturity = rowOf(DEPOSIT_MATURITY)
+      expect(maturity.get(AMOUNT).text()).toBe(`25.037,07${NBSP}€`)
+      expect(maturity.get(AMOUNT).classes()).toContain(cls('text', 'ink', 'muted'))
+      expect(maturity.get(AMOUNT).classes()).not.toContain(cls('line', 'through'))
+      expect(maturity.get(AMOUNT).classes()).not.toContain(cls('text', 'positive'))
+      expect(maturity.get(COUNTED).text()).toBe(`Counts 37,07${NBSP}€`)
+      expect(maturity.get(COUNTED).classes()).toContain(cls('text', 'positive'))
+      expect(maturity.get(DEPOSIT).text()).toBe('Deposit maturity · only the interest counts')
+      expect(maturity.get(DESCRIPTION).classes()).toContain(cls('text', 'ink', 'strong'))
+
+      // Doubtful: crossed out, and its reason in amber.
+      const doubtful = rowOf(DEPOSIT_DOUBTFUL)
+      expect(doubtful.get(AMOUNT).text()).toBe(formatMoney('15021.30'))
+      expect(doubtful.get(AMOUNT).classes()).toEqual(
+        expect.arrayContaining([cls('line', 'through'), cls('text', 'ink', 'faint')]),
+      )
+      expect(doubtful.get(DEPOSIT).text()).toBe(
+        'Doubtful deposit maturity · no deposit amount found for it · not counted for now',
+      )
+      expect(doubtful.get(DEPOSIT).classes()).toContain(cls('text', 'warning'))
+      expect(doubtful.find(COUNTED).exists()).toBe(false)
+
+      // Never the words of the mark or of a pairing.
+      for (const raw of [
+        DEPOSIT_OPENING,
+        DEPOSIT_CANCELLATION,
+        DEPOSIT_MATURITY,
+        DEPOSIT_DOUBTFUL,
+      ]) {
+        const text = rowOf({
+          ...raw,
+          transferId: 'tr_2026_10_09_1',
+          excludedFromTotals: true,
+        }).text()
+        expect(text).not.toContain('Transfer')
+        expect(text).not.toContain('Not counted')
+      }
+    })
+
+    it('leaves the lines of Review that are not deposits as they were', () => {
+      for (const raw of [EXPENSE, INCOME, NEUTRAL]) {
+        const row = rowOf(raw)
+        expect(row.find(DEPOSIT).exists()).toBe(false)
+        expect(row.find(COUNTED).exists()).toBe(false)
+        expect(row.get(DESCRIPTION).classes()).toContain(cls('text', 'ink', 'strong'))
+        expect(row.get(AMOUNT).classes()).not.toContain(cls('line', 'through'))
+      }
+      expect(rowOf(EXPENSE).get(AMOUNT).classes()).toContain(cls('text', 'ink', 'strong'))
+      expect(rowOf(INCOME).get(AMOUNT).classes()).toContain(cls('text', 'positive'))
+      expect(rowOf(NEUTRAL).get(AMOUNT).classes()).toContain(cls('text', 'ink', 'muted'))
+      // A marked or paired line that is not a deposit is not crossed out in Review either.
+      const marked = rowOf({ ...EXPENSE, transferId: 'tr_2026_07_31_1', excludedFromTotals: true })
+      expect(marked.get(AMOUNT).classes()).not.toContain(cls('line', 'through'))
+      expect(marked.get(DESCRIPTION).classes()).toContain(cls('text', 'ink', 'strong'))
+    })
   })
 })

@@ -31,6 +31,26 @@ export type DateOnly = string
 export type MovementType = 'expense' | 'income' | 'neutral'
 export type MovementStatus = 'confirmed' | 'pending_review'
 
+/** The three kinds of deposit movement the backend recognises (its feature 57). */
+export type DepositKind = 'opening' | 'cancellation' | 'maturity'
+/** Why a deposit movement is doubtful; null when it is not. */
+export type DepositReason = 'principal_not_found' | 'several_principals' | 'opening_not_found'
+
+/**
+ * What a deposit movement counts in the figures (contract, `movements[].deposit`). The
+ * backend decides it; the frontend only paints it (feature 31).
+ */
+export interface MovementDeposit {
+  kind: DepositKind
+  /** The deposit amount; null when it is not known for sure (a doubtful one). */
+  principal: DecimalString | null
+  /** What this movement adds to the figures: `0.00`, or the interest of a maturity. */
+  countedAmount: DecimalString
+  ambiguous: boolean
+  reason: DepositReason | null
+  candidateMovementIds: number[]
+}
+
 /** The account as it travels embedded in a movement (no `balance`). */
 export interface MovementAccount {
   id: number
@@ -78,6 +98,11 @@ export interface Movement {
   daySequence: number | null
   createdAt: string
   updatedAt: string
+  /**
+   * Null = not a deposit movement. Absent = the answer does not carry it: only
+   * `GET /api/movements` does, never the PATCHes nor `/api/transfers` (feature 31).
+   */
+  deposit?: MovementDeposit | null
 }
 
 export interface Pagination {
@@ -140,6 +165,12 @@ export const SEARCH_DEBOUNCE_MS = 350
 
 const MOVEMENT_TYPES: readonly MovementType[] = ['expense', 'income', 'neutral']
 const MOVEMENT_STATUSES: readonly MovementStatus[] = ['confirmed', 'pending_review']
+const DEPOSIT_KINDS: readonly DepositKind[] = ['opening', 'cancellation', 'maturity']
+const DEPOSIT_REASONS: readonly DepositReason[] = [
+  'principal_not_found',
+  'several_principals',
+  'opening_not_found',
+]
 
 const movementChecks = createValidators(`GET ${MOVEMENTS_PATH}`)
 
@@ -200,10 +231,39 @@ function parseCategory(v: Validators, raw: unknown, path: string): MovementCateg
   }
 }
 
-/** The whole movement is parsed, not only the five painted fields: the F16 needs the rest. */
-export function parseMovement(v: Validators, raw: unknown, path: string): Movement {
-  const movement = v.asObject(raw, path)
+function parseDeposit(v: Validators, raw: unknown, path: string): MovementDeposit | null {
+  if (raw === null) {
+    return null
+  }
+  const deposit = v.asObject(raw, path)
   return {
+    kind: v.asMember(deposit.kind, DEPOSIT_KINDS, `${path}.kind`),
+    principal: v.asNullableDecimal(deposit.principal, `${path}.principal`),
+    countedAmount: v.asDecimal(deposit.countedAmount, `${path}.countedAmount`),
+    ambiguous: v.asFlag(deposit.ambiguous, `${path}.ambiguous`),
+    reason:
+      deposit.reason === null
+        ? null
+        : v.asMember(deposit.reason, DEPOSIT_REASONS, `${path}.reason`),
+    candidateMovementIds: v
+      .asArray(deposit.candidateMovementIds, `${path}.candidateMovementIds`)
+      .map((id, i) => v.asInteger(id, `${path}.candidateMovementIds[${i}]`)),
+  }
+}
+
+/**
+ * The whole movement is parsed, not only the five painted fields: the F16 needs the rest.
+ * `deposit` is `required` only for `GET /api/movements`, the one answer that carries it;
+ * everywhere else it is left absent (feature 31, design §2).
+ */
+export function parseMovement(
+  v: Validators,
+  raw: unknown,
+  path: string,
+  depositField: 'required' | 'absent' = 'absent',
+): Movement {
+  const movement = v.asObject(raw, path)
+  const parsed: Movement = {
     id: v.asInteger(movement.id, `${path}.id`),
     type: v.asMember(movement.type, MOVEMENT_TYPES, `${path}.type`),
     bookingDate: v.asDateOnly(movement.bookingDate, `${path}.bookingDate`),
@@ -237,6 +297,13 @@ export function parseMovement(v: Validators, raw: unknown, path: string): Moveme
     createdAt: v.asText(movement.createdAt, `${path}.createdAt`),
     updatedAt: v.asText(movement.updatedAt, `${path}.updatedAt`),
   }
+  if (depositField === 'required') {
+    // Mandatory like `excludedFromTotals`: a missing key read as «not a deposit» would
+    // paint a maturity as a whole income again without a word (feature 31, R1).
+    if (!('deposit' in movement)) v.reject(`${path}.deposit`, 'null or a deposit object')
+    parsed.deposit = parseDeposit(v, movement.deposit, `${path}.deposit`)
+  }
+  return parsed
 }
 
 function parsePagination(v: Validators, raw: unknown, path: string): Pagination {
@@ -265,7 +332,7 @@ export function parseMovementPage(raw: unknown): MovementPage {
   return {
     movements: v
       .asArray(body.movements, 'movements')
-      .map((item, i) => parseMovement(v, item, `movements[${i}]`)),
+      .map((item, i) => parseMovement(v, item, `movements[${i}]`, 'required')),
     pagination: parsePagination(v, body.pagination, 'pagination'),
     totals: parseTotals(v, body.totals, 'totals'),
   }

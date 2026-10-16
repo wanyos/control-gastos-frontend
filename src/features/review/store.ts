@@ -3,8 +3,10 @@ import { defineStore } from 'pinia'
 
 import { useCategoryRulesStore } from '@/features/category-rules/store'
 import type { HttpClient } from '@/services/http'
+import { withKnownDeposit } from '@/shared/deposits'
 import { API_NETWORK, ApiError, ValidationError, toAppError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
+import type { MovementDeposit } from '@/shared/movements'
 
 import {
   UNDO_PARTIAL,
@@ -99,8 +101,18 @@ export const useReviewStore = defineStore('review', () => {
   let loadRun = 0
   let categoriesRequested = false
 
+  /**
+   * The `deposit` of every movement read so far (feature 31). The PATCH answers never
+   * carry it, and a row that comes back with `Undo` is no longer on the page: this is
+   * where its `deposit` is found again (R2).
+   */
+  const knownDeposits = new Map<number, MovementDeposit | null>()
+
   function adoptPage(loaded: MovementPage): void {
     result.value = loaded
+    for (const movement of loaded.movements) {
+      if (movement.deposit !== undefined) knownDeposits.set(movement.id, movement.deposit)
+    }
     // The bare queue is the pending count: no extra request for the sidebar (R2).
     if (!hasActiveFilters(filters.value)) {
       pendingCount.value = loaded.pagination.total
@@ -267,7 +279,8 @@ export const useReviewStore = defineStore('review', () => {
     const step = (delta: number): void => {
       if (pendingCount.value !== null) pendingCount.value = Math.max(0, pendingCount.value + delta)
     }
-    for (const movement of movements) {
+    for (const answer of movements) {
+      const movement = withKnownDeposit(answer, knownDeposits.get(answer.id))
       const at = loaded.movements.findIndex((row) => row.id === movement.id)
       if (movement.status === QUEUE_STATUS) {
         if (at === -1) {

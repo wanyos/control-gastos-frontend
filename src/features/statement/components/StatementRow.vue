@@ -28,11 +28,21 @@
         {{ movement.description }}
       </p>
       <!-- `Transfer` and `Not counted` are words next to the account, not badges: the
-           only thing shaped like a label in a line is its category (feature 29, R5). -->
+           only thing shaped like a label in a line is its category (feature 29, R5).
+           A deposit movement says what kind it is instead: the mark and the pairing do
+           not change what it counts (feature 31, R4, R8). -->
       <p class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-ink-muted">
         <span data-test="statement-row-account">{{ accountName }}</span>
         <span
-          v-if="movement.transferId"
+          v-if="depositText !== null"
+          class="font-semibold"
+          :class="isDoubtful ? 'text-warning' : 'text-ink-muted'"
+          data-test="statement-row-deposit"
+        >
+          {{ depositText }}
+        </span>
+        <span
+          v-if="!isDeposit && movement.transferId"
           class="font-semibold"
           :title="TRANSFER_HINT"
           :aria-label="TRANSFER_HINT"
@@ -41,7 +51,7 @@
           Transfer
         </span>
         <span
-          v-if="movement.excludedFromTotals"
+          v-if="!isDeposit && movement.excludedFromTotals"
           class="font-semibold"
           :title="EXCLUDED_HINT"
           :aria-label="EXCLUDED_HINT"
@@ -105,13 +115,24 @@
       Uncategorized
     </span>
 
-    <span
-      class="w-28 shrink-0 text-right font-mono text-sm font-semibold tabular-nums"
-      :class="amountClass"
-      data-test="statement-row-amount"
-    >
-      {{ amount }}
-    </span>
+    <!-- The bank's amount, always; on a deposit maturity, what counts goes under it
+         (feature 31, R5, R6). -->
+    <div class="flex w-28 shrink-0 flex-col items-end">
+      <span
+        class="text-right font-mono text-sm font-semibold tabular-nums"
+        :class="amountClass"
+        data-test="statement-row-amount"
+      >
+        {{ amount }}
+      </span>
+      <span
+        v-if="counted !== null"
+        class="text-right font-mono text-xs tabular-nums text-positive"
+        data-test="statement-row-counted"
+      >
+        {{ counted }}
+      </span>
+    </div>
   </li>
 </template>
 
@@ -130,6 +151,7 @@ import { computed } from 'vue'
 import { accountLabel } from '@/shared/accounts'
 import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
+import { countedLine, depositCountsNothing, depositLine } from '@/shared/deposits'
 import { formatMoney } from '@/shared/money'
 
 import RowCategoryEditor from './RowCategoryEditor.vue'
@@ -170,9 +192,20 @@ const canCategorize = computed(() => props.movement.type !== 'neutral')
 /** Why a paired transfer is visible here but missing from the month's figures (R10). */
 const TRANSFER_HINT = "Paired transfer: not counted in this month's figures"
 
-/** Left out of the month's figures: marked by the user, or one of a paired transfer. */
-const isLeftOut = computed(
-  () => props.movement.excludedFromTotals || props.movement.transferId !== null,
+/** A deposit movement: what it counts is its `deposit`, never the mark (feature 31). */
+const isDeposit = computed(() => props.movement.deposit != null)
+const isDoubtful = computed(() => props.movement.deposit?.ambiguous === true)
+const depositText = computed(() => depositLine(props.movement))
+const counted = computed(() => countedLine(props.movement))
+
+/**
+ * Left out of the month's figures: marked by the user, or one of a paired transfer; a
+ * deposit movement only when it counts nothing (feature 31, R3, R7).
+ */
+const isLeftOut = computed(() =>
+  isDeposit.value
+    ? depositCountsNothing(props.movement)
+    : props.movement.excludedFromTotals || props.movement.transferId !== null,
 )
 
 // No category is said with the shape, not with a colour: dashed edge and no fill, in
@@ -212,6 +245,8 @@ const amountClass = computed(() => {
   // What is left out keeps its amount, its sign and its place: crossed out and faint,
   // never green nor white (feature 29, R1).
   if (isLeftOut.value) return 'text-ink-faint line-through'
+  // A maturity counts only part of it: grey, not crossed out, never green (feature 31, R5).
+  if (isDeposit.value) return 'text-ink-muted'
   if (props.movement.type === 'income') return 'text-positive'
   return props.movement.type === 'neutral' ? 'text-ink-muted' : 'text-ink-strong'
 })

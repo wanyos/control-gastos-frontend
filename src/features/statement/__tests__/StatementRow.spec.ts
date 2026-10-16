@@ -11,6 +11,10 @@ import { formatMoney } from '@/shared/money'
 import StatementRow from '../components/StatementRow.vue'
 import {
   CATEGORIES,
+  DEPOSIT_CANCELLATION,
+  DEPOSIT_DOUBTFUL,
+  DEPOSIT_MATURITY,
+  DEPOSIT_OPENING,
   EXPENSE,
   EXPENSE_SAME_DAY,
   INCOME,
@@ -452,5 +456,119 @@ describe('StatementRow (R9, R10)', () => {
         .find(`[data-movement-id="${parse(INCOME).id}"]`)
         .exists(),
     ).toBe(true)
+  })
+
+  // Feature 31: a deposit movement says what it counts, from its `deposit` (R3 … R8).
+  describe('a deposit movement (feature 31)', () => {
+    const deposits = createValidators('GET /api/movements')
+    const mountDeposit = (raw: Record<string, unknown>) =>
+      mount(StatementRow, {
+        props: { movement: parseMovement(deposits, raw, 'movement', 'required') },
+      })
+    const AMOUNT = '[data-test="statement-row-amount"]'
+    const DESCRIPTION = '[data-test="statement-row-description"]'
+    const DEPOSIT = '[data-test="statement-row-deposit"]'
+    const COUNTED = '[data-test="statement-row-counted"]'
+
+    it('crosses out a deposit opening and a deposit cancellation and greys their description', () => {
+      for (const raw of [DEPOSIT_OPENING, DEPOSIT_CANCELLATION]) {
+        const row = mountDeposit(raw)
+        const amount = row.get(AMOUNT)
+
+        expect(amount.classes()).toContain('line-through')
+        expect(amount.classes()).toContain('text-ink-faint')
+        expect(amount.classes()).not.toContain('text-positive')
+        expect(amount.classes()).not.toContain('text-ink-strong')
+        expect(row.get(DESCRIPTION).classes()).toContain('text-ink-muted')
+        expect(row.get(DESCRIPTION).classes()).not.toContain('text-ink-strong')
+        expect(row.find(COUNTED).exists()).toBe(false)
+      }
+    })
+
+    it('writes the kind of deposit movement under the description next to the account', () => {
+      const lines = [DEPOSIT_OPENING, DEPOSIT_CANCELLATION, DEPOSIT_MATURITY].map((raw) => {
+        const row = mountDeposit(raw)
+        const kind = row.get(DEPOSIT)
+        // Same line as the account, as a plain word and not a badge.
+        expect(kind.element.parentElement).toBe(
+          row.get('[data-test="statement-row-account"]').element.parentElement,
+        )
+        expect(kind.element.tagName).toBe('SPAN')
+        expect(kind.classes()).toContain('text-ink-muted')
+        return kind.text()
+      })
+
+      expect(lines).toEqual([
+        'Deposit opening',
+        'Deposit cancellation',
+        'Deposit maturity · only the interest counts',
+      ])
+      expect(mountRow(EXPENSE).find(DEPOSIT).exists()).toBe(false)
+    })
+
+    it('shows on a deposit maturity the bank amount and under it only the interest that counts', () => {
+      const row = mountDeposit(DEPOSIT_MATURITY)
+      const amount = row.get(AMOUNT)
+      const counted = row.get(COUNTED)
+
+      expect(amount.text()).toBe(formatMoney('25037.07'))
+      expect(amount.text()).toBe(`25.037,07${String.fromCharCode(0xa0)}€`)
+      expect(amount.classes()).not.toContain('line-through')
+      expect(amount.classes()).toContain('text-ink-muted')
+      expect(amount.classes()).not.toContain('text-positive')
+      expect(counted.text()).toBe(`Counts 37,07${String.fromCharCode(0xa0)}€`)
+      expect(counted.classes()).toContain('text-positive')
+      expect(counted.classes()).toContain('text-xs')
+      // Under the amount, in the same column.
+      expect(counted.element.parentElement).toBe(amount.element.parentElement)
+      expect(row.get(DESCRIPTION).classes()).toContain('text-ink-strong')
+    })
+
+    it('keeps the bank amount and its sign on every deposit movement', () => {
+      expect(mountDeposit(DEPOSIT_OPENING).get(AMOUNT).text()).toBe(formatMoney('-25000.00'))
+      expect(mountDeposit(DEPOSIT_CANCELLATION).get(AMOUNT).text()).toBe(formatMoney('10000.00'))
+      expect(mountDeposit(DEPOSIT_MATURITY).get(AMOUNT).text()).toBe(formatMoney('25037.07'))
+      expect(mountDeposit(DEPOSIT_DOUBTFUL).get(AMOUNT).text()).toBe(formatMoney('15021.30'))
+    })
+
+    it('shows a doubtful deposit with its reason and its amount crossed out', () => {
+      const row = mountDeposit(DEPOSIT_DOUBTFUL)
+      const amount = row.get(AMOUNT)
+      const kind = row.get(DEPOSIT)
+
+      expect(amount.classes()).toContain('line-through')
+      expect(amount.classes()).toContain('text-ink-faint')
+      expect(row.get(DESCRIPTION).classes()).toContain('text-ink-muted')
+      expect(kind.text()).toBe(
+        'Doubtful deposit maturity · no deposit amount found for it · not counted for now',
+      )
+      expect(kind.classes()).toContain('text-warning')
+      expect(row.find(COUNTED).exists()).toBe(false)
+    })
+
+    it('never writes Transfer or Not counted on a deposit movement', () => {
+      const marked = (raw: Record<string, unknown>) => ({
+        ...raw,
+        transferId: 'tr_2026_10_09_1',
+        excludedFromTotals: true,
+      })
+      for (const raw of [
+        DEPOSIT_OPENING,
+        DEPOSIT_CANCELLATION,
+        DEPOSIT_MATURITY,
+        DEPOSIT_DOUBTFUL,
+      ]) {
+        const row = mountDeposit(marked(raw))
+
+        expect(row.find('[data-test="statement-row-transfer"]').exists()).toBe(false)
+        expect(row.find('[data-test="statement-row-excluded"]').exists()).toBe(false)
+        expect(row.text()).not.toContain('Transfer')
+        expect(row.text()).not.toContain('Not counted')
+      }
+      // The maturity still counts its interest, mark or not.
+      const maturity = mountDeposit(marked(DEPOSIT_MATURITY))
+      expect(maturity.get(AMOUNT).classes()).not.toContain('line-through')
+      expect(maturity.find(COUNTED).exists()).toBe(true)
+    })
   })
 })

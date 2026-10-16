@@ -36,6 +36,7 @@ const movement = (id: number, day: string, extra: Record<string, unknown> = {}) 
   origin: 'imported',
   status: 'confirmed',
   excludedFromTotals: false,
+  deposit: null,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-09-12T18:30:00.000Z',
@@ -358,7 +359,7 @@ test('the note is permanent, carries the live sentence and nothing else numeric'
   await expect(more).toHaveJSProperty('open', true)
   await expect(doubtful).toBeVisible()
   await expect(doubtful).toContainText('2 groups look like transfers but could not be paired')
-  await expect(more.locator('li')).toHaveCount(6)
+  await expect(more.locator('li')).toHaveCount(7)
   await expect(note.locator('button')).toHaveCount(0)
   // The doubtful groups are read ONCE per session, whatever the month does (R15).
   await page.getByTestId('statement-prev').click()
@@ -385,8 +386,8 @@ test('with no doubtful group the note keeps only its fixed text', async ({ page 
 
   await more.locator('summary').click()
 
-  // Opened, it is the five fixed sentences and no more; folded or not, not one digit.
-  await expect(more.locator('li')).toHaveCount(5)
+  // Opened, it is the six fixed sentences and no more; folded or not, not one digit.
+  await expect(more.locator('li')).toHaveCount(6)
   await expect(more.locator('li').first()).toBeVisible()
   expect(await note.textContent()).not.toMatch(/\d/)
   expect(watch.consoleErrors).toEqual([])

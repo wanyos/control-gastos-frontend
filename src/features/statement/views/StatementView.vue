@@ -31,6 +31,7 @@
       v-if="store.result"
       :pagination="store.result.pagination"
       :totals="store.result.totals"
+      :movement-count="store.visibleTotal"
       :scope="scope"
       :ambiguous-groups="store.ambiguousGroups"
     />
@@ -109,6 +110,7 @@
       :month="store.month"
       :days="store.days"
       :pagination="store.result.pagination"
+      :visible-total="store.visibleTotal"
       :shown="store.shown"
       :empty-state="emptyState"
       :filtered="hasActiveFilters(store.filters)"

@@ -46,6 +46,7 @@ const movement = (id: number, description: string, extra: Movement = {}): Moveme
   status: 'pending_review',
   // Since the backend's feature 49 every movement carries it, born false (feature 22).
   excludedFromTotals: false,
+  deposit: null,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-08-06T18:30:00.000Z',

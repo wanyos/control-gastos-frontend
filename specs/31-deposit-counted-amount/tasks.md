@@ -76,13 +76,13 @@ Depende de: —
   `paints the backend totals untouched in a month with deposit movements` (respuesta con
   `income` 203.92 y las cuatro filas de depósito; la tarjeta enseña 203,92 € y nada sumado
   en el navegador). Cubre: R14.
-- [ ] T12 — `./init.sh` en verde y `./init.sh --checks 31` en verde. Cubre: todos.
+- [x] T12 — `./init.sh` en verde y `./init.sh --checks 31` en verde. Cubre: todos.
 
 ## Lote B — documentos que esta feature vuelve falsos
 Archivos: `docs/guia-de-uso.md`, `docs/architecture.md`
 Depende de: Lote A
 
-- [ ] T13 — `docs/guia-de-uso.md`, apartados de `Movements` y `Review`: el paso 4 (los
+- [x] T13 — `docs/guia-de-uso.md`, apartados de `Movements` y `Review`: el paso 4 (los
   apuntes de depósito ya no están marcados), el paso 5 (la casilla quita también aperturas
   y cancelaciones), el paso 13 (la frase nueva y seis frases plegadas), «Nada se marca
   solo» (los depósitos ya no hay que marcarlos), y un paso nuevo para ver octubre de 2026
@@ -90,6 +90,6 @@ Depende de: Lote A
   2025. **El archivo contiene notas del humano: las líneas que empiezan por `--` y los
   bloques «Mis notas de esta prueba». No se tocan, ni se mueven, ni se reescriben.**
   Cubre: R3, R5, R7, R10, R11.
-- [ ] T14 — `docs/architecture.md`: añadir `shared/deposits.ts` a la estructura de
+- [x] T14 — `docs/architecture.md`: añadir `shared/deposits.ts` a la estructura de
   carpetas, con una línea de por qué vive en `shared/` (lo usan `statement` y `review`).
   Cubre: R9.

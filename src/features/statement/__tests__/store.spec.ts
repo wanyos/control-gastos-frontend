@@ -9,8 +9,12 @@ import { useStatementStore } from '../store'
 import {
   ACCOUNTS,
   CATEGORIES,
+  DEPOSIT_MATURITY,
+  DEPOSIT_MONTH_PAGE,
   EXPENSE,
   EXPENSE_SAME_DAY,
+  SALARY,
+  asPatchAnswer,
   INCOME,
   bulkResult,
   excluded,
@@ -1469,5 +1473,38 @@ describe('useStatementStore', () => {
         expect(store.ambiguousGroups).toBeNull()
       })
     })
+  })
+
+  // Feature 31: the PATCH answers never carry `deposit` (contract), so the row keeps the
+  // one of the last read; without it a maturity would be painted as a whole income (R2).
+  it('keeps the deposit of a line after changing its category', async () => {
+    const answer = asPatchAnswer(changed(DEPOSIT_MATURITY, { categoryId: 4, category: SALARY }))
+    expect('deposit' in answer).toBe(false)
+    const api = mockApi({ movements: json(DEPOSIT_MONTH_PAGE), patch: json(answer) })
+    const store = useStatementStore()
+    await store.show('2026-10')
+    const before = store.shownMovements.find((row) => row.id === 52)?.deposit
+
+    await store.categorize(52, 4)
+
+    const after = store.shownMovements.find((row) => row.id === 52)
+    expect(api.patches()).toHaveLength(1)
+    expect(after?.categoryId).toBe(4)
+    expect(after?.deposit).toEqual(before)
+    expect(after?.deposit).toEqual({
+      kind: 'maturity',
+      principal: '25000.00',
+      countedAmount: '37.07',
+      ambiguous: false,
+      reason: null,
+      candidateMovementIds: [],
+    })
+
+    // And again after its Undo, which is another PATCH without it.
+    await store.undoLast()
+
+    const undone = store.shownMovements.find((row) => row.id === 52)
+    expect(api.patches()).toHaveLength(2)
+    expect(undone?.deposit?.countedAmount).toBe('37.07')
   })
 })

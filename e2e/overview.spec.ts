@@ -75,6 +75,7 @@ const movement = (id: number, day: string) => ({
   origin: 'imported',
   status: 'confirmed',
   excludedFromTotals: false,
+  deposit: null,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-09-12T18:30:00.000Z',

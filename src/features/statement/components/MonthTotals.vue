@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-4" data-test="statement-totals">
       <div class="flex flex-wrap items-baseline gap-x-8 gap-y-3">
         <p class="text-sm text-ink-muted" data-test="statement-totals-count">
-          {{ movementCountLine(pagination.total) }}
+          {{ movementCountLine(movementCount ?? pagination.total) }}
         </p>
 
         <p class="flex items-baseline gap-2 text-sm">
@@ -91,19 +91,24 @@ import type { Pagination, Totals } from '../types'
 /**
  * The one sentence always in sight (feature 29, R8). It names the two labels the user
  * reads in the list, and carries NO figure of any kind: a number written by hand is
- * what made the F19's note expire.
+ * what made the F19's note expire. Since feature 31 it also says how a deposit counts.
  */
-const FIGURES_LINE = 'These figures leave out the movements labelled "Transfer" or "Not counted".'
+const FIGURES_LINE =
+  'These figures leave out the movements labelled "Transfer" or "Not counted", and count a deposit only by its interest.'
 
 const MORE_SUMMARY = 'More about what counts'
 
-/** The folded rest, in this order and word for word (feature 29, R10). No digit either. */
+/**
+ * The folded rest, in this order and word for word (feature 29, R10). No digit either.
+ * The sixth sentence, about deposits, came with feature 31 (R10).
+ */
 const MORE_LINES = [
   'They stay in the list, with the amount crossed out. Tick "Hide what does not count" to take them off the list.',
   '"Transfer" is put by the app on the two movements of a transfer between your accounts. "Not counted" is put by you.',
   'A movement that is left out keeps its category: the category says what it was, the label says it is not in the sums.',
   'If only one of the two movements of a transfer was imported, it still counts until you mark it as "Not counted".',
   'The app can pair two movements that are not a transfer. Unlink them in "Transfers".',
+  'Opening or cancelling a deposit is not counted. When one matures, only its interest counts. A doubtful one counts nothing until the app knows how much was put in.',
 ] as const
 
 /**
@@ -126,8 +131,13 @@ const props = withDefaults(
     scope?: string
     /** Feature 23: doubtful groups the backend counted, or null to say nothing (R15). */
     ambiguousGroups?: number | null
+    /**
+     * Feature 31: the count of the month as the list shows it, without the deposit
+     * openings and cancellations the checkbox took off (R13). Absent, `pagination.total`.
+     */
+    movementCount?: number
   }>(),
-  { scope: undefined, ambiguousGroups: null },
+  { scope: undefined, ambiguousGroups: null, movementCount: undefined },
 )
 
 const isNetNegative = computed(() => toCents(props.totals.net) < 0n)

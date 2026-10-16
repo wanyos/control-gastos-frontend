@@ -89,6 +89,7 @@ const rawMovement = (bookingDate: string): Record<string, unknown> => ({
   daySequence: 1,
   createdAt: '2026-09-12T18:30:00.000Z',
   updatedAt: '2026-09-12T18:30:00.000Z',
+  deposit: null,
 })
 
 /** A raw page of `GET /api/movements?pageSize=1`. */
