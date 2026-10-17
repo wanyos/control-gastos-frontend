@@ -1635,7 +1635,8 @@
           "Del 2026-10-17: va en una entrada nueva del menú, `Monthly cost`.",
           "Del 2026-10-17: los recibos, de más caro a más barato al mes.",
           "Del 2026-10-17: los recibos sin cargos en el periodo, al final y plegados.",
-          "Del 2026-10-17: los tres avisos del borrador se dejan para después y ninguno frena la pantalla. Los cargos `TRIBUTO` son todos pagos a Hacienda, así que agruparlos es correcto. Que una transferencia con categoría puesta a mano vaya a su categoría del gasto variable se hará en el backend como feature aparte: no se toca en el frontend. El supermercado bajo irá corrigiéndose con reglas."
+          "Del 2026-10-17: los tres avisos del borrador se dejan para después y ninguno frena la pantalla. Los cargos `TRIBUTO` son todos pagos a Hacienda, así que agruparlos es correcto. Que una transferencia con categoría puesta a mano vaya a su categoría del gasto variable se hará en el backend como feature aparte: no se toca en el frontend. El supermercado bajo irá corrigiéndose con reglas.",
+          "Del 2026-10-17: aprobó la hoja de decisiones con los tres añadidos del spec-author (columna de lo que se cobra cada vez, poder desplegar también las transferencias a personas y cada categoría, y la línea de cuántos recibos han subido)."
         ]
       },
       "acceptance": [],
@@ -1698,7 +1699,7 @@
         }
       ],
       "sdd": true,
-      "status": "spec_ready"
+      "status": "in_progress"
     }
   ]
 }
