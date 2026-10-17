@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** F32 `monthly-cost` (SDD). Spec aprobado por el humano el 2026-10-17, con los tres añadidos. Lote A lanzado.
+- **Feature en curso:** ninguna. La F32 quedó cerrada el 2026-10-17.
 - **Nivel de consumo:** medio (todos los subagentes en `opus`).
 
 Lo que sigue vivo está en `docs/roadmap.md` (tabla «Cabos sueltos con dueño») y, para las

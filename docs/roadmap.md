@@ -50,7 +50,8 @@ lo que no la tiene y confirma todo lo pendiente de una vez
 sección `Review`, pasos 20 a 22.
 
 **Lo siguiente en la E8**: los recurrentes (traspaso `../docs/handoff-recurrentes.md`,
-backend primero). Detalle en la sección de la E8.
+backend primero). Detalle en la sección de la E8. *(Nota del 2026-10-17: el backend los
+sirve desde su feature 58 y el frontend los enseña en la pantalla `Monthly cost`, feature 32.)*
 
 **El ruido de las sumas está resuelto en el extracto.** La **F22** (cerrada el
 2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
@@ -374,8 +375,9 @@ agregados: `GET /api/overview`, `GET /api/investments/overview`,
 > 3. ⬜ **Lo que ganó cada depósito**, en Patrimonio, con `GET /api/investments/deposits`
 >    (feature 50 del backend, commit `a6195be`), servido y todavía **sin usar en el
 >    frontend**. También es lo siguiente.
-> 4. ⏸️ **Recurrentes**: espera al backend, a la parte 1 de
->    `../docs/handoff-recurrentes.md`. No se calcula en el navegador.
+> 4. ✅ **Recurrentes**: hecho el 2026-10-17. Backend, feature 58
+>    (`GET /api/recurring-expenses`); frontend, feature 32 (pantalla `Monthly cost`).
+>    No se calcula en el navegador.
 > 5. ⏸️ **El reparto por categoría**: aplazado hasta que haya más categorizado. Hoy solo
 >    el 6,9 % del gasto tiene categoría y sería un gráfico que finge saber.
 >

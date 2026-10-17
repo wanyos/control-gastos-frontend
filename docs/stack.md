@@ -332,6 +332,7 @@ feature #8; ver *Iconos (Lucide)*.
   `Movements` y `Transfers` pasa a ser la palabra sola con borde (variante `secondary`
   de `BaseButton`), porque con la flecha curva se leyó como un botón de recargar. Ningún
   archivo de `src/` importa ya `Undo2`.
+- **Feature #32:** `ReceiptEuro`, la entrada `Monthly cost` del menú.
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,

@@ -63,6 +63,7 @@ pantalla tiene datos. Cada una lo dice a su manera:
 | `Rules` | `Something went wrong loading your rules.` con `Try again`. |
 | `Transfers` | `Couldn't load the doubtful transfers.` y `Couldn't load the linked pairs.`, cada una con su `Try again`. |
 | `Overview` y `Movements` | `Something went wrong loading this month.` con `Try again`. |
+| `Monthly cost` (desde la feature 32) | `Something went wrong loading the monthly cost.` con `Try again`. |
 | Botón `Import` | No sale el aviso de archivos nuevos. Al pulsarlo: `Couldn't reach the server` y `Nothing has been imported.` |
 
 En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
@@ -71,8 +72,9 @@ En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
 
 ### Tres cosas que valen para toda la aplicación
 
-- **El menú de la izquierda** tiene siete entradas, en este orden: `Net Worth`,
-  `Review`, `Rules`, `Transfers`, `Overview`, `Movements`, `Investments`.
+- **El menú de la izquierda** tiene ocho entradas, en este orden: `Net Worth`,
+  `Review`, `Rules`, `Transfers`, `Overview`, `Monthly cost`, `Movements`,
+  `Investments`. `Monthly cost` está desde la feature 32.
 - **La barra de arriba** enseña el nombre de la pantalla y, a la derecha, el
   botón `Import`. Está en todas las pantallas.
 - **Importes, fechas y conceptos no se pueden editar desde ninguna pantalla.**
@@ -88,6 +90,7 @@ En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
 |---|---|---|
 | `Net Worth` | Cuánto tienes hoy y de qué está hecho, por tipo y por banco | Solo mira |
 | `Overview` | Un mes resumido: qué entró, qué salió, cuánto ahorraste, y debajo los últimos 24 meses | Solo mira |
+| `Monthly cost` | Lo que te cuesta un mes de media (recibos, lo que envías a personas y gasto variable por categoría), sacado de los 12 meses completos anteriores al actual. Desde la feature 32 | Solo mira |
 | `Investments` | Nada todavía: pantalla vacía | — |
 | `Movements` | Todos tus movimientos mes a mes, con sus sumas | **Escribe**: la categoría de un movimiento, y si un movimiento cuenta o no en las sumas |
 | `Review` | La lista de lo importado que aún no has dado por bueno | **Escribe**: la categoría y el estado (pendiente o confirmado) |
@@ -294,6 +297,115 @@ verás solo una frase del tipo `No movements in October 2026.` seguida de
 > - Falla:
 > - Quiero cambiar:
 > - No entiendo: hay meses que pone un gasto excesivo, quizas es lo que me dices hasta que no este todo categorizado no se ve bien, por ejemplo hay muchos meses en el año 2024 con un gasto que no es real
+
+---
+
+## 2b. `Monthly cost` — solo mira
+
+> **Sección nueva desde la feature 32, sin probar en tu primera revisión.** Sale
+> de leer el código y de las pruebas hechas al cerrar la feature, con datos
+> inventados. Nadie ha abierto todavía esta pantalla en el navegador contra tus
+> datos. Las cifras de tus datos que se citan aquí se midieron el 2026-10-17
+> pidiendo al backend, directamente, lo mismo que pide la pantalla.
+
+**Para qué sirve.** Dice cuánto te cuesta un mes de media, sacado de los 12
+meses completos anteriores al mes en curso, repartido en tres bloques: los
+recibos, lo que envías a personas y el gasto variable por categoría. De cada
+recibo dice cada cuánto se cobra, cuándo fue el último cargo y si ha subido.
+No pulsa nada que escriba: solo abre y cierra listas.
+
+### Qué probar
+
+1. Pulsa `Monthly cost` en el menú, justo debajo de `Overview`. **Debes ver**
+   que la dirección cambia a `/monthly-cost`, el título `Monthly cost` y,
+   mientras carga, la frase `Reading what a month costs…` sin ninguna cifra.
+   Después, una cifra grande con la etiqueta `What a month costs` (en
+   pantalla, en mayúsculas, como las demás etiquetas de cifras).
+
+2. Lee la frase bajo la cifra. **Debe** decir
+   `Monthly average of the 12 complete months before this one:` seguido del
+   primer y el último mes. Medido el 2026-10-17: `October 2025 to September
+   2026`. El mes en curso no entra.
+
+3. Debajo, una línea dice cuántos recibos han subido desde su cargo anterior
+   (`… of … bills went up since their previous charge.`). Medido el
+   2026-10-17: 8 de 15.
+
+4. Mira el bloque `Bills`. **Debes ver** a la derecha de su título un importe
+   (lo que suman al mes todos los recibos) y una fila por recibo, de más caro a
+   más barato al mes. En cada fila: el nombre, con la primera letra en
+   mayúscula y debajo, pequeño, el concepto tal como lo puso el banco; cada
+   cuánto se cobra (`Monthly`, `Twice a month`, `Every 2 months`,
+   `Every 3 months`, `Every 6 months`, `Yearly` u `Once`); lo que se suele
+   cobrar cada vez (`… each time`; en los de dos veces al mes, `… a month`);
+   la fecha del último cargo; el cambio; y lo que cuesta al mes. En una
+   pantalla ancha, encima de las filas salen los nombres de las columnas, en
+   mayúsculas: `Bill`, `How often`, `Usual amount`, `Last charge`, `Change`,
+   `Per month`.
+
+5. Mira la columna `Change`. **Debes ver** una etiqueta con fondo de color,
+   `Up` y un importe, **solo** en los recibos que han subido, y debajo `was` y
+   lo que se cobró la vez anterior. Los demás dicen, en gris y sin etiqueta,
+   `Down` y un importe, `Same`, o `No earlier charge` si no hubo cargo
+   anterior.
+
+6. Busca un recibo con `Yearly`. **Debes ver** en `Usual amount` el cargo
+   entero de cada vez, con `each time`, y en `Per month` lo cobrado en el
+   periodo entre 12: se lee como anual, no como un mensual al que le faltan
+   meses.
+
+7. Pulsa `Show charges` en un recibo. **Debes ver** justo debajo de su fila
+   la lista de sus cargos, cada uno con su fecha, su importe y su concepto,
+   bajo el encabezado `All … charges, newest first` (o `The only charge` si
+   solo tiene uno), y que el botón pasa a decir `Hide charges`. Abre otro:
+   pueden estar abiertos varios a la vez. Pulsa `Hide charges`: se cierra.
+
+8. Al final del bloque `Bills`, **debes ver** una línea plegada del tipo
+   `2 bills with no charges between October 2025 and September 2026`. Ábrela:
+   salen los recibos que no se cobraron en el periodo, con `0,00 €` al mes.
+   Medido el 2026-10-17: 2. Si no hay ninguno, la línea no sale.
+
+9. Mira el bloque `Sent to people`. **Debes ver** una fila
+   `Transfers to people` con lo que cuesta al mes, y el mismo importe a la
+   derecha del título. `Show charges` abre sus cargos del periodo
+   (`… charges in these 12 months, newest first`). Medido el 2026-10-17: 99
+   cargos.
+
+10. Mira el bloque `Variable spending`. **Debes ver** una fila por categoría
+    con lo que cuesta al mes; el gasto sin categoría sale como `No category`.
+    Cada fila se abre con `Show charges` como la de personas. Medido el
+    2026-10-17: 8 filas, ninguna `No category`.
+
+11. Suma a mano los tres importes de la derecha de los títulos de los
+    bloques. **Debe** dar exactamente la cifra de arriba.
+
+12. Ve a otra pantalla y vuelve a `Monthly cost`. **Debes ver** otra vez la
+    frase de carga: se vuelve a leer cada vez que entras.
+
+### Lo que no hace o hace a medias
+
+- **No escribe nada.** Hace una sola lectura al backend cada vez que entras.
+- **No recarga tras importar mientras estás en ella.** Si importas desde el
+  botón `Import` con esta pantalla abierta, sal y vuelve a entrar para ver las
+  cifras nuevas. El periodo no incluye el mes en curso, así que una
+  importación de este mes no las cambia.
+- **La cuenta de cada cargo no sale.** La lista de cargos tiene fecha, importe
+  y concepto, pero no de qué cuenta salió.
+- **Qué es un recibo, qué cuenta como enviado a personas y qué es gasto
+  variable lo decide el backend**, igual que todas las cifras y el orden. La
+  pantalla solo suma los tres importes de las cabeceras de los bloques. Si lo
+  que llega del backend no suma la cifra de arriba, no lo enseña: dice
+  `The server answered, but the monthly cost couldn't be read.` con
+  `Try again`.
+- Los recibos sin cargos en el periodo cuestan `0,00 €` al mes: se ven,
+  plegados, pero no suman nada.
+- Si no hubiera ningún gasto en los 12 meses, saldría la cifra y, en lugar de
+  los bloques, `Nothing counts as spending in these 12 months.`
+
+> **Mis notas de esta prueba**
+> - Falla:
+> - Quiero cambiar:
+> - No entiendo:
 
 ---
 
@@ -1305,8 +1417,6 @@ esto existe todavía en la aplicación.
 - **Lo que ganó cada depósito**, en `Net Worth`. Es lo siguiente previsto. El
   backend ya lo sirve; el frontend no lo usa.
 
-- **Los gastos recurrentes.** Espera al backend.
-
 - **El reparto por categoría.** Aplazado hasta que haya más gasto
   categorizado.
 
@@ -1326,6 +1436,9 @@ esto existe todavía en la aplicación.
 - **Un corte de red al escribir se cuenta como «no cambió nada»** en `Review`,
   `Movements` y `Transfers`, sin comprobarlo. Anotado, sin fecha.
 - No hay página para una dirección que no existe.
+
+Los gastos recurrentes, que estaban en esta lista esperando al backend, existen
+desde la feature 32: es la pantalla `Monthly cost` (sección 2b).
 
 ---
 

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { LayoutDashboard, Link2 } from '@lucide/vue'
+import { LayoutDashboard, Link2, ReceiptEuro } from '@lucide/vue'
 
+import MonthlyCostView from '@/features/monthly-cost/views/MonthlyCostView.vue'
 import OverviewView from '@/features/overview/views/OverviewView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
 import TransfersView from '@/features/transfers/views/TransfersView.vue'
@@ -23,8 +24,8 @@ const newRouter = () => createRouter({ history: createMemoryHistory(), routes })
 
 describe('router', () => {
   // The list grew with /rules in feature 17 (right below Review) and with /transfers in
-  // feature 24 (right below Rules).
-  it('declares the seven navigable routes with English paths', () => {
+  // feature 24 (right below Rules), and with /monthly-cost in feature 32 (right below Overview).
+  it('declares the eight navigable routes with English paths', () => {
     const paths = routes.filter((route) => route.name).map((route) => route.path)
 
     expect(paths).toEqual([
@@ -33,6 +34,7 @@ describe('router', () => {
       '/rules',
       '/transfers',
       '/overview',
+      '/monthly-cost',
       '/movements',
       '/investments',
     ])
@@ -54,6 +56,7 @@ describe('router', () => {
     '/rules',
     '/transfers',
     '/overview',
+    '/monthly-cost',
     '/movements',
     '/investments',
   ])('resolves %s to a component', (path) => {
@@ -80,6 +83,19 @@ describe('router', () => {
       icon: LayoutDashboard,
     })
     expect(HOME_ROUTE_NAME).toBe('net-worth')
+  })
+
+  it('lists Monthly cost in the menu right below Overview', () => {
+    expect(newRouter().resolve('/monthly-cost').matched[0]?.components?.default).toBe(
+      MonthlyCostView,
+    )
+    const names = navEntries.map((entry) => entry.name)
+    expect(names.indexOf('monthly-cost')).toBe(names.indexOf('overview') + 1)
+    expect(navEntries.find((entry) => entry.name === 'monthly-cost')).toEqual({
+      name: 'monthly-cost',
+      label: 'Monthly cost',
+      icon: ReceiptEuro,
+    })
   })
 
   it('no longer resolves /import: importing lives in the topbar (feature 13)', async () => {
@@ -116,6 +132,7 @@ describe('router', () => {
       'rules',
       'transfers',
       'overview',
+      'monthly-cost',
       'movements',
       'investments',
     ])
@@ -125,6 +142,7 @@ describe('router', () => {
       'Rules',
       'Transfers',
       'Overview',
+      'Monthly cost',
       'Movements',
       'Investments',
     ])
