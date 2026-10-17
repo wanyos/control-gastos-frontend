@@ -1639,9 +1639,66 @@
         ]
       },
       "acceptance": [],
-      "checks": [],
+      "checks": [
+        {
+          "descripcion": "Veo arriba lo que me cuesta un mes, y el periodo del que sale.",
+          "comando": "grep -qF \"shows the monthly total and the period it comes from at the top\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"shows the monthly total and the period it comes from at the top\""
+        },
+        {
+          "descripcion": "Veo cada recibo con su nombre, lo que cuesta al mes, cada cuánto se cobra, cuándo fue el último cargo, y si ha subido, cuánto.",
+          "comando": "grep -qF \"shows a bill with its name, monthly cost, periodicity, last charge and increase\" src/features/monthly-cost/__tests__/BillRow.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/BillRow.spec.ts -t \"shows a bill with its name, monthly cost, periodicity, last charge and increase\""
+        },
+        {
+          "descripcion": "Distingo de un vistazo los recibos que han subido.",
+          "comando": "grep -qF \"marks a bill that went up apart from one that went down or stayed the same\" src/features/monthly-cost/__tests__/BillRow.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/BillRow.spec.ts -t \"marks a bill that went up apart from one that went down or stayed the same\""
+        },
+        {
+          "descripcion": "Un recibo anual se lee como anual, no como uno mensual al que le faltan meses.",
+          "comando": "grep -qF \"shows an annual bill as yearly with its usual amount each time\" src/features/monthly-cost/__tests__/BillRow.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/BillRow.spec.ts -t \"shows an annual bill as yearly with its usual amount each time\""
+        },
+        {
+          "descripcion": "Puedo abrir un recibo y ver sus cargos, con su fecha y su importe.",
+          "comando": "grep -qF \"opens a bill and lists its charges with date and amount\" src/features/monthly-cost/__tests__/BillRow.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/BillRow.spec.ts -t \"opens a bill and lists its charges with date and amount\""
+        },
+        {
+          "descripcion": "Veo lo que envío a personas como un grupo aparte, con lo que cuesta al mes.",
+          "comando": "grep -qF \"shows what is sent to people as a group apart with its monthly cost\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"shows what is sent to people as a group apart with its monthly cost\""
+        },
+        {
+          "descripcion": "Veo el gasto variable por categoría, con lo que cuesta al mes cada una.",
+          "comando": "grep -qF \"shows the variable spending by category with the monthly cost of each\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"shows the variable spending by category with the monthly cost of each\""
+        },
+        {
+          "descripcion": "La suma de lo que veo da la cifra de arriba. (lo que enseña la pantalla: los subtotales de los tres bloques y la cifra de arriba)",
+          "comando": "grep -qF \"shows block subtotals that add up to the figure at the top\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"shows block subtotals that add up to the figure at the top\""
+        },
+        {
+          "descripcion": "La suma de lo que veo da la cifra de arriba. (si lo que manda el backend no cuadra, la pantalla no lo enseña)",
+          "comando": "grep -qF \"rejects a response whose monthly costs do not add up to the monthly total\" src/features/monthly-cost/__tests__/service.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/service.spec.ts -t \"rejects a response whose monthly costs do not add up to the monthly total\""
+        },
+        {
+          "descripcion": "Si el backend falla, me lo dice y puedo volver a intentarlo.",
+          "comando": "grep -qF \"says the backend failed and asks again on Try again\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"says the backend failed and asks again on Try again\""
+        },
+        {
+          "descripcion": "(añadido) De tu respuesta del 2026-10-17: va en una entrada nueva del menú, `Monthly cost`.",
+          "comando": "grep -qF \"lists Monthly cost in the menu right below Overview\" src/router/__tests__/router.spec.ts && pnpm exec vitest run src/router/__tests__/router.spec.ts -t \"lists Monthly cost in the menu right below Overview\""
+        },
+        {
+          "descripcion": "(añadido) De tu respuesta del 2026-10-17: los recibos, de más caro a más barato al mes.",
+          "comando": "grep -qF \"keeps the bills from most to least expensive a month\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"keeps the bills from most to least expensive a month\""
+        },
+        {
+          "descripcion": "(añadido) De tu respuesta del 2026-10-17: los recibos sin cargos en el periodo, al final y plegados.",
+          "comando": "grep -qF \"puts the bills with no charges in the period at the end and folded\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"puts the bills with no charges in the period at the end and folded\""
+        },
+        {
+          "descripcion": "(añadido) De «No quiero que la pantalla escriba nada»: la pantalla solo pide una lectura, sin método ni cuerpo.",
+          "comando": "grep -qF \"asks the recurring expenses path with no method and no body\" src/features/monthly-cost/__tests__/service.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/service.spec.ts -t \"asks the recurring expenses path with no method and no body\""
+        }
+      ],
       "sdd": true,
-      "status": "pending"
+      "status": "spec_ready"
     }
   ]
 }
