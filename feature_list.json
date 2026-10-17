@@ -1601,6 +1601,47 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 32,
+      "name": "monthly-cost",
+      "title": "Cuánto me cuesta existir: los gastos recurrentes de un mes",
+      "intent": {
+        "que_quiero": "Una pantalla nueva que me diga cuánto me cuesta un mes de vida. Arriba, la cifra total. Debajo, los recibos uno por uno, con lo que cuesta cada uno al mes, cada cuánto se cobra, cuándo fue el último y si ha subido y cuánto. Después, lo que envío a personas, sumado. Y el gasto variable, por categoría. Quiero poder ver los cargos de un recibo concreto para comprobarlo.",
+        "por_que": "Porque no sé cuánto me cuesta existir: cuánto pago al mes sin hacer nada, solo por tener casa, coche, luz y teléfono. Y quiero enterarme cuando me suben un recibo, aunque sea poco, sin tener que ir mirándolos uno a uno.",
+        "como_se_que_esta_bien": [
+          "Veo arriba lo que me cuesta un mes, y el periodo del que sale.",
+          "Veo cada recibo con su nombre, lo que cuesta al mes, cada cuánto se cobra, cuándo fue el último cargo, y si ha subido, cuánto.",
+          "Distingo de un vistazo los recibos que han subido.",
+          "Un recibo anual se lee como anual, no como uno mensual al que le faltan meses.",
+          "Puedo abrir un recibo y ver sus cargos, con su fecha y su importe.",
+          "Veo lo que envío a personas como un grupo aparte, con lo que cuesta al mes.",
+          "Veo el gasto variable por categoría, con lo que cuesta al mes cada una.",
+          "La suma de lo que veo da la cifra de arriba.",
+          "Si el backend falla, me lo dice y puedo volver a intentarlo."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend: ya calcula todo.",
+          "No quiero que la pantalla escriba nada.",
+          "No quiero presupuestos, avisos ni alertas: esto es solo mirar.",
+          "No quiero poder marcar a mano qué es recurrente y qué no."
+        ],
+        "delego_en_agente": [
+          "Cómo se dibuja: tabla, tarjetas, barras.",
+          "Cómo se nombra cada recibo en pantalla (el backend da el concepto del banco y una versión corta).",
+          "Cómo se enseñan los cargos de un recibo: desplegados en el sitio o en una ventana."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-10-17: va en una entrada nueva del menú, `Monthly cost`.",
+          "Del 2026-10-17: los recibos, de más caro a más barato al mes.",
+          "Del 2026-10-17: los recibos sin cargos en el periodo, al final y plegados.",
+          "Del 2026-10-17: los tres avisos del borrador se dejan para después y ninguno frena la pantalla. Los cargos `TRIBUTO` son todos pagos a Hacienda, así que agruparlos es correcto. Que una transferencia con categoría puesta a mano vaya a su categoría del gasto variable se hará en el backend como feature aparte: no se toca en el frontend. El supermercado bajo irá corrigiéndose con reglas."
+        ]
+      },
+      "acceptance": [],
+      "checks": [],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }
