@@ -1733,9 +1733,54 @@
         ]
       },
       "acceptance": [],
-      "checks": [],
+      "checks": [
+        {
+          "descripcion": "Veo la lista de propuestas, cada una con su texto y cuántos movimientos recogería.",
+          "comando": "grep -qF \"shows the text the kind and how many movements a suggestion would take\" src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts -t \"shows the text the kind and how many movements a suggestion would take\" && grep -qF \"lists the suggested rules in the order of the answer\" src/features/category-rules/__tests__/RulesView.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/RulesView.spec.ts -t \"lists the suggested rules in the order of the answer\""
+        },
+        {
+          "descripcion": "Puedo ver los movimientos de una propuesta antes de decidir.",
+          "comando": "grep -qF \"shows the movements of a suggestion before any rule is created\" src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts -t \"shows the movements of a suggestion before any rule is created\""
+        },
+        {
+          "descripcion": "Elijo una categoría y se crea la regla; veo cuántos movimientos ha movido y cuáles. (el recorrido entero en el navegador, con el backend simulado)",
+          "comando": "grep -qF \"a suggested rule becomes a rule and the box lists the movements it moved\" e2e/category-rules.spec.ts && pnpm test:e2e --project=chromium e2e/category-rules.spec.ts -g \"a suggested rule becomes a rule and the box lists the movements it moved\""
+        },
+        {
+          "descripcion": "La propuesta que acabo de usar desaparece de la lista.",
+          "comando": "grep -qF \"drops the used suggestion and asks for the list again after the rule is created\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"drops the used suggestion and asks for the list again after the rule is created\""
+        },
+        {
+          "descripcion": "Si una propuesta no me interesa, la dejo y sigo con la siguiente. (no hay forma de descartarla, y las que no uso siguen tras crear otra)",
+          "comando": "grep -qF \"offers no way to dismiss a suggestion\" src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts -t \"offers no way to dismiss a suggestion\" && grep -qF \"keeps the unused suggestions after a rule is created from another\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"keeps the unused suggestions after a rule is created from another\""
+        },
+        {
+          "descripcion": "Si la propuesta casa también con movimientos que categoricé yo a mano, me lo dice, y esos no se mueven.",
+          "comando": "grep -qF \"says how many movements categorized by hand also contain the text and that they will not move\" src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts -t \"says how many movements categorized by hand also contain the text and that they will not move\""
+        },
+        {
+          "descripcion": "Si falla, me lo dice y no ha cambiado nada. (cuando el servidor rechaza la regla o no se llega a él)",
+          "comando": "grep -qF \"a rejected create from a suggestion leaves the suggestions the rules and the result as they were\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"a rejected create from a suggestion leaves the suggestions the rules and the result as they were\" && grep -qF \"paints the failure of a create in the row of its suggestion\" src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts -t \"paints the failure of a create in the row of its suggestion\""
+        },
+        {
+          "descripcion": "(añadido) Si la regla se crea pero mover sus movimientos no termina, me lo dice: no se pudieron mover todos y el resto se moverá al crear o cambiar otra regla.",
+          "comando": "grep -qF \"a create whose pass did not finish keeps the rule and says the rest will move later\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"a create whose pass did not finish keeps the rule and says the rest will move later\" && grep -qF \"adds the unfinished sentence when the pass of the new rule did not finish\" src/features/category-rules/__tests__/RuleCreatedNotice.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/RuleCreatedNotice.spec.ts -t \"adds the unfinished sentence when the pass of the new rule did not finish\""
+        },
+        {
+          "descripcion": "(añadido) No quiero que se cree ninguna regla sin que yo elija la categoría, ni que la aplicación me la proponga: el desplegable empieza sin categoría y `Create rule` está apagado hasta que elijo una.",
+          "comando": "grep -qF \"offers only categories of its kind and no category chosen\" src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts -t \"offers only categories of its kind and no category chosen\" && grep -qF \"keeps Create rule off until a category is chosen\" src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts -t \"keeps Create rule off until a category is chosen\""
+        },
+        {
+          "descripcion": "(añadido) Respuesta del 2026-10-18: se quita `Apply rules now`; la línea de la regla creada dice cuántos movimientos se movieron.",
+          "comando": "grep -qF \"says how many movements the new rule categorized and offers no Apply rules now\" src/features/category-rules/__tests__/RuleCreatedNotice.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/RuleCreatedNotice.spec.ts -t \"says how many movements the new rule categorized and offers no Apply rules now\" && grep -qF \"the rule notice in Review says how many it moved and has no Apply rules now\" src/features/review/__tests__/ReviewView.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewView.spec.ts -t \"the rule notice in Review says how many it moved and has no Apply rules now\""
+        },
+        {
+          "descripcion": "(añadido) Tras crear o cambiar una regla, `Review` y `Movements` vuelven a pedir lo que enseñan.",
+          "comando": "grep -qF \"creating or changing a rule makes Review and Movements ask again\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"creating or changing a rule makes Review and Movements ask again\" && grep -qF \"asks for the month again when a rule is created or changed\" src/features/statement/__tests__/store.spec.ts && pnpm exec vitest run src/features/statement/__tests__/store.spec.ts -t \"asks for the month again when a rule is created or changed\""
+        }
+      ],
       "sdd": true,
-      "status": "pending"
+      "status": "spec_ready"
     },
     {
       "id": 34,
