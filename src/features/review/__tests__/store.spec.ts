@@ -457,6 +457,41 @@ describe('useReviewStore', () => {
       expect(store.lastAction?.summary).toBe('1 movement categorized as Groceries')
     })
 
+    it('categorizeOne gives back the movement the PATCH answered or null', async () => {
+      const queue = fakeQueue()
+      mockApi({ movements: queue.movements, patch: queue.patch, categories: json(CATEGORY_TREE) })
+      const store = useReviewStore()
+      await store.load()
+
+      // Feature 34: the screen asks about the other movements with this answer.
+      const updated = await store.categorizeOne(10, 2)
+      expect(updated?.id).toBe(10)
+      expect(updated?.description).toBe('CAFETERÍA CENTRAL')
+      expect(updated?.categoryId).toBe(2)
+      expect(updated?.category?.name).toBe('Groceries')
+
+      // Nothing written: a rejection, a row that is not on the page, or another action
+      // in flight.
+      setActivePinia(createPinia())
+      vi.restoreAllMocks()
+      mockApi({ movements: json(PAGE_OF_THREE), patch: json(VALIDATION_ERROR_BODY, 400) })
+      const rejected = useReviewStore()
+      await rejected.load()
+      await expect(rejected.categorizeOne(10, 2)).resolves.toBeNull()
+      await expect(rejected.categorizeOne(999, 2)).resolves.toBeNull()
+
+      setActivePinia(createPinia())
+      vi.restoreAllMocks()
+      const slow = deferred()
+      mockApi({ movements: json(PAGE_OF_THREE), patch: slow.answer })
+      const busy = useReviewStore()
+      await busy.load()
+      const first = busy.categorizeOne(10, 2)
+      await expect(busy.categorizeOne(11, 4)).resolves.toBeNull()
+      slow.resolve(jsonResponse(asPatchAnswer(changed(EXPENSE, { categoryId: 2 }))))
+      expect((await first)?.id).toBe(10)
+    })
+
     it('asks for the page again after the change, so the API keeps owning the totals', async () => {
       const queue = fakeQueue()
       const api = mockApi({ movements: queue.movements, patch: queue.patch })

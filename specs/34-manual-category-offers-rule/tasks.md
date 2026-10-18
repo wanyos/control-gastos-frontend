@@ -91,7 +91,7 @@ Archivos: `e2e/manual-category-offers-rule.spec.ts`, `e2e/action-notice-in-view.
 > **Corrección del leader (2026-10-18):** se añade `src/features/review/__tests__/service.spec.ts` a este lote. Su test `keeps the whole movement, not only the painted fields` compara el movimiento entero con un objeto escrito a mano, y desde design §5 el movimiento leído trae `categorySource: null`. Solo se añade `categorySource: null,` al objeto esperado; nada más de ese archivo.
 Depende de: Lote A
 
-- [ ] T11 — `e2e/manual-category-offers-rule.spec.ts` (nuevo). Sin backend: primero una
+- [x] T11 — `e2e/manual-category-offers-rule.spec.ts` (nuevo). Sin backend: primero una
   ruta `**/api/**` que aborta y apunta todo lo no previsto, como en
   `e2e/action-notice-in-view.spec.ts`; después el mes de `Movements`, las categorías, el
   `PATCH` de un movimiento, `GET /api/category-rules/preview` (que mira `matchText` y
@@ -106,7 +106,7 @@ Depende de: Lote A
   el `PATCH`),
   `editing the text asks the preview again and the count follows it`. Cubre: R1, R3, R4,
   R5, R10, R11, R13.
-- [ ] T12 — `e2e/action-notice-in-view.spec.ts`: una ruta para
+- [x] T12 — `e2e/action-notice-in-view.spec.ts`: una ruta para
   `**/api/category-rules/preview*` en los montajes de `Review` y de `Movements` (por
   defecto 200 sin movimientos de la regla nueva: no sale la pregunta), para que ningún
   test existente vea una petición abortada. Test nuevo:
@@ -114,16 +114,16 @@ Depende de: Lote A
   (en `Review`, cambia la última fila con un preview que trae movimientos: la línea, el
   `Undo` y la pregunta están a la vista y no se solapan). Los tests con nombre en los
   checks de las features 27 y 33 conservan su nombre y pasan. Cubre: R14.
-- [ ] T13 — `e2e/statement-fix-category.spec.ts`: la misma ruta del preview (200 sin
+- [x] T13 — `e2e/statement-fix-category.spec.ts`: la misma ruta del preview (200 sin
   movimientos de la regla nueva), solo si sin ella algún test falla por la petición
   abortada o por el error de consola; ninguna aserción existente cambia. Cubre: R8
   (soporte).
-- [ ] T14 — `docs/architecture.md`: `OtherMovementsQuestion` en la lista de componentes de
+- [x] T14 — `docs/architecture.md`: `OtherMovementsQuestion` en la lista de componentes de
   `category-rules`, `getRulePreview` en el servicio, `categorySource` en
   `shared/movements.ts`, y en la nota de la feature 27: `Movements` también pinta
   `RuleCreatedNotice`, y la pregunta va en el mismo `StickyBelowTopBar`. Cubre: —
   (documento).
-- [ ] T15 — `docs/guia-de-uso.md`, secciones `4. Movements` (corregir la categoría) y
+- [x] T15 — `docs/guia-de-uso.md`, secciones `4. Movements` (corregir la categoría) y
   `5. Review` (sobre un solo movimiento): pasos nuevos para la pregunta (sí, no, cambiar
   el texto, cuándo no sale) y para `Set when the import was closed`. **El archivo tiene
   notas del humano** (líneas que empiezan por `--` y bloques «Mis notas de esta prueba»):

@@ -302,6 +302,11 @@ export function mockApi(answers: {
   /** Feature 21: `POST /api/category-rules`, the rule born from a line (R16). */
   createRule?: Answer
   /**
+   * Feature 34: `GET /api/category-rules/preview`, asked after a change by hand. Without
+   * it the request is rejected like any other unexpected one, and no question opens.
+   */
+  preview?: Answer | ((query: URLSearchParams) => Promise<Response>)
+  /**
    * Feature 23: `GET /api/transfers/ambiguous`, the only live figure of the note. It
    * defaults to «none», so a test that does not care about it neither sees the sentence
    * nor hits an unexpected call (R15).
@@ -330,6 +335,9 @@ export function mockApi(answers: {
     }
     if (url.pathname === '/api/category-rules' && method === 'POST' && answers.createRule) {
       return answers.createRule()
+    }
+    if (url.pathname === '/api/category-rules/preview' && method === 'GET' && answers.preview) {
+      return answers.preview(url.searchParams)
     }
     if (url.pathname === '/api/movements' && method === 'GET' && answers.movements) {
       return answers.movements(url.searchParams)
@@ -598,4 +606,67 @@ export const asPatchAnswer = (raw: Record<string, unknown>): Record<string, unkn
   const answer = { ...raw }
   delete answer.deposit
   return answer
+}
+
+// ─── Feature 34: where the category came from, and the preview of a rule ─────
+
+/** The root category the closing of an import puts the expenses in. Not in the tree. */
+export const OTHER_EXPENSES = { id: 5, name: 'Otros gastos', kind: 'expense', parentId: null }
+
+/** An expense whose category was set when the import was closed. */
+export const CLOSING_EXPENSE = movement({
+  id: 16,
+  type: 'expense',
+  bookingDate: '2026-09-01',
+  valueDate: '2026-09-01',
+  amount: '48.50',
+  description: 'RECIBO /Academia Ficticia Norte',
+  categoryId: 5,
+  category: OTHER_EXPENSES,
+  categorySource: 'closing',
+})
+
+/** One movement of `categorizedMovements` the rule not created yet would move. */
+const previewMovement = (
+  movementId: number,
+  description: string,
+  bookingDate: string,
+  amount: string,
+): Record<string, unknown> => ({
+  movementId,
+  description,
+  bookingDate,
+  amount,
+  type: 'expense',
+  categoryId: 2,
+  categoryName: 'Groceries',
+  rules: [{ ruleId: null, matchText: 'cafeteria central' }],
+})
+
+/** `GET /api/category-rules/preview` 200: two other movements would move to Groceries. */
+export const PREVIEW_CAFETERIA = {
+  matchText: 'cafeteria central',
+  categoryId: 2,
+  categorization: {
+    categorized: 2,
+    categorizedMovements: [
+      previewMovement(31, 'CAFETERIA CENTRAL 0412', '2026-08-18', '3.85'),
+      previewMovement(37, 'CAFETERIA CENTRAL 0419', '2026-08-25', '4.10'),
+    ],
+    conflictCount: 0,
+    conflicts: [],
+    unmatched: 140,
+  },
+}
+
+/** The 201 of creating that rule from the question: it moved the same two. */
+export const CAFETERIA_CREATED = {
+  ...CREATED_RULE,
+  categorization: {
+    ...PREVIEW_CAFETERIA.categorization,
+    categorizedMovements: PREVIEW_CAFETERIA.categorization.categorizedMovements.map((one) => ({
+      ...one,
+      rules: [{ ruleId: 71, matchText: 'cafeteria central' }],
+    })),
+  },
 }

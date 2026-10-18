@@ -438,3 +438,82 @@ export const movementPage = (
   pagination: { page: 1, pageSize: 5, total, totalPages: Math.ceil(total / 5) },
   totals: MOVEMENT_TOTALS,
 })
+
+// ─── The preview of a rule that does not exist yet (feature 34) ─────────────
+// `GET /api/category-rules/preview`: the same `categorization` the POST would answer,
+// with `ruleId: null` for the rule not created yet. Invented, shaped like the contract.
+
+/** Two movements the new rule `academia ficticia norte` → Educación would move. */
+export const PREVIEW_NEW_RULE_MOVED = [
+  categorizedMovement(437, 'RECIBO /Academia Ficticia Norte', {
+    bookingDate: '2026-08-01',
+    amount: '48.50',
+    categoryId: 12,
+    categoryName: 'Educación',
+    rules: [{ ruleId: null, matchText: 'academia ficticia norte' }],
+  }),
+  categorizedMovement(466, 'RECIBO /Academia Ficticia Norte', {
+    bookingDate: '2026-09-01',
+    amount: '52.75',
+    categoryId: 12,
+    categoryName: 'Educación',
+    rules: [{ ruleId: null, matchText: 'academia ficticia norte' }],
+  }),
+]
+
+/** One the request would move too, but by another rule that was pending (not the new one). */
+export const PREVIEW_OTHER_RULE_MOVED = categorizedMovement(471, 'COMPRA SINTETICO COLMADO SUR', {
+  bookingDate: '2026-09-04',
+  amount: '19.84',
+  rules: [{ ruleId: 3, matchText: 'sintetico colmado' }],
+})
+
+/** 200 with two movements of the new rule and one of another rule. */
+export const PREVIEW_TWO = {
+  matchText: 'academia ficticia norte',
+  categoryId: 12,
+  categorization: {
+    categorized: 3,
+    categorizedMovements: [...PREVIEW_NEW_RULE_MOVED, PREVIEW_OTHER_RULE_MOVED],
+    conflictCount: 0,
+    conflicts: [],
+    unmatched: 211,
+  },
+}
+
+/** 200 where the new rule would move nothing (another rule's pending one still moves). */
+export const PREVIEW_NONE = {
+  matchText: 'academia ficticia norte',
+  categoryId: 12,
+  categorization: {
+    categorized: 1,
+    categorizedMovements: [PREVIEW_OTHER_RULE_MOVED],
+    conflictCount: 0,
+    conflicts: [],
+    unmatched: 213,
+  },
+}
+
+/** 200 for a text typed in the question: one movement of the new rule. */
+export const previewOf = (
+  matchText: string,
+  moved: Record<string, unknown>[],
+  categoryId = 12,
+): Record<string, unknown> => ({
+  matchText,
+  categoryId,
+  categorization: {
+    categorized: moved.length,
+    categorizedMovements: moved,
+    conflictCount: 0,
+    conflicts: [],
+    unmatched: 200,
+  },
+})
+
+/** The 409 body of the preview: a rule with that normalized text already exists. */
+export const PREVIEW_TAKEN_BODY = {
+  statusCode: 409,
+  code: 'CONFLICT',
+  message: 'Ya existe una regla con el texto «academia ficticia norte»',
+}

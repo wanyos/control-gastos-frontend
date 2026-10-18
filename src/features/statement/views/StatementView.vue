@@ -40,12 +40,26 @@
          (R11, decisions.md 🔴 4). Since feature 27 it stays in view under the top bar on
          a scrolled page; the block has an opaque background, so it must not exist empty. -->
     <StickyBelowTopBar v-if="hasNotice" :keep-clear-of="touchedRow">
+      <!-- Since feature 34 the line of a created rule is painted here too, as in Review. -->
+      <RuleCreatedNotice v-if="rules.lastCreated" :saved="rules.lastCreated" />
+
       <StatementActionNotice
+        v-else
         :summary="store.actionNotice"
         :error="store.actionMessage"
         :undoable="store.canUndo"
         :busy="store.isActing"
-        @undo="store.undo()"
+        @undo="onUndo"
+      />
+
+      <!-- Under the line of the change and its Undo, never over them (feature 34). -->
+      <OtherMovementsQuestion
+        v-if="rules.question"
+        :question="rules.question"
+        :busy="rules.isSaving"
+        @text="(text) => rules.checkQuestionText(text)"
+        @create="rules.acceptQuestion()"
+        @dismiss="rules.dismissQuestion()"
       />
     </StickyBelowTopBar>
 
@@ -173,11 +187,13 @@
 // Creating a rule from a line writes nothing on that line (R17). The exclusion is the
 // only gesture of this screen that MOVES the three figures, and it moves them by asking
 // the backend again, never by doing arithmetic here (C3).
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { ListChecks } from '@lucide/vue'
 
+import OtherMovementsQuestion from '@/features/category-rules/components/OtherMovementsQuestion.vue'
+import RuleCreatedNotice from '@/features/category-rules/components/RuleCreatedNotice.vue'
 import RuleDialog from '@/features/category-rules/components/RuleDialog.vue'
 import { proposeMatchText } from '@/features/category-rules/rules'
 import { useCategoryRulesStore } from '@/features/category-rules/store'
@@ -267,18 +283,54 @@ const scope = computed(() => {
 
 // ─── The notice of the last write (feature 27) ─────────────────────────────
 
-/** The two sources the notice reads; nothing new is stored in the store. */
-const hasNotice = computed(() => Boolean(store.actionNotice) || Boolean(store.actionMessage))
+/**
+ * The sources the notice, the line of a created rule and the question read; nothing new
+ * is stored in the store.
+ */
+const hasNotice = computed(
+  () =>
+    Boolean(store.actionNotice) ||
+    Boolean(store.actionMessage) ||
+    rules.lastCreated !== null ||
+    rules.question !== null,
+)
 
 /** `[data-movement-id="<id>"]` of the single line just acted on; null after a batch. */
 const touchedRow = ref<string | null>(null)
 
 const rowSelector = (id: number): string => `[data-movement-id="${id}"]`
 
-function onCategorize(id: number, categoryId: number | null): void {
-  touchedRow.value = rowSelector(id)
-  void store.categorize(id, categoryId)
+/** Every write of this screen takes away the line of a created rule and the question. */
+function beforeWrite(): void {
+  rules.dismissCreated()
+  rules.dismissQuestion()
 }
+
+/**
+ * A change by hand of one line. When the PATCH went through with a category, the screen
+ * asks whether the other movements that contain a text get it too (feature 34, R1).
+ */
+async function onCategorize(id: number, categoryId: number | null): Promise<void> {
+  touchedRow.value = rowSelector(id)
+  beforeWrite()
+  const updated = await store.categorize(id, categoryId)
+  if (!updated || categoryId === null) return
+  await rules.offerRule({
+    movementId: updated.id,
+    description: updated.description,
+    type: updated.type,
+    categoryId,
+    categoryName: updated.category?.name ?? findCategoryName(store.categories, categoryId) ?? '',
+  })
+}
+
+function onUndo(): void {
+  beforeWrite()
+  void store.undo()
+}
+
+/** The question is about a change of this screen: leaving it closes it (R13). */
+onBeforeUnmount(() => rules.dismissQuestion())
 
 // ─── Rules from a line (feature 21: R16, R17) ──────────────────────────────
 // The dialog of the F17 as it is. A rule is born from a line; the screen writes nothing
@@ -290,6 +342,7 @@ const ruling = ref<Movement | null>(null)
 
 function onCreateRule(movement: Movement): void {
   touchedRow.value = rowSelector(movement.id)
+  rules.dismissQuestion()
   rules.saveMessage = null
   ruling.value = movement
 }
@@ -348,12 +401,15 @@ function askOrWrite(excluded: boolean): void {
     asking.value = { excluded, count }
     return
   }
+  beforeWrite()
   void store.setExcluded(excluded)
 }
 
 function confirmExclusion(): void {
   const pending = asking.value
   asking.value = null
-  if (pending) void store.setExcluded(pending.excluded)
+  if (!pending) return
+  beforeWrite()
+  void store.setExcluded(pending.excluded)
 }
 </script>

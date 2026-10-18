@@ -374,13 +374,13 @@ export const useStatementStore = defineStore('statement', () => {
   }
 
   /** One lane for every write: a second click while one is in flight does nothing (C2). */
-  async function runWrite(work: () => Promise<void>): Promise<void> {
-    if (isActing.value) return
+  async function runWrite<T>(work: () => Promise<T>): Promise<T | null> {
+    if (isActing.value) return null
     isActing.value = true
     actionError.value = null
     actionMessage.value = null
     try {
-      await work()
+      return await work()
     } finally {
       isActing.value = false
     }
@@ -396,11 +396,11 @@ export const useStatementStore = defineStore('statement', () => {
     categoryId: number | null,
     summary: (updated: Movement) => string,
     client?: HttpClient,
-  ): Promise<void> {
+  ): Promise<Movement | null> {
     const row = rowOf(id)
-    if (!row) return
+    if (!row) return null
     const previousCategoryId = row.categoryId
-    await runWrite(async () => {
+    return runWrite(async (): Promise<Movement | null> => {
       try {
         const updated = await setMovementCategory(id, categoryId, client)
         adoptUpdated(updated)
@@ -414,6 +414,7 @@ export const useStatementStore = defineStore('statement', () => {
         // Only one Undo is offered at a time, and it is the last thing that happened.
         lastExclusion.value = null
         if (hasCategoryFilter(filters.value)) await refreshQuietly(client)
+        return updated
       } catch (rejection) {
         const failure = toAppError(rejection)
         // The screen could be lying: reload the month instead of claiming nothing
@@ -422,11 +423,21 @@ export const useStatementStore = defineStore('statement', () => {
         if (needsReload(failure)) await show(month.value, filters.value, hideNoise.value, client)
         actionError.value = failure
         actionMessage.value = writeErrorMessage(failure)
+        return null
       }
     })
   }
 
-  function categorize(id: number, categoryId: number | null, client?: HttpClient): Promise<void> {
+  /**
+   * The category of one line. Gives back the movement the PATCH answered with, or null
+   * when nothing was written (a failure, or another write in flight): the screen asks
+   * about the other movements with it (feature 34).
+   */
+  function categorize(
+    id: number,
+    categoryId: number | null,
+    client?: HttpClient,
+  ): Promise<Movement | null> {
     return write(
       id,
       categoryId,

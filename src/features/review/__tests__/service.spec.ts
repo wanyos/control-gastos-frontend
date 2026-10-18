@@ -109,6 +109,7 @@ describe('parseMovementPage (R3, R4, R9)', () => {
         type: 'checking',
       },
       categoryId: 1,
+      categorySource: null,
       category: { id: 1, name: 'Food', kind: 'expense', parentId: null },
       paymentMethod: null,
       origin: 'imported',

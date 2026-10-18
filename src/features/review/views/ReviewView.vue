@@ -71,6 +71,16 @@
         :busy="store.isActing"
         @undo="onUndo"
       />
+
+      <!-- Under the line of the change and its Undo, never over them (feature 34). -->
+      <OtherMovementsQuestion
+        v-if="rules.question"
+        :question="rules.question"
+        :busy="rules.isSaving"
+        @text="(text) => rules.checkQuestionText(text)"
+        @create="rules.acceptQuestion()"
+        @dismiss="rules.dismissQuestion()"
+      />
     </StickyBelowTopBar>
 
     <p v-if="store.notice" class="text-sm text-ink-muted" data-test="review-notice">
@@ -173,11 +183,12 @@
 // The review queue screen. The URL is the single writer of the filters: a control
 // change rewrites the query, and the watcher below turns that into the request.
 // So back, forward, reload and a shared link all behave the same (R10).
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import ApplyRulesDialog from '@/features/category-rules/components/ApplyRulesDialog.vue'
 import LastApplyReport from '@/features/category-rules/components/LastApplyReport.vue'
+import OtherMovementsQuestion from '@/features/category-rules/components/OtherMovementsQuestion.vue'
 import RuleCreatedNotice from '@/features/category-rules/components/RuleCreatedNotice.vue'
 import RuleDialog from '@/features/category-rules/components/RuleDialog.vue'
 import { proposeMatchText } from '@/features/category-rules/rules'
@@ -211,10 +222,11 @@ const rules = useCategoryRulesStore()
 
 const listTop = ref<HTMLElement | null>(null)
 
-/** Same three sources the two notices read today; nothing new is stored in the store. */
+/** The sources the two notices and the question read; nothing new is stored in the store. */
 const hasNotice = computed(
   () =>
     rules.lastCreated !== null ||
+    rules.question !== null ||
     Boolean(store.lastAction?.summary) ||
     Boolean(store.actionMessage),
 )
@@ -296,6 +308,8 @@ function askOrRun(action: 'confirm' | 'category', count: number): void {
 function run(action: 'confirm' | 'category'): Promise<void> {
   touchedRow.value = null
   rules.dismissCreated()
+  // Several rows at once ask nothing: each may give another text (feature 34, R9).
+  rules.dismissQuestion()
   if (action === 'confirm') return store.confirmSelected()
   return store.categorizeSelected(choice.value === 'none' ? null : Number(choice.value))
 }
@@ -316,6 +330,7 @@ const closingAll = ref(false)
 async function onConfirmAll(input: ConfirmAllInput): Promise<void> {
   touchedRow.value = null
   rules.dismissCreated()
+  rules.dismissQuestion()
   if (await store.confirmAll(input)) closingAll.value = false
 }
 
@@ -336,6 +351,7 @@ const ruling = ref<Movement | null>(null)
 
 function onCreateRule(movement: Movement): void {
   touchedRow.value = rowSelector(movement.id)
+  rules.dismissQuestion()
   rules.saveMessage = null
   ruling.value = movement
 }
@@ -372,19 +388,37 @@ async function onSaveRule(rule: NewRule): Promise<void> {
 function onConfirmOne(id: number): void {
   touchedRow.value = rowSelector(id)
   rules.dismissCreated()
+  rules.dismissQuestion()
   void store.confirmOne(id)
 }
 
-function onCategorizeOne(id: number, categoryId: number | null): void {
+/**
+ * A change by hand of one row. When the PATCH went through with a category, the screen
+ * asks whether the other movements that contain a text get it too (feature 34, R1).
+ */
+async function onCategorizeOne(id: number, categoryId: number | null): Promise<void> {
   touchedRow.value = rowSelector(id)
   rules.dismissCreated()
-  void store.categorizeOne(id, categoryId)
+  rules.dismissQuestion()
+  const updated = await store.categorizeOne(id, categoryId)
+  if (!updated || categoryId === null) return
+  await rules.offerRule({
+    movementId: updated.id,
+    description: updated.description,
+    type: updated.type,
+    categoryId,
+    categoryName: updated.category?.name ?? findCategory(store.categories, categoryId)?.name ?? '',
+  })
 }
 
 function onUndo(): void {
   rules.dismissCreated()
+  rules.dismissQuestion()
   void store.undoLast()
 }
+
+/** The question is about a change of this screen: leaving it closes it (R13). */
+onBeforeUnmount(() => rules.dismissQuestion())
 
 /** The account selector is filled from the loaded page: no GET /api/accounts (design.md §8). */
 const accounts = computed<MovementAccount[]>(() =>

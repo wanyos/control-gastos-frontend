@@ -12,6 +12,10 @@ import type { Locator, Page, Route } from '@playwright/test'
 // proxies /api to a real backend on :3000, so without that first route a PATCH, a POST
 // or a DELETE of this file would really be sent.
 //
+// Since feature 34 every change of category of one row asks
+// `GET /api/category-rules/preview`: both screens answer it, by default with no movement
+// the new rule would move, so no question is painted and nothing else changes.
+//
 // The page needs somewhere to scroll to: the lists are long (64 rows in Review, 66 lines
 // in Movements, 24 pairs in Transfers) and the window is the 1280×720 of the project.
 
@@ -94,6 +98,41 @@ const movement = (id: number, day: string, index: number, extra: Raw = {}): Raw 
   ...extra,
 })
 
+/**
+ * The answer of `GET /api/category-rules/preview` for these movements: each one listed as
+ * moved by the rule not created yet (`ruleId: null`), as the contract describes it.
+ */
+const previewAnswer = (route: Route, watch: Watch, moved: (matchText: string) => Raw[]) => {
+  const query = new URL(route.request().url()).searchParams
+  const matchText = (query.get('matchText') ?? '').trim().toLowerCase()
+  const categoryId = Number(query.get('categoryId'))
+  watch.previews.push(`${matchText} → ${categoryId}`)
+  const category = CATEGORY_BY_ID.get(categoryId)
+  const movements = moved(matchText)
+  return route.fulfill({
+    json: {
+      matchText,
+      categoryId,
+      categorization: {
+        categorized: movements.length,
+        categorizedMovements: movements.map((row) => ({
+          movementId: row.id,
+          description: row.description,
+          bookingDate: row.bookingDate,
+          amount: row.amount,
+          type: row.type,
+          categoryId,
+          categoryName: category?.name ?? '',
+          rules: [{ ruleId: null, matchText }],
+        })),
+        conflictCount: 0,
+        conflicts: [],
+        unmatched: 0,
+      },
+    },
+  })
+}
+
 /** A rejection of the contract: nothing was written, so the screen reloads nothing. */
 const REJECTED = {
   status: 400,
@@ -111,12 +150,20 @@ interface Watch {
   aborted: string[]
   /** Every request that was not a GET, as it travelled. */
   writes: Write[]
+  /** Every `GET /api/category-rules/preview`, as `<matchText> → <categoryId>` (feature 34). */
+  previews: string[]
   consoleErrors: string[]
   pageErrors: Error[]
 }
 
 function watchPage(page: Page): Watch {
-  const watch: Watch = { aborted: [], writes: [], consoleErrors: [], pageErrors: [] }
+  const watch: Watch = {
+    aborted: [],
+    writes: [],
+    previews: [],
+    consoleErrors: [],
+    pageErrors: [],
+  }
   page.on('console', (msg) => {
     if (msg.type() === 'error') watch.consoleErrors.push(msg.text())
   })
@@ -166,7 +213,19 @@ const REVIEW_LAST_ID = REVIEW_FIRST_ID + REVIEW_ROWS - 1
  * A fake of the review queue with state: the PATCH really changes its rows and the GET
  * answers what is still pending, so a confirmed row is gone from the next answer.
  */
-async function routeReview(page: Page, watch: Watch, options: { reject?: boolean } = {}) {
+async function routeReview(
+  page: Page,
+  watch: Watch,
+  options: {
+    reject?: boolean
+    /**
+     * Feature 34. `none` (the default): the preview finds nothing the new rule would
+     * move, so no question appears. `matching`: it lists every pending row without a
+     * category whose description contains the text, so the question appears.
+     */
+    preview?: 'none' | 'matching'
+  } = {},
+) {
   const rows = new Map<number, Raw>(
     Array.from({ length: REVIEW_ROWS }, (_item, index) => {
       const day = `2026-09-${String(28 - (index % 27)).padStart(2, '0')}`
@@ -304,6 +363,19 @@ async function routeReview(page: Page, watch: Watch, options: { reject?: boolean
       },
     })
   })
+  await page.route('**/api/category-rules/preview*', (route) => {
+    if (route.request().method() !== 'GET') return stop(route)
+    return previewAnswer(route, watch, (matchText) =>
+      options.preview === 'matching'
+        ? [...rows.values()].filter(
+            (row) =>
+              row.status === 'pending_review' &&
+              row.categoryId === null &&
+              String(row.description).toLowerCase().includes(matchText),
+          )
+        : [],
+    )
+  })
 }
 
 const reviewRow = (page: Page, id: number): Locator => page.locator(`[data-movement-id="${id}"]`)
@@ -408,6 +480,11 @@ async function routeMovements(page: Page, watch: Watch, options: { reject?: bool
       },
     })
   })
+
+  // Feature 34: every line here already has a category, so the preview moves nothing.
+  await page.route('**/api/category-rules/preview*', (route) =>
+    route.request().method() === 'GET' ? previewAnswer(route, watch, () => []) : stop(route),
+  )
 }
 
 const statementRow = (page: Page, id: number): Locator => page.locator(`[data-movement-id="${id}"]`)
@@ -1197,6 +1274,78 @@ test('the notice does not cover a row changed while the notice is already showin
   await expect(page.getByTestId('statement-action-summary')).toContainText('Groceries')
   await expectRowClearOfNotice(page, statementOther)
 
+  expectNothingUnforeseen(watch)
+})
+
+// ─── The question about other movements (feature 34, R14) ──────────────────
+
+/** How many of the other 63 descriptions contain `pago peaje autopista`, as the last one does. */
+const TOLL_ROWS = 7
+
+/** Top and bottom edges of each element, in window coordinates, or null if one is missing. */
+const boxesOf = (page: Page, tests: string[]) =>
+  page.evaluate((names) => {
+    const found = names.map((name) => document.querySelector(`[data-test="${name}"]`))
+    if (found.some((element) => element === null)) return null
+    return found.map((element) => {
+      const box = (element as Element).getBoundingClientRect()
+      return { top: box.top, bottom: box.bottom }
+    })
+  }, tests)
+
+test('the question about other movements sits under the notice and is in view from a low row', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+  await routeReview(page, watch, { preview: 'matching' })
+  await page.goto('/review')
+  await expect(page.getByTestId('movement-row')).toHaveCount(REVIEW_ROWS)
+
+  // The last row of the queue, from the end of the page.
+  await goToBottom(page)
+  const last = reviewRow(page, REVIEW_LAST_ID)
+  await expect(last.getByTestId('movement-description')).toContainText('PAGO PEAJE AUTOPISTA')
+  await reviewCategory(last).selectOption(String(GROCERIES.id))
+
+  await expect(page.getByTestId('action-summary')).toContainText(
+    '1 movement categorized as Groceries',
+  )
+  const question = page.locator(`${BLOCK} [data-test="other-movements-question"]`)
+  await expect(question).toHaveCount(1)
+  await expect(question.getByTestId('other-movements-count')).toHaveText(
+    `${TOLL_ROWS} other movements would move to Groceries.`,
+  )
+  await expect(question.getByTestId('other-movements-text').getByRole('textbox')).toHaveValue(
+    'pago peaje autopista',
+  )
+
+  // The line, its Undo and the question are all in view under the top bar…
+  expect(await scrollY(page)).toBeGreaterThan(0)
+  await expectStuckUnderTopBar(page)
+  await expectInView(page, page.getByTestId('action-summary'))
+  await expectInView(page, page.getByTestId('action-undo'))
+  await expectInView(page, question)
+  await expectInView(page, question.getByTestId('other-movements-create'))
+  await expectInView(page, question.getByTestId('other-movements-dismiss'))
+  // …the question below the line and its Undo, not over them…
+  const boxes = await boxesOf(page, ['action-summary', 'action-undo', 'other-movements-question'])
+  if (boxes === null) throw new Error('the line, its Undo or the question is missing')
+  const [summary, undo, asked] = boxes
+  expect(asked?.top).toBeGreaterThanOrEqual(summary?.bottom ?? Infinity)
+  expect(asked?.top).toBeGreaterThanOrEqual(undo?.bottom ?? Infinity)
+  // …and the row that was changed is not under the block, now taller.
+  await expectRowClearOfNotice(page, last)
+  await expect(last.getByTestId('movement-category')).toHaveText('Groceries')
+
+  // One preview, with the suggested text and the category just chosen; one write.
+  expect(watch.previews).toEqual([`pago peaje autopista → ${GROCERIES.id}`])
+  expect(watch.writes).toEqual([
+    {
+      method: 'PATCH',
+      path: `/api/movements/${REVIEW_LAST_ID}`,
+      body: { categoryId: GROCERIES.id },
+    },
+  ])
   expectNothingUnforeseen(watch)
 })
 

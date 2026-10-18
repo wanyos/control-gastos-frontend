@@ -98,7 +98,11 @@ src/
                           # pintan `Rules` y `Review`) y CategorizedMovementList (sus filas,
                           # una por movimiento categorizado) (#30); SuggestedRuleList y
                           # SuggestedRuleRow (las reglas propuestas de `Rules`, una fila por
-                          # propuesta con su desplegable de categoría y `Create rule`) (#33)
+                          # propuesta con su desplegable de categoría y `Create rule`) (#33);
+                          # OtherMovementsQuestion (la pregunta tras cambiar a mano la
+                          # categoría de un movimiento: si la categoría va también a los
+                          # otros movimientos que contienen un texto; la pintan `Review` y
+                          # `Movements`) (#34)
       views/              # RulesView (ruta /rules); desde la #33 pinta también las reglas
                           # propuestas, encima de las reglas propias
       store.ts            # useCategoryRulesStore: lista, diálogos y la pasada bajo demanda;
@@ -106,20 +110,31 @@ src/
                           # en memoria) y `dismissLastApply` (#30); desde la #33, las
                           # propuestas (`loadSuggestions`, `createFromSuggestion`), y
                           # `lastCreated` y `lastApply` guardan también lo que movió crear o
-                          # cambiar una regla
+                          # cambiar una regla; desde la #34, `question`, `offerRule`,
+                          # `checkQuestionText`, `acceptQuestion` y `dismissQuestion` (la
+                          # pregunta tras un cambio a mano de la categoría de una fila)
       service.ts          # GET/POST /api/category-rules, PATCH y DELETE /:id, POST /apply;
                           # `parseApplyResult` valida también `categorizedMovements` y que
                           # tenga tantos elementos como `categorized` (#30); desde la #33,
                           # `getSuggestions` (GET /api/category-rules/suggestions) y
                           # `parseSavedRule`, que exige `categorization` en la respuesta del
-                          # POST y del PATCH (la lee `parseCategorization`, la misma de /apply)
+                          # POST y del PATCH (la lee `parseCategorization`, la misma de /apply);
+                          # desde la #34, `getRulePreview` (GET /api/category-rules/preview,
+                          # solo lectura: qué movería una regla sin crearla) y
+                          # `parseRulePreview`, que se queda solo con los movimientos que
+                          # lleva la regla nueva (`ruleId: null`)
       rules.ts            # normalización del backend, texto propuesto, umbrales y textos de la
                           # previsualización y de los errores (puras; #17 y #18);
                           # `lastApplyHeadline`, `lastApplyFigures` y `signedAmount` (#30);
-                          # textos de las propuestas y de la regla guardada (#33)
+                          # textos de las propuestas y de la regla guardada (#33);
+                          # `suggestionTextOf` (el texto que propondría la lista de
+                          # propuestas para una descripción, pasos 1 a 5 del contrato),
+                          # `TOO_SHORT` y los textos de la pregunta (#34)
       types.ts            # CategoryRule, NewRule, ApplyResult…; desde la #30, AppliedRule,
                           # CategorizedMovement, `ApplyResult.categorizedMovements` y LastApply;
-                          # desde la #33, SuggestedRule, SavedRule y `LastApply.cause`
+                          # desde la #33, SuggestedRule, SavedRule y `LastApply.cause`;
+                          # desde la #34, PreviewMovement, RulePreview, QuestionCheck,
+                          # OtherMovementsQuestionState y ManualChange
     statement/            # feature #19: el extracto, mi histórico mes a mes; desde la #21
                           # también corrige la categoría de una línea (su única escritura)
       components/         # MonthNav, MonthTotals, StatementList, StatementRow,
@@ -224,7 +239,10 @@ src/
                           # patch, parseUpdatedMovement, updateMovement, MovementChanges y
                           # needsReload— desde la #21, y el PATCH en bloque desde la #22;
                           # desde la #31 lee `deposit` (obligatorio en GET /api/movements,
-                          # ausente en las respuestas de los PATCH)
+                          # ausente en las respuestas de los PATCH); desde la #34 lee
+                          # `categorySource` (`manual`, `rule`, `closing` o `null`; ausente
+                          # se lee como `null`) y `closingSourceLine` da el texto
+                          # `Set when the import was closed` solo cuando es `closing`
     deposits.ts           # lo puro de los movimientos de depósito (#31): qué esconde la
                           # casilla, si cuentan 0, sus textos y `withKnownDeposit`. Vive en
                           # shared/ porque lo usan `statement` y `review`, que no se importan
@@ -244,7 +262,11 @@ src/
 > `Review` envuelve también la línea de la regla recién creada (`RuleCreatedNotice`), que
 > sigue sin salir a la vez que la otra. Desde la feature #33 esa línea ya no lleva el botón
 > `Apply rules now`: dice cuántos movimientos movió crear la regla, y `Rules` la pinta
-> también, dentro del mismo `StickyBelowTopBar`. Ese componente es un
+> también, dentro del mismo `StickyBelowTopBar`. Desde la feature #34 `Movements` también
+> la pinta, en su `StickyBelowTopBar` y en lugar de `StatementActionNotice` mientras está,
+> como `Review`; y en `Review` y en `Movements` la pregunta tras cambiar a mano la
+> categoría de una fila (`OtherMovementsQuestion`) va en ese mismo `StickyBelowTopBar`,
+> debajo de la línea de la última acción y de su `Undo`. Ese componente es un
 > `div` con `position: sticky`, `top` igual al alto de la barra superior
 > (`--topbar-h`), el fondo de la página (`bg-surface-app`, opaco) y el nivel
 > `--z-sticky`: el mismo de la barra superior, por encima de las etiquetas de día del
@@ -252,9 +274,9 @@ src/
 > en el flujo, entre los mismos dos bloques que antes; con la página bajada se queda con
 > su borde superior en el borde inferior de la barra superior. No tiene estado ni sabe qué
 > envuelve: cada pantalla lo pinta con un `v-if` solo mientras hay algo que decir, porque
-> con fondo opaco no puede existir vacío. Los cuatro componentes que envuelve
-> (`ActionNotice`, `StatementActionNotice`, `TransfersActionNotice` y
-> `RuleCreatedNotice`) siguen siendo uno por pantalla, y **ningún** `store.ts`,
+> con fondo opaco no puede existir vacío. En la feature #27, los cuatro componentes que
+> envolvía (`ActionNotice`, `StatementActionNotice`, `TransfersActionNotice` y
+> `RuleCreatedNotice`) siguieron siendo uno por pantalla, y **ningún** `store.ts`,
 > `service.ts`, `actions.ts` ni `pairs.ts` cambió: qué hace cada acción y qué deshace
 > el `Undo` es lo de antes.
 > Recibe una prop opcional, `keepClearOf`: el selector CSS de la única fila sobre la que

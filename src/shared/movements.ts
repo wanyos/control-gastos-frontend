@@ -30,6 +30,8 @@ export type DateOnly = string
 
 export type MovementType = 'expense' | 'income' | 'neutral'
 export type MovementStatus = 'confirmed' | 'pending_review'
+/** Who set the category the movement has now (contract, backend feature 60). */
+export type CategorySource = 'manual' | 'rule' | 'closing'
 
 /** The three kinds of deposit movement the backend recognises (its feature 57). */
 export type DepositKind = 'opening' | 'cancellation' | 'maturity'
@@ -83,6 +85,11 @@ export interface Movement {
   account: MovementAccount
   categoryId: number | null
   category: MovementCategory | null
+  /**
+   * Who set the category: by hand, a rule, or the closing of the import. Null when
+   * there is no category, and when the answer does not carry it (feature 34).
+   */
+  categorySource?: CategorySource | null
   /** Open text, always null today. */
   paymentMethod: string | null
   /** Open text. */
@@ -165,6 +172,7 @@ export const SEARCH_DEBOUNCE_MS = 350
 
 const MOVEMENT_TYPES: readonly MovementType[] = ['expense', 'income', 'neutral']
 const MOVEMENT_STATUSES: readonly MovementStatus[] = ['confirmed', 'pending_review']
+const CATEGORY_SOURCES: readonly CategorySource[] = ['manual', 'rule', 'closing']
 const DEPOSIT_KINDS: readonly DepositKind[] = ['opening', 'cancellation', 'maturity']
 const DEPOSIT_REASONS: readonly DepositReason[] = [
   'principal_not_found',
@@ -278,6 +286,13 @@ export function parseMovement(
     categoryId:
       movement.categoryId === null ? null : v.asInteger(movement.categoryId, `${path}.categoryId`),
     category: parseCategory(v, movement.category, `${path}.category`),
+    // Optional on purpose: it only paints a small line, so an answer without it reads
+    // as «not said» instead of failing (feature 34, design §8). A value outside the
+    // three of the contract is a drift, as in the other closed enumerations.
+    categorySource:
+      movement.categorySource === undefined || movement.categorySource === null
+        ? null
+        : v.asMember(movement.categorySource, CATEGORY_SOURCES, `${path}.categorySource`),
     paymentMethod:
       movement.paymentMethod === null
         ? null
@@ -304,6 +319,17 @@ export function parseMovement(
     parsed.deposit = parseDeposit(v, movement.deposit, `${path}.deposit`)
   }
   return parsed
+}
+
+/** What the small grey line under the description says when the import closing set it. */
+export const CLOSING_SOURCE_LABEL = 'Set when the import was closed'
+
+/**
+ * The line about where the category came from: only when the closing of the import set
+ * it. By hand, a rule, none or unknown say nothing (feature 34, R15).
+ */
+export function closingSourceLine(movement: Movement): string | null {
+  return movement.categorySource === 'closing' ? CLOSING_SOURCE_LABEL : null
 }
 
 function parsePagination(v: Validators, raw: unknown, path: string): Pagination {

@@ -3,6 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 
+import { useCategoryRulesStore } from '@/features/category-rules/store'
 import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 import { formatMoney } from '@/shared/money'
 
@@ -11,6 +12,7 @@ import { currentMonth, formatMonthLabel, monthRange, shiftMonth } from '../month
 import {
   BIG_MONTH_PAGE_ONE,
   BIG_MONTH_PAGE_TWO,
+  CAFETERIA_CREATED,
   COUNT_PAGE,
   CREATED_RULE,
   DEPOSIT_MONTH_PAGE,
@@ -24,6 +26,7 @@ import {
   MONTH_PAGE,
   NEUTRAL,
   OTHER_MONTH_PAGE,
+  PREVIEW_CAFETERIA,
   TOTALS,
   VALIDATION_ERROR_BODY,
   changed,
@@ -1411,6 +1414,149 @@ describe('StatementView', () => {
         expect(card).not.toContain(formatMoney(made))
       }
       expect(wrapper.get('[data-test="statement-totals-count"]').text()).toBe('4 movements')
+    })
+  })
+
+  describe('the question about the other movements (feature 34)', () => {
+    const BLOCK = '[data-test="sticky-below-top-bar"]'
+    const QUESTION = '[data-test="other-movements-question"]'
+    const GROCERIES_EXPENSE = changed(EXPENSE, { categoryId: 2, category: GROCERIES })
+
+    type View = Awaited<ReturnType<typeof mountView>>['wrapper']
+
+    const categorizeFirst = async (wrapper: View, categoryId = '2') => {
+      await wrapper.findAll('[data-test="statement-row-category-button"]')[0]?.trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-test="row-category-editor"] select').setValue(categoryId)
+      await flushPromises()
+    }
+
+    const previews = <T extends { path: string }>(calls: T[]): T[] =>
+      calls.filter((call) => call.path === '/api/category-rules/preview')
+    const writes = (calls: { method: string; path: string }[]): string[] =>
+      calls.filter((call) => call.method !== 'GET').map((call) => `${call.method} ${call.path}`)
+
+    it('changing the category of one line in Movements opens the question under the notice', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(GROCERIES_EXPENSE),
+        preview: json(PREVIEW_CAFETERIA),
+      })
+
+      await categorizeFirst(wrapper)
+
+      expect(previews(api.calls)).toHaveLength(1)
+      const query = previews(api.calls)[0]?.query
+      expect(query?.get('matchText')).toBe('cafeteria central')
+      expect(query?.get('categoryId')).toBe('2')
+      expect(writes(api.calls)).toEqual(['PATCH /api/movements/10'])
+
+      const block = wrapper.get(BLOCK)
+      const summary = block.get('[data-test="statement-action-summary"]')
+      const undo = block.get('[data-test="statement-action-undo"]')
+      const question = block.get(QUESTION)
+      expect(summary.text()).toContain('Categorized as Groceries')
+      const follows = (first: Element, second: Element): boolean =>
+        Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING)
+      expect(follows(summary.element, question.element)).toBe(true)
+      expect(follows(undo.element, question.element)).toBe(true)
+      expect(question.text()).toContain('2 other movements would move to Groceries.')
+
+      // Without a category nothing is asked.
+      await categorizeFirst(wrapper, '')
+      expect(writes(api.calls)).toHaveLength(2)
+      expect(previews(api.calls)).toHaveLength(1)
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+    })
+
+    it('Movements shows the line of a created rule and the next write takes it away', async () => {
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: json(MONTH_PAGE),
+        patch: json(GROCERIES_EXPENSE),
+        preview: json(PREVIEW_CAFETERIA),
+        createRule: json(CAFETERIA_CREATED, 201),
+      })
+
+      // Saying yes to the question: the line says how many it moved, in the block.
+      await categorizeFirst(wrapper)
+      await wrapper.get('[data-test="other-movements-create"]').trigger('click')
+      await flushPromises()
+
+      expect(writes(api.calls)).toEqual(['PATCH /api/movements/10', 'POST /api/category-rules'])
+      const posted = api.calls.find((call) => call.method === 'POST') as { rawBody?: string }
+      expect(posted.rawBody).toBe('{"matchText":"cafeteria central","categoryId":2}')
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+      expect(wrapper.get(BLOCK).get('[data-test="rule-created-line"]').text()).toBe(
+        'Rule “cafeteria central” → Groceries created: 2 movements categorized.',
+      )
+      expect(wrapper.find('[data-test="statement-action-summary"]').exists()).toBe(false)
+
+      // The next write of the screen takes it away.
+      await categorizeFirst(wrapper, '1')
+      expect(wrapper.find('[data-test="rule-created-notice"]').exists()).toBe(false)
+      expect(wrapper.get(BLOCK).find('[data-test="statement-action-summary"]').exists()).toBe(true)
+
+      // The rule dialog of a line shows the line too.
+      await wrapper.findAll('[data-test="statement-row-category-button"]')[0]?.trigger('click')
+      await flushPromises()
+      await wrapper.get('[data-test="row-create-rule"]').trigger('click')
+      await flushPromises()
+      const select = at('[data-test="rule-category"] select') as HTMLSelectElement
+      select.value = '2'
+      select.dispatchEvent(new Event('change'))
+      await flushPromises()
+      at('[data-test="rule-save"]')?.click()
+      await flushPromises()
+      expect(wrapper.get(BLOCK).find('[data-test="rule-created-notice"]').exists()).toBe(true)
+    })
+
+    it('Undo or another write in Movements closes the question', async () => {
+      const month = fakeMonth()
+      const { api, wrapper } = await mountView('/movements?month=2026-09', {
+        movements: month.movements,
+        patch: json(GROCERIES_EXPENSE),
+        bulkPatch: month.bulkPatch,
+        preview: json(PREVIEW_CAFETERIA),
+      })
+
+      // Undo closes it.
+      await categorizeFirst(wrapper)
+      expect(wrapper.find(QUESTION).exists()).toBe(true)
+      await wrapper.get('[data-test="statement-action-undo"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+
+      // Marking a movement as not counted closes it.
+      await categorizeFirst(wrapper)
+      expect(wrapper.find(QUESTION).exists()).toBe(true)
+      await wrapper.get('[data-test="statement-start-selecting"]').trigger('click')
+      await wrapper.findAll('[data-test="statement-row-select"] input')[1]?.setValue(true)
+      await wrapper.get('[data-test="statement-exclude"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+      await wrapper.get('[data-test="statement-selection-done"]').trigger('click')
+
+      // No, only this one closes it and sends nothing.
+      await categorizeFirst(wrapper)
+      expect(wrapper.find(QUESTION).exists()).toBe(true)
+      const before = api.calls.length
+      await wrapper.get('[data-test="other-movements-dismiss"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+      expect(api.calls.length).toBe(before)
+
+      // Leaving the screen closes it too.
+      await categorizeFirst(wrapper)
+      expect(wrapper.find(QUESTION).exists()).toBe(true)
+      const rules = useCategoryRulesStore()
+      wrapper.unmount()
+      expect(rules.question).toBeNull()
+
+      expect(
+        api.calls.some(
+          (call) => call.path.startsWith('/api/category-rules') && call.method !== 'GET',
+        ),
+      ).toBe(false)
     })
   })
 })

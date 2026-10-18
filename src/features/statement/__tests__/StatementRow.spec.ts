@@ -11,6 +11,7 @@ import { formatMoney } from '@/shared/money'
 import StatementRow from '../components/StatementRow.vue'
 import {
   CATEGORIES,
+  CLOSING_EXPENSE,
   DEPOSIT_CANCELLATION,
   DEPOSIT_DOUBTFUL,
   DEPOSIT_MATURITY,
@@ -570,5 +571,28 @@ describe('StatementRow (R9, R10)', () => {
       expect(maturity.get(AMOUNT).classes()).not.toContain('line-through')
       expect(maturity.find(COUNTED).exists()).toBe(true)
     })
+  })
+})
+
+// Feature 34: where the category came from, only when the closing of the import set it.
+describe('StatementRow: the source of the category (feature 34, R15)', () => {
+  it('says the category was set when the import was closed only for that source', () => {
+    const closing = mountRow(CLOSING_EXPENSE)
+    const line = closing.get('[data-test="statement-row-closing"]')
+    expect(line.text()).toBe('Set when the import was closed')
+    // In the small grey line under the description, next to the account.
+    expect(line.element.parentElement?.textContent).toContain(
+      closing.get('[data-test="statement-row-account"]').text(),
+    )
+    expect(line.classes()).toEqual([])
+    expect(closing.get('[data-test="statement-row-category"]').text()).toBe('Otros gastos')
+
+    for (const source of ['manual', 'rule', null]) {
+      expect(text({ ...CLOSING_EXPENSE, categorySource: source })).not.toContain(
+        'Set when the import was closed',
+      )
+    }
+    // An answer without the field says nothing either.
+    expect(mountRow(EXPENSE).find('[data-test="statement-row-closing"]').exists()).toBe(false)
   })
 })

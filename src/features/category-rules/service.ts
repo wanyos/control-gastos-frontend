@@ -18,10 +18,12 @@ import type {
   CategorizedMovement,
   CategoryRule,
   NewRule,
+  PreviewMovement,
   RuleCategory,
   RuleChanges,
   RuleConflict,
   RuleMatch,
+  RulePreview,
   SavedRule,
   SuggestedMovement,
   SuggestedRule,
@@ -31,12 +33,14 @@ import type {
 export const RULES_PATH = '/api/category-rules'
 export const APPLY_PATH = '/api/category-rules/apply'
 export const SUGGESTIONS_PATH = '/api/category-rules/suggestions'
+export const PREVIEW_PATH = '/api/category-rules/preview'
 
 const listChecks = createValidators(`GET ${RULES_PATH}`)
 const createChecks = createValidators(`POST ${RULES_PATH}`)
 const updateChecks = createValidators(`PATCH ${RULES_PATH}/:id`)
 const applyChecks = createValidators(`POST ${APPLY_PATH}`)
 const suggestionsChecks = createValidators(`GET ${SUGGESTIONS_PATH}`)
+const previewChecks = createValidators(`GET ${PREVIEW_PATH}`)
 
 /** A pass never categorizes a `neutral` movement, so the answer never lists one. */
 const CATEGORIZED_TYPES = ['income', 'expense'] as const
@@ -285,4 +289,66 @@ export async function deleteRule(id: number, client: HttpClient = http): Promise
  */
 export async function applyRules(client: HttpClient = http): Promise<ApplyResult> {
   return parseApplyResult(await client<unknown>(APPLY_PATH, { method: 'POST' }))
+}
+
+// ─── The preview of a rule that does not exist yet (feature 34) ─────────────
+
+/** A movement of the preview whose `rules` carry the rule not created yet (`ruleId: null`). */
+function parsePreviewMovement(
+  v: Validators,
+  raw: unknown,
+  path: string,
+): { movement: PreviewMovement; isNewRule: boolean } {
+  const item = v.asObject(raw, path)
+  const rules = v.asArray(item.rules, `${path}.rules`).map((one, i) => {
+    const rule = v.asObject(one, `${path}.rules[${i}]`)
+    return rule.ruleId === null ? null : v.asInteger(rule.ruleId, `${path}.rules[${i}].ruleId`)
+  })
+  return {
+    movement: {
+      movementId: v.asInteger(item.movementId, `${path}.movementId`),
+      description: v.asString(item.description, `${path}.description`),
+      bookingDate: v.asDateOnly(item.bookingDate, `${path}.bookingDate`),
+      amount: v.asDecimal(item.amount, `${path}.amount`),
+      type: v.asMember(item.type, CATEGORIZED_TYPES, `${path}.type`),
+    },
+    isNewRule: rules.includes(null),
+  }
+}
+
+/**
+ * Maps `GET /api/category-rules/preview`, or throws ValidationError. Only the movements
+ * the new rule would move are kept (`ruleId: null`); a list that does not have
+ * `categorized` elements is rejected, as in `parseCategorization`.
+ */
+export function parseRulePreview(raw: unknown): RulePreview {
+  const v = previewChecks
+  const body = v.asObject(raw, 'response')
+  const categorization = v.asObject(body.categorization, 'categorization')
+  const categorized = v.asInteger(categorization.categorized, 'categorization.categorized')
+  const listPath = 'categorization.categorizedMovements'
+  const listed = v
+    .asArray(categorization.categorizedMovements, listPath)
+    .map((item, i) => parsePreviewMovement(v, item, `${listPath}[${i}]`))
+  if (listed.length !== categorized) v.reject(listPath, `a list of ${categorized} movements`)
+  return {
+    matchText: v.asText(body.matchText, 'matchText'),
+    categoryId: v.asInteger(body.categoryId, 'categoryId'),
+    movements: listed.filter((one) => one.isNewRule).map((one) => one.movement),
+  }
+}
+
+/**
+ * What creating this rule would move, without creating it. Read only. Only `matchText`
+ * (as typed: the backend normalizes it) and `categoryId` travel; any other parameter is
+ * a 400. Throws ApiError (409 included) or ValidationError.
+ */
+export async function getRulePreview(
+  rule: NewRule,
+  client: HttpClient = http,
+): Promise<RulePreview> {
+  const params = new URLSearchParams()
+  params.set('matchText', rule.matchText)
+  params.set('categoryId', String(rule.categoryId))
+  return parseRulePreview(await client<unknown>(`${PREVIEW_PATH}?${params.toString()}`))
 }

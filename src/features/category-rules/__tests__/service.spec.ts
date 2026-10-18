@@ -4,15 +4,18 @@ import { ValidationError } from '@/shared/errors'
 
 import {
   APPLY_PATH,
+  PREVIEW_PATH,
   RULES_PATH,
   SUGGESTIONS_PATH,
   applyRules,
   createRule,
   deleteRule,
+  getRulePreview,
   getRules,
   getSuggestions,
   parseApplyResult,
   parseRule,
+  parseRulePreview,
   parseRules,
   parseSavedRule,
   parseSuggestions,
@@ -27,6 +30,9 @@ import {
   IBERDROLA,
   INCOME_MOVEMENT,
   MERCADONA,
+  PREVIEW_NEW_RULE_MOVED,
+  PREVIEW_NONE,
+  PREVIEW_TWO,
   SUGGESTIONS,
   SUPERMARKET_SUGGESTION,
   THREE_RULES,
@@ -376,5 +382,66 @@ describe('category-rules service (R5, R8, R9, R11, C2)', () => {
         `POST ${APPLY_PATH}: error.code is not a non-empty string`,
       )
     })
+  })
+})
+
+// Feature 34: what creating a rule would move, without creating it.
+describe('the preview of a rule not created yet (feature 34)', () => {
+  it('asks the preview with only matchText and categoryId', async () => {
+    const api = fakeClient({ [`GET ${PREVIEW_PATH}`]: answer(PREVIEW_TWO) })
+
+    await getRulePreview({ matchText: 'Academia Ficticia Norte', categoryId: 12 }, api.client)
+
+    expect(api.calls).toHaveLength(1)
+    const [call] = api.calls
+    expect(call?.method).toBe('GET')
+    expect(call?.body).toBeUndefined()
+    const url = new URL(call?.path ?? '', 'http://localhost')
+    expect(url.pathname).toBe(PREVIEW_PATH)
+    // The text as typed: the backend normalizes it. Nothing else travels.
+    expect([...url.searchParams.keys()]).toEqual(['matchText', 'categoryId'])
+    expect(url.searchParams.get('matchText')).toBe('Academia Ficticia Norte')
+    expect(url.searchParams.get('categoryId')).toBe('12')
+  })
+
+  it('keeps only the movements of the new rule from a preview', () => {
+    const preview = parseRulePreview(PREVIEW_TWO)
+
+    expect(preview.matchText).toBe('academia ficticia norte')
+    expect(preview.categoryId).toBe(12)
+    // The third one moves by another rule: not this one's.
+    expect(preview.movements).toEqual(
+      PREVIEW_NEW_RULE_MOVED.map((one) => ({
+        movementId: one.movementId,
+        description: one.description,
+        bookingDate: one.bookingDate,
+        amount: one.amount,
+        type: one.type,
+      })),
+    )
+    expect(parseRulePreview(PREVIEW_NONE).movements).toEqual([])
+  })
+
+  it('rejects a preview whose list does not add up', () => {
+    const short = {
+      ...PREVIEW_TWO,
+      categorization: { ...PREVIEW_TWO.categorization, categorized: 4 },
+    }
+    expect(() => parseRulePreview(short)).toThrow(ValidationError)
+    expect(() => parseRulePreview(short)).toThrow(
+      'GET /api/category-rules/preview: categorization.categorizedMovements',
+    )
+    expect(() => parseRulePreview({ matchText: 'x', categoryId: 12 })).toThrow(ValidationError)
+    const badRule = {
+      ...PREVIEW_TWO,
+      categorization: {
+        ...PREVIEW_TWO.categorization,
+        categorized: 1,
+        categorizedMovements: [
+          { ...PREVIEW_NEW_RULE_MOVED[0], rules: [{ ruleId: 'new', matchText: 'x' }] },
+        ],
+      },
+    }
+    expect(() => parseRulePreview(badRule)).toThrow('rules[0].ruleId')
   })
 })

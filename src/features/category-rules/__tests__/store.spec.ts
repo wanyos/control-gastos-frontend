@@ -8,7 +8,13 @@ import { ValidationError } from '@/shared/errors'
 import LastApplyReport from '../components/LastApplyReport.vue'
 import RuleCreatedNotice from '../components/RuleCreatedNotice.vue'
 import { UNFINISHED_MOVE } from '../rules'
-import { APPLY_PATH, RULES_PATH, SUGGESTIONS_PATH, parseApplyResult } from '../service'
+import {
+  APPLY_PATH,
+  PREVIEW_PATH,
+  RULES_PATH,
+  SUGGESTIONS_PATH,
+  parseApplyResult,
+} from '../service'
 import { useCategoryRulesStore } from '../store'
 import {
   ACADEMY_CREATED,
@@ -29,6 +35,10 @@ import {
   INCOME_MOVEMENT,
   MERCADONA,
   NOT_FOUND_BODY,
+  PREVIEW_NEW_RULE_MOVED,
+  PREVIEW_NONE,
+  PREVIEW_TAKEN_BODY,
+  PREVIEW_TWO,
   SUPERMARKET,
   THREE_RULES,
   TWELVE_CATEGORIZED,
@@ -37,6 +47,7 @@ import {
   deferred,
   fakeClient,
   httpError,
+  previewOf,
   rejectWith,
   rule,
 } from './fixtures'
@@ -796,5 +807,229 @@ describe('useCategoryRulesStore (R4 … R13)', () => {
       // Only a create leaves the line of the created rule.
       expect(store.lastCreated).toBeNull()
     })
+  })
+})
+
+// ─── Feature 34: the question after a change of category by hand ─────────────
+
+describe('the question after a change of category by hand (feature 34)', () => {
+  const PREVIEW = `GET ${PREVIEW_PATH}`
+  const CREATE = `POST ${RULES_PATH}`
+
+  /** The change of `RECIBO /Academia Ficticia Norte` to Educación, as the view hands it. */
+  const ACADEMY_CHANGE = {
+    movementId: 405,
+    description: 'RECIBO /Academia Ficticia Norte',
+    type: 'expense' as const,
+    categoryId: 12,
+    categoryName: 'Educación',
+  }
+
+  const queryOf = (path: string): URLSearchParams => new URL(path, 'http://localhost').searchParams
+
+  /** Opens the question with the two movements of PREVIEW_TWO; `more` answers the rest. */
+  async function openQuestion(more: Parameters<typeof fakeClient>[0] = {}) {
+    const api = fakeClient({ [PREVIEW]: answer(PREVIEW_TWO), ...more })
+    const store = useCategoryRulesStore()
+    await store.offerRule(ACADEMY_CHANGE, api.client)
+    return { api, store }
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('a change of category asks the preview with the suggested text and the chosen category and opens the question', async () => {
+    const { api, store } = await openQuestion()
+
+    expect(api.calls).toHaveLength(1)
+    expect(api.calls[0]?.method).toBe('GET')
+    const query = queryOf(api.calls[0]?.path ?? '')
+    expect(query.get('matchText')).toBe('academia ficticia norte')
+    expect(query.get('categoryId')).toBe('12')
+    expect(store.question).toMatchObject({
+      movementId: 405,
+      kind: 'expense',
+      categoryId: 12,
+      categoryName: 'Educación',
+      failure: null,
+      check: { step: 'ready', text: 'academia ficticia norte' },
+    })
+    const check = store.question?.check
+    const ids = check?.step === 'ready' ? check.preview.movements.map((m) => m.movementId) : []
+    expect(ids).toEqual(PREVIEW_NEW_RULE_MOVED.map((m) => m.movementId))
+  })
+
+  it('asks nothing when no other movement would move', async () => {
+    const api = fakeClient({ [PREVIEW]: answer(PREVIEW_NONE) })
+    const store = useCategoryRulesStore()
+
+    await store.offerRule(ACADEMY_CHANGE, api.client)
+
+    // Another rule's movement in the answer does not count: the new one moves none.
+    expect(api.count(PREVIEW_PATH)).toBe(1)
+    expect(store.question).toBeNull()
+  })
+
+  it('asks nothing when a rule already uses the suggested text', async () => {
+    const api = fakeClient({ [PREVIEW]: rejectWith(httpError(409, PREVIEW_TAKEN_BODY)) })
+    const store = useCategoryRulesStore()
+
+    await expect(store.offerRule(ACADEMY_CHANGE, api.client)).resolves.toBeUndefined()
+
+    expect(api.calls).toHaveLength(1)
+    expect(store.question).toBeNull()
+  })
+
+  it('asks nothing when the preview fails or the description gives no suggested text', async () => {
+    for (const failure of [httpError(500, CONFLICT_BODY), networkError(), unreadableReply()]) {
+      setActivePinia(createPinia())
+      const api = fakeClient({ [PREVIEW]: rejectWith(failure) })
+      const store = useCategoryRulesStore()
+      await expect(store.offerRule(ACADEMY_CHANGE, api.client)).resolves.toBeUndefined()
+      expect(api.calls).toHaveLength(1)
+      expect(store.question).toBeNull()
+    }
+
+    setActivePinia(createPinia())
+    const api = fakeClient({ [PREVIEW]: answer(PREVIEW_TWO) })
+    const store = useCategoryRulesStore()
+    await store.offerRule({ ...ACADEMY_CHANGE, description: 'ABC 1234' }, api.client)
+    await store.offerRule({ ...ACADEMY_CHANGE, type: 'neutral' }, api.client)
+    expect(api.calls).toEqual([])
+    expect(store.question).toBeNull()
+  })
+
+  it('editing the text asks the preview again and only the last answer counts', async () => {
+    const slow = deferred()
+    const fast = deferred()
+    let asked = 0
+    const { api, store } = await openQuestion({
+      [PREVIEW]: (call) => {
+        asked += 1
+        if (asked === 1) return Promise.resolve(PREVIEW_TWO)
+        return asked === 2 ? slow.answer(call) : fast.answer(call)
+      },
+    })
+
+    const first = store.checkQuestionText('academia ficticia', api.client)
+    expect(store.question?.check).toEqual({ step: 'loading', text: 'academia ficticia' })
+    const second = store.checkQuestionText('academia', api.client)
+
+    fast.resolve(previewOf('academia', PREVIEW_NEW_RULE_MOVED.slice(0, 1)))
+    await second
+    slow.resolve(previewOf('academia ficticia', PREVIEW_NEW_RULE_MOVED))
+    await first
+
+    const asks = api.of(PREVIEW_PATH).map((call) => queryOf(call.path))
+    expect(asks.map((query) => query.get('matchText'))).toEqual([
+      'academia ficticia norte',
+      'academia ficticia',
+      'academia',
+    ])
+    expect(asks.every((query) => query.get('categoryId') === '12')).toBe(true)
+    const check = store.question?.check
+    expect(check?.step).toBe('ready')
+    expect(check?.text).toBe('academia')
+    expect(check?.step === 'ready' ? check.preview.movements : []).toHaveLength(1)
+
+    // An answer with none of the new rule is still an answer: the box says so (R7).
+    const none = fakeClient({ [PREVIEW]: answer(PREVIEW_NONE) })
+    await store.checkQuestionText('academia ficticia norte', none.client)
+    expect(store.question?.check).toMatchObject({ step: 'ready', preview: { movements: [] } })
+  })
+
+  it('a text another rule uses or too short leaves the question unable to create', async () => {
+    const { store } = await openQuestion()
+
+    const taken = fakeClient({ [PREVIEW]: rejectWith(httpError(409, PREVIEW_TAKEN_BODY)) })
+    await store.checkQuestionText('academia', taken.client)
+    expect(store.question?.check).toEqual({ step: 'taken', text: 'academia' })
+
+    const short = fakeClient({})
+    await store.checkQuestionText(' ab ', short.client)
+    expect(short.calls).toEqual([])
+    expect(store.question?.check).toEqual({ step: 'tooShort', text: ' ab ' })
+
+    const down = fakeClient({ [PREVIEW]: rejectWith(networkError()) })
+    await store.checkQuestionText('academia', down.client)
+    expect(store.question?.check).toEqual({ step: 'failed', text: 'academia' })
+
+    // Without an answer for the text in the box, saying yes sends nothing.
+    const posts = fakeClient({ [CREATE]: answer(ACADEMY_CREATED) })
+    await expect(store.acceptQuestion(posts.client)).resolves.toBe(false)
+    expect(posts.calls).toEqual([])
+    expect(store.question).not.toBeNull()
+  })
+
+  it('saying yes sends one POST with the text of the box and closes the question', async () => {
+    const { api, store } = await openQuestion({ [CREATE]: answer(ACADEMY_CREATED) })
+    await store.checkQuestionText('Academia Ficticia', api.client)
+    const before = store.applyRun
+
+    await expect(store.acceptQuestion(api.client)).resolves.toBe(true)
+
+    const writes = api.calls.filter((call) => call.method !== 'GET')
+    expect(writes).toEqual([
+      {
+        path: RULES_PATH,
+        method: 'POST',
+        body: { matchText: 'Academia Ficticia', categoryId: 12 },
+        contentType: 'application/json',
+      },
+    ])
+    expect(store.question).toBeNull()
+    expect(store.lastCreated?.rule.matchText).toBe('academia ficticia norte')
+    expect(store.lastCreated?.result.categorized).toBe(3)
+    expect(store.lastApply?.cause).toBe('create')
+    expect(store.applyRun).toBe(before + 1)
+  })
+
+  it('a rejected create from the question says why and changes nothing else', async () => {
+    const failures = [
+      [
+        httpError(400, VALIDATION_BODY),
+        'Nothing was saved: the text needs at least 3 letters or digits.',
+      ],
+      [
+        httpError(404, NOT_FOUND_BODY),
+        'Nothing was saved: that category or rule no longer exists.',
+      ],
+      [httpError(409, CONFLICT_BODY), 'Nothing was saved: another rule already uses that text.'],
+      [networkError(), "Couldn't reach the server. Nothing was saved."],
+    ] as const
+    for (const [failure, sentence] of failures) {
+      setActivePinia(createPinia())
+      const { store } = await openQuestion()
+      const api = fakeClient({ [CREATE]: rejectWith(failure) })
+
+      await expect(store.acceptQuestion(api.client)).resolves.toBe(false)
+
+      // The only request is the POST.
+      expect(api.calls.map((call) => `${call.method} ${call.path}`)).toEqual([`POST ${RULES_PATH}`])
+      expect(store.question?.failure).toBe(sentence)
+      expect(store.question?.check.step).toBe('ready')
+      expect(store.lastCreated).toBeNull()
+      expect(store.lastApply).toBeNull()
+      expect(store.applyRun).toBe(0)
+      expect(store.isSaving).toBe(false)
+    }
+  })
+
+  it('dismissing the question sends nothing', async () => {
+    const { api, store } = await openQuestion()
+    const late = deferred()
+    const lateApi = fakeClient({ [PREVIEW]: late.answer })
+    const pending = store.checkQuestionText('academia', lateApi.client)
+
+    store.dismissQuestion()
+    late.resolve(previewOf('academia', PREVIEW_NEW_RULE_MOVED))
+    await pending
+
+    // A late answer does not reopen it, and closing it wrote nothing.
+    expect(store.question).toBeNull()
+    expect([...api.calls, ...lateApi.calls].every((call) => call.method === 'GET')).toBe(true)
+    expect(store.applyRun).toBe(0)
+    expect(store.lastCreated).toBeNull()
   })
 })

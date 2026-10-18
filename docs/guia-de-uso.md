@@ -575,6 +575,13 @@ solo cuentan sus intereses. La pantalla lo enseña así:
   `Counts 37,07 €` y que las tres cifras no se mueven. En agosto de 2025, con
   la casilla puesta, el vencimiento dudoso **sigue** en la lista.
 
+**Nuevo desde la feature 34, sin probar en tu primera revisión: de dónde salió
+la categoría.** Busca un movimiento cuya categoría pusiera el cierre de la
+importación (`Close everything pending…` de `Review`). **Debes ver**, en gris
+y pequeño en la línea de la cuenta bajo el concepto,
+`Set when the import was closed`. En los que categorizaste tú o una regla no
+sale nada.
+
 ### Qué probar — corregir la categoría de un movimiento (escribe)
 
 14. Elige un movimiento cualquiera y **apunta su categoría actual**. Pulsa
@@ -588,6 +595,43 @@ solo cuentan sus intereses. La pantalla lo enseña así:
     `Undo`. Las tres cifras **no cambian**: cambiar una categoría no mueve
     ninguna suma.
    -- cambie la categoria, solo cambia la categoria en este movimiento, cambia el texto nada mas
+
+    **Nuevo desde la feature 34, sin probar en tu primera revisión:** si hay
+    otros movimientos que contienen el texto de ese concepto y se moverían a la
+    categoría que acabas de elegir, **debajo** de la línea verde y de su `Undo`
+    sale una pregunta:
+    `Use <categoría> for the other movements that contain this text too?`, con
+    un campo `Text to look for` que trae el texto que propondría la lista de
+    reglas propuestas de `Rules` para ese concepto, la frase
+    `N other movements would move to <categoría>.`, la frase
+    `Movements you categorized by hand, or that another rule already categorized, do not move.`
+    y tres botones: `Show the N movements`, `Create rule` y
+    `No, only this one`. Hasta que respondes no se ha escrito nada más que el
+    cambio de esa línea.
+
+    - Pulsa `Show the N movements`. **Debes ver** cuáles se moverían, cada uno
+      con fecha, concepto e importe. Desplegarlos no escribe nada.
+    - Cambia el texto del campo. Un momento después de dejar de teclear
+      **debes ver** `Checking which movements would move…` y luego el número
+      nuevo, o `No other movement would move with this text right now.` (con
+      `Create rule` encendido: la regla serviría para lo que importes después).
+      Con menos de 3 letras o cifras dice `Use at least 3 letters or digits.`;
+      con un texto que ya usa otra regla, `Another rule already uses this text.`;
+      si no se pudo comprobar, `Couldn't check which movements would move.` En
+      esos tres casos y mientras comprueba, `Create rule` está apagado.
+    - Pulsa `No, only this one`. **Debes ver** que la pregunta desaparece y
+      que solo ha cambiado esa línea; la línea verde y su `Undo` siguen.
+    - Repite el cambio en otra línea y pulsa `Create rule`. **Debes ver** que
+      la pregunta y la línea `Categorized as …` con su `Undo` desaparecen y en
+      su sitio sale, en verde,
+      `Rule “<texto>” → <categoría> created: N movements categorized.`; el mes
+      se vuelve a pedir y esos movimientos salen con la categoría nueva. **Esto
+      escribe en muchos movimientos y no se deshace desde la aplicación.**
+    - **No sale la pregunta** si ningún otro movimiento se movería, si ya hay
+      una regla con ese mismo texto, si el texto que saldría del concepto tiene
+      menos de 5 letras, si la comprobación falla o si eliges `No category`.
+      Cualquier otra escritura de la pantalla, el
+      `Undo` o salir de `Movements` la cierran sin enviar nada.
 
 16. Pulsa `Undo`. **Debes ver** la categoría anterior en la línea y el texto
     `Change undone`, ya sin botón.
@@ -645,6 +689,7 @@ solo cuentan sus intereses. La pantalla lo enseña así:
 |---|---|---|---|
 | Elegir una categoría en una línea | Solo la categoría de ese movimiento. Funciona igual si está pendiente o confirmado | Importe, fecha, concepto y estado (no se puede confirmar ni devolver a pendiente desde aquí) | `Undo` en la línea verde. O volviendo a abrir el editor y eligiendo la categoría de antes (o `No category`) |
 | `Exclude from totals` / `Include in totals` | Solo la marca de «no cuenta en las sumas» de los movimientos marcados. Las tres cifras se vuelven a pedir al backend. En un movimiento de depósito la marca se guarda, pero no cambia ninguna cifra (desde la feature 57 del backend) | Importe, fecha, concepto, categoría y estado. El movimiento **no se borra ni se esconde** | `Undo`, que devuelve exactamente los que cambiaron. O seleccionándolos y pulsando la acción contraria |
+| `Create rule` en la pregunta que sale tras cambiar una categoría (desde la feature 34) | Crea una regla con el texto del campo y la categoría que elegiste, y el backend pone esa categoría a los movimientos que la pregunta enseñaba | Lo que categorizaste a mano, y lo que ya categorizó otra regla. Importe, fecha, concepto y estado | Igual que `Create rule` desde el editor: la regla, borrándola en `Rules`; lo que movió **no se deshace desde la aplicación** |
 | `Create rule` desde el editor | Crea una regla y, desde la feature 33, en ese mismo momento el backend pone su categoría a los pendientes sin categoría que contienen el texto y a los que categorizó el cierre de una importación (confirmados o no). El movimiento del que sale cambia solo si es de esos. El mes se vuelve a pedir solo | Lo que categorizaste a mano, y lo que ya categorizó otra regla. Importe, fecha, concepto y estado | La regla, borrándola en `Rules`. Lo que movió **no se deshace desde la aplicación**: se corrige movimiento a movimiento |
 
 **El `Undo` dura poco.** Solo deshace la última acción, y desaparece al cambiar
@@ -691,8 +736,9 @@ veces, una por mes.
 - No hay columna de saldo, ni exportar, ni acciones en bloque sobre la
   categoría.
 - **Crear una regla desde aquí ya pone su categoría a los movimientos que casan**
-  (desde la feature 33), pero esta pantalla no dice cuántos fueron: lo dice el
-  recuadro que sale en `Rules` y en `Review`.
+  (desde la feature 33). Desde la feature 34 esta pantalla dice cuántos fueron,
+  en la línea verde `Rule “…” → … created: N movements categorized.`; el
+  recuadro con la lista de cuáles sigue saliendo solo en `Rules` y en `Review`.
 - La frase que la nota gris añade a veces sobre grupos que parecen traspasos y
   no se pudieron emparejar está dentro de `More about what counts`, la última:
   no se ve hasta que lo abres. Se lee **una sola vez**, la primera vez que abres
@@ -761,6 +807,11 @@ uno en uno o varios a la vez. Lo confirmado sale de esta lista.
    vencimiento, el importe del banco en gris y debajo `Counts …` en verde. Las
    demás filas no cambian.
 
+   **Nuevo desde la feature 34, sin probar en tu primera revisión:** en una
+   fila cuya categoría puso el cierre de la importación, la línea de la
+   cuenta y la fecha dice además `Set when the import was closed`, en gris y
+   pequeño. En las que categorizaste tú o una regla no sale nada.
+
 4. Baja al final. **Debes ver** `Page 1 of` y el total de páginas, con
    `Previous` y `Next`. Van de 100 en 100. Pulsa `Next` y luego el botón de
    atrás del navegador: **vuelves** a la página 1.
@@ -794,6 +845,22 @@ uno en uno o varios a la vez. Lo confirmado sale de esta lista.
     `1 movement categorized as` y el nombre, con un botón `Undo`. La fila
     **sigue en la lista**: categorizar no es confirmar.
    -- ok
+
+    **Nuevo desde la feature 34, sin probar en tu primera revisión:** si hay
+    otros movimientos que contienen el texto de ese concepto y se moverían a la
+    categoría elegida, debajo de la línea verde y de su `Undo` sale la misma
+    pregunta que en `Movements` (ver el paso 15 de `Movements`): el campo
+    `Text to look for`, cuántos se moverían, `Show the N movements`,
+    `Create rule` y `No, only this one`. Si cambias una fila del final de la
+    lista, la pregunta se ve igual, pegada bajo la barra de arriba con la línea
+    verde y su `Undo`, sin taparlos. `No, only this one` la cierra y solo
+    queda el cambio de esa fila. `Create rule` crea la regla y en lugar de la
+    línea verde del cambio sale
+    `Rule “<texto>” → <categoría> created: N movements categorized.`; la lista
+    se vuelve a pedir y **el `Undo` del cambio de esa fila se pierde**. No sale
+    cuando das categoría a varias filas a la vez con la barra de los pasos 14 a
+    16, ni en los casos que dice `Movements`. `Confirm`, otra acción, el
+    `Undo` o salir de `Review` la cierran sin enviar nada.
 
 11. Pulsa `Undo`. **Debes ver** la categoría de antes en la fila, y la línea
     verde desaparece.
@@ -846,6 +913,7 @@ uno en uno o varios a la vez. Lo confirmado sale de esta lista.
 | Acción | Qué cambia exactamente | Qué no cambia nunca | Cómo se deshace |
 |---|---|---|---|
 | Elegir categoría en una fila, o `Apply category` | Solo la categoría | Importe, fecha, concepto | `Undo`. O eligiendo la de antes (o `No category`) |
+| `Create rule` en la pregunta que sale tras elegir categoría en una fila (desde la feature 34) | Crea una regla con el texto del campo, y el backend pone esa categoría a los movimientos que la pregunta enseñaba | Lo que categorizaste a mano, y lo que ya categorizó otra regla. Importe, fecha, concepto y estado | La regla, borrándola en `Rules`; lo que movió **no se deshace desde la aplicación** |
 | `Confirm` o `Confirm N movements` | Solo el estado: pasa de pendiente a confirmado y sale de esta lista | Importe, fecha, concepto, categoría | **Solo con `Undo`**, y solo mientras siga en pantalla |
 
 **Cuidado con confirmar.** El `Undo` deshace solo la última acción y desaparece

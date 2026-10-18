@@ -8,6 +8,7 @@ import { parseCategories, parseMovementPage } from '../service'
 import type { Movement } from '../types'
 import {
   CATEGORY_TREE,
+  CLOSING_EXPENSE,
   DEPOSIT_CANCELLATION,
   DEPOSIT_DOUBTFUL,
   DEPOSIT_MATURITY,
@@ -270,5 +271,28 @@ describe('MovementRow (R4)', () => {
       expect(marked.get(AMOUNT).classes()).not.toContain(cls('line', 'through'))
       expect(marked.get(DESCRIPTION).classes()).toContain(cls('text', 'ink', 'strong'))
     })
+  })
+})
+
+// Feature 34: where the category came from, only when the closing of the import set it.
+describe('MovementRow: the source of the category (feature 34, R15)', () => {
+  it('says the category was set when the import was closed only for that source', () => {
+    const closing = rowOf(CLOSING_EXPENSE)
+    const line = closing.get('[data-test="movement-closing"]')
+    expect(line.text()).toBe('Set when the import was closed')
+    // In the small grey line under the description, with nothing to stand out.
+    expect(line.element.parentElement?.textContent).toContain(
+      closing.get('[data-test="movement-account"]').text(),
+    )
+    expect(line.classes()).not.toContain(cls('font', 'semibold'))
+    expect(closing.get('[data-test="movement-category"]').text()).toBe('Otros gastos')
+
+    for (const source of ['manual', 'rule', null]) {
+      const row = rowOf({ ...CLOSING_EXPENSE, categorySource: source })
+      expect(row.find('[data-test="movement-closing"]').exists()).toBe(false)
+      expect(row.text()).not.toContain('Set when the import was closed')
+    }
+    // An answer without the field says nothing either.
+    expect(rowOf(EXPENSE).find('[data-test="movement-closing"]').exists()).toBe(false)
   })
 })

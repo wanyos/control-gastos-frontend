@@ -28,6 +28,7 @@ import {
   NOT_FOUND_BODY,
   PAGE_OF_THREE,
   PAGE_TWO,
+  PREVIEW_CAFETERIA,
   VALIDATION_ERROR_BODY,
   categorizedMovement,
   changed,
@@ -1129,6 +1130,172 @@ describe('ReviewView', () => {
       expect(wrapper.get(BLOCK).find('[data-test="action-error"]').exists()).toBe(true)
       expect(wrapper.findAll('[data-test="action-error"]')).toHaveLength(1)
       expect(wrapper.findAll('[data-test="movement-row"]')).toHaveLength(3)
+    })
+  })
+
+  describe('the question about the other movements (feature 34)', () => {
+    const BLOCK = '[data-test="sticky-below-top-bar"]'
+    const QUESTION = '[data-test="other-movements-question"]'
+    const PREVIEW = '/api/category-rules/preview'
+
+    /** The two movements the rule would move, and the 201 of creating it. */
+    const CAFETERIA_CREATED = {
+      ...CREATED_RULE,
+      id: 21,
+      matchText: 'cafeteria central',
+      categoryId: 2,
+      category: { id: 2, name: 'Groceries', kind: 'expense', parentId: 1 },
+      categorization: {
+        ...PREVIEW_CAFETERIA.categorization,
+        categorizedMovements: [
+          categorizedMovement(31, 'CAFETERIA CENTRAL 0412', {
+            categoryId: 2,
+            categoryName: 'Groceries',
+            rules: [{ ruleId: 21, matchText: 'cafeteria central' }],
+          }),
+          categorizedMovement(37, 'CAFETERIA CENTRAL 0419', {
+            categoryId: 2,
+            categoryName: 'Groceries',
+            rules: [{ ruleId: 21, matchText: 'cafeteria central' }],
+          }),
+        ],
+      },
+    }
+
+    /** Everything under /api/category-rules: the preview, and the POST when asked. */
+    const rulesApi =
+      (post: () => Promise<Response> = () => Promise.reject(new TypeError('no POST'))) =>
+      (call: ApiCall): Promise<Response> => {
+        if (call.path === PREVIEW) return Promise.resolve(jsonResponse(PREVIEW_CAFETERIA))
+        if (call.method === 'POST' && call.path === RULES) return post()
+        return Promise.reject(new TypeError(`unexpected ${call.method} ${call.path}`))
+      }
+
+    async function changeFirstRow(post?: () => Promise<Response>) {
+      const queue = fakeQueue()
+      const mounted = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi(post),
+      })
+      await mounted.wrapper.get('[data-movement-id="10"] select').setValue('2')
+      await flushPromises()
+      return mounted
+    }
+
+    const questionOf = (pinia: Pinia) => useCategoryRulesStore(pinia).question
+
+    const previews = (calls: ApiCall[]): ApiCall[] => calls.filter((call) => call.path === PREVIEW)
+    const writes = (calls: ApiCall[]): string[] =>
+      calls.filter((call) => call.method !== 'GET').map((call) => `${call.method} ${call.path}`)
+
+    it('changing the category of one row in Review opens the question under the notice', async () => {
+      const { api, wrapper } = await changeFirstRow()
+
+      // One preview, with the suggested text of `CAFETERÍA CENTRAL` and the chosen category.
+      expect(previews(api.calls)).toHaveLength(1)
+      expect(previews(api.calls)[0]?.query.get('matchText')).toBe('cafeteria central')
+      expect(previews(api.calls)[0]?.query.get('categoryId')).toBe('2')
+      expect(writes(api.calls)).toEqual(['PATCH /api/movements/10'])
+
+      // In the block under the top bar, after the line of the change and its Undo.
+      const block = wrapper.get(BLOCK)
+      const summary = block.get('[data-test="action-summary"]')
+      const undo = block.get('[data-test="action-undo"]')
+      const question = block.get(QUESTION)
+      expect(summary.text()).toContain('1 movement categorized as Groceries')
+      const follows = (first: Element, second: Element): boolean =>
+        Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING)
+      expect(follows(summary.element, question.element)).toBe(true)
+      expect(follows(undo.element, question.element)).toBe(true)
+      expect(question.text()).toContain(
+        'Use Groceries for the other movements that contain this text too?',
+      )
+      expect(question.text()).toContain('2 other movements would move to Groceries.')
+      expect(
+        question.get<HTMLInputElement>('[data-test="other-movements-text"] input').element.value,
+      ).toBe('cafeteria central')
+    })
+
+    it('saying yes in Review creates the rule and the line says how many it moved', async () => {
+      const { api, wrapper } = await changeFirstRow(() =>
+        Promise.resolve(jsonResponse(CAFETERIA_CREATED, { status: 201 })),
+      )
+
+      await wrapper.get('[data-test="other-movements-create"]').trigger('click')
+      await flushPromises()
+
+      const posts = api.calls.filter((call) => call.method === 'POST')
+      expect(posts).toHaveLength(1)
+      expect(posts[0]?.body).toEqual({ matchText: 'cafeteria central', categoryId: 2 })
+      // The PATCH of the change and the POST of the yes: no other write.
+      expect(writes(api.calls)).toEqual(['PATCH /api/movements/10', 'POST /api/category-rules'])
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+      expect(wrapper.get(BLOCK).get('[data-test="rule-created-line"]').text()).toBe(
+        'Rule “cafeteria central” → Groceries created: 2 movements categorized.',
+      )
+    })
+
+    it('giving a category to several rows at once asks nothing', async () => {
+      const queue = fakeQueue([
+        EXPENSE,
+        changed(EXPENSE, { id: 14, description: 'CAFETERIA NORTE' }),
+      ])
+      const { api, wrapper, pinia } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi(),
+      })
+
+      await wrapper.get('[data-test="select-all"] input').setValue(true)
+      await wrapper.get('[data-test="bulk-category"] select').setValue('2')
+      await wrapper.get('[data-test="apply-category"]').trigger('click')
+      await flushPromises()
+
+      expect(api.patches()).toHaveLength(1)
+      expect(api.patches()[0]?.body).toEqual({ ids: [10, 14], categoryId: 2 })
+      expect(previews(api.calls)).toEqual([])
+      expect(api.calls.some((call) => call.path.startsWith('/api/category-rules'))).toBe(false)
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+      expect(questionOf(pinia)).toBeNull()
+    })
+
+    it('Undo or another action in Review closes the question', async () => {
+      const { api, wrapper, pinia } = await changeFirstRow()
+      expect(wrapper.find(QUESTION).exists()).toBe(true)
+
+      // Undo closes it, and asks nothing about rules.
+      await wrapper.get('[data-test="action-undo"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+
+      // Another change opens it again; confirming a row closes it.
+      await wrapper.get('[data-movement-id="10"] select').setValue('2')
+      await flushPromises()
+      expect(wrapper.find(QUESTION).exists()).toBe(true)
+      await wrapper.get('[data-movement-id="11"] [data-test="movement-confirm"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+
+      // No, only this one closes it and sends nothing.
+      await wrapper.get('[data-movement-id="10"] select').setValue('3')
+      await flushPromises()
+      expect(wrapper.find(QUESTION).exists()).toBe(true)
+      const before = api.calls.length
+      await wrapper.get('[data-test="other-movements-dismiss"]').trigger('click')
+      await flushPromises()
+      expect(wrapper.find(QUESTION).exists()).toBe(false)
+      expect(api.calls.length).toBe(before)
+
+      // Leaving the screen closes it too.
+      await wrapper.get('[data-movement-id="10"] select').setValue('2')
+      await flushPromises()
+      expect(questionOf(pinia)).not.toBeNull()
+      wrapper.unmount()
+      expect(questionOf(pinia)).toBeNull()
+
+      // Nothing about rules was ever written.
+      expect(api.calls.some((call) => call.method === 'POST')).toBe(false)
     })
   })
 })

@@ -8,6 +8,8 @@ import {
   BANK_BOILERPLATE,
   MIN_MATCH_TEXT,
   MIN_PROPOSAL_LENGTH,
+  MIN_SUGGESTION_TEXT,
+  TOO_SHORT,
   applyErrorMessage,
   applySummaryLines,
   deleteErrorMessage,
@@ -16,6 +18,8 @@ import {
   lastApplyHeadline,
   manualMatchesLine,
   needsRulesReload,
+  otherMovementsLine,
+  questionHeadline,
   normalizeMatchText,
   proposeMatchText,
   ruleCreatedLine,
@@ -24,6 +28,7 @@ import {
   showMovementsLabel,
   signedAmount,
   suggestedCountLine,
+  suggestionTextOf,
   suggestionsErrorMessage,
   wroteNothing,
 } from '../rules'
@@ -365,5 +370,38 @@ describe('rules (R2, R4, R6, R9, R12, R13)', () => {
       expect(wroteNothing(httpError(500, CONFLICT_BODY))).toBe(false)
       expect(wroteNothing(unreadable())).toBe(false)
     })
+  })
+})
+
+// Feature 34: the text the question offers is the one the suggestions list would
+// propose, computed here with the steps of the contract.
+describe('the text the question offers (feature 34, R2)', () => {
+  it('the suggested text of a description follows the five steps of the contract', () => {
+    // The five examples of the table of the contract, literally.
+    expect(suggestionTextOf('RECIBO /Academia Ficticia Norte')).toBe('academia ficticia norte')
+    expect(suggestionTextOf('SUPERMERCADO INVENTADO 4521')).toBe('supermercado inventado')
+    expect(suggestionTextOf('TRANSF ENVIO, CONCEPTO alquiler ficticio')).toBe('transf envio')
+    expect(suggestionTextOf('8812 KIOSCO DE PRUEBA')).toBe('kiosco de prueba')
+    expect(suggestionTextOf('ABC 1234')).toBeNull()
+
+    // Each step on its own, with invented descriptions.
+    expect(suggestionTextOf('  Óptica Inventada Sur  ')).toBe('optica inventada sur')
+    expect(suggestionTextOf('BIZUM ENVIADO concepto cena ficticia')).toBe('bizum enviado')
+    expect(suggestionTextOf('ANUL. /Gimnasio Sintetico')).toBe('gimnasio sintetico')
+    expect(suggestionTextOf('COMPRA TARJ. 1234 LIBRERIA INVENTADA')).toBe('compra tarj')
+    expect(suggestionTextOf('Panaderia «Ficticia»')).toBe('panaderia «ficticia')
+    // Shorter than 5 once cut: nothing to offer.
+    expect(suggestionTextOf('BAR 12 TERRAZA')).toBeNull()
+    expect(suggestionTextOf('0451 2210')).toBeNull()
+    expect(MIN_SUGGESTION_TEXT).toBe(5)
+  })
+
+  it('writes how many other movements would move to the category', () => {
+    expect(otherMovementsLine(19, 'Educación')).toBe('19 other movements would move to Educación.')
+    expect(otherMovementsLine(1, 'Educación')).toBe('1 other movement would move to Educación.')
+    expect(questionHeadline('Educación')).toBe(
+      'Use Educación for the other movements that contain this text too?',
+    )
+    expect(TOO_SHORT).toBe('Use at least 3 letters or digits.')
   })
 })

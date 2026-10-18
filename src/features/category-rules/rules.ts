@@ -515,3 +515,71 @@ export function ruleCreatedLine(saved: SavedRule): string {
   const { rule, result } = saved
   return `Rule “${rule.matchText}” → ${rule.category.name} created: ${movedPart(result.categorized)}.`
 }
+
+// ─── The question after a change of category by hand (feature 34) ───────────
+
+/** The floor of the suggestions list: a shorter text is not proposed (contract). */
+export const MIN_SUGGESTION_TEXT = 5
+
+const CONCEPT_WORD = /[ ,]concepto/u
+const BANK_PREFIX = /^[\p{L}. ]{1,24}\/ */u
+const HAS_DIGIT = /\p{Nd}/u
+const EDGE_NOISE = /^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu
+
+/**
+ * Steps 1 to 5 of «Cómo se saca el texto propuesto» of
+ * `GET /api/category-rules/suggestions`, run in the browser: the backend does not give
+ * that text for a single movement (design §3). Null when it comes out shorter than 5.
+ * `proposeMatchText` is another thing: what the `Create rule` dialog proposes.
+ */
+export function suggestionTextOf(description: string): string | null {
+  // 1. As the backend normalizes a rule text.
+  let text = normalizeMatchText(description)
+  // 2. What follows `concepto` is the free text of a transfer.
+  const concept = CONCEPT_WORD.exec(text)
+  if (concept && concept.index > 0) text = text.slice(0, concept.index)
+  // 3. The bank word before a slash (`recibo /`, `anul. /`), the slash and the spaces.
+  text = text.replace(BANK_PREFIX, '')
+  // 4. The first run of words without a digit, as written.
+  const pieces = [...text.matchAll(/[^ ]+/gu)]
+  const first = pieces.findIndex((piece) => !HAS_DIGIT.test(piece[0]))
+  let found = ''
+  if (first !== -1) {
+    const start = pieces[first]?.index ?? 0
+    let end = start
+    for (const piece of pieces.slice(first)) {
+      if (HAS_DIGIT.test(piece[0])) break
+      end = piece.index + piece[0].length
+    }
+    found = text.slice(start, end)
+  }
+  // 5. No punctuation at either end.
+  found = found.replace(EDGE_NOISE, '')
+  return found.length < MIN_SUGGESTION_TEXT ? null : found
+}
+
+/** Under the field of a text too short for the contract (the rule dialog and the question). */
+export const TOO_SHORT = 'Use at least 3 letters or digits.'
+
+/** The question, with the name of the category just chosen. */
+export function questionHeadline(categoryName: string): string {
+  return `Use ${categoryName} for the other movements that contain this text too?`
+}
+
+/** `19 other movements would move to Educación.` / `1 other movement would move to …` */
+export function otherMovementsLine(count: number, categoryName: string): string {
+  return count === 1
+    ? `1 other movement would move to ${categoryName}.`
+    : `${count} other movements would move to ${categoryName}.`
+}
+
+export const QUESTION_HINT =
+  'Movements you categorized by hand, or that another rule already categorized, do not move.'
+
+export const QUESTION_NONE = 'No other movement would move with this text right now.'
+
+export const QUESTION_CHECKING = 'Checking which movements would move…'
+
+export const QUESTION_TAKEN = 'Another rule already uses this text.'
+
+export const QUESTION_CHECK_FAILED = "Couldn't check which movements would move."

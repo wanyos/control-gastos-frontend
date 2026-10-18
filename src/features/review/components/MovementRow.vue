@@ -37,6 +37,8 @@
         >
           {{ depositText }}
         </span>
+        <!-- Feature 34: only when the closing of the import set the category. -->
+        <span v-if="closingText !== null" data-test="movement-closing">{{ closingText }}</span>
       </p>
     </div>
 
@@ -112,6 +114,7 @@ import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
 import { countedLine, depositCountsNothing, depositLine } from '@/shared/deposits'
 import { formatDate, formatMoney } from '@/shared/money'
+import { closingSourceLine } from '@/shared/movements'
 
 import MovementCategorySelect from './MovementCategorySelect.vue'
 import type { Category, Movement } from '../types'
@@ -174,6 +177,7 @@ const isDoubtful = computed(() => props.movement.deposit?.ambiguous === true)
 const countsNothing = computed(() => depositCountsNothing(props.movement))
 const depositText = computed(() => depositLine(props.movement))
 const counted = computed(() => countedLine(props.movement))
+const closingText = computed(() => closingSourceLine(props.movement))
 
 const amountClass = computed(() => {
   if (countsNothing.value) return 'text-ink-faint line-through'

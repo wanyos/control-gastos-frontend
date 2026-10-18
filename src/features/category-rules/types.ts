@@ -144,3 +144,53 @@ export type MatchPreview =
   | { step: 'loading'; text: string }
   | { step: 'ready'; text: string; total: number; samples: Movement[] }
   | { step: 'failed'; text: string; message: string }
+
+// ─── The question after a change of category by hand (feature 34) ────────────
+
+/** A movement the preview says the new rule would move (feature 34). */
+export interface PreviewMovement {
+  movementId: number
+  description: string
+  bookingDate: string
+  /** Positive decimal string; the sign comes from `type`. */
+  amount: string
+  type: 'expense' | 'income'
+}
+
+/** What `GET /api/category-rules/preview` answered, reduced to what the question paints. */
+export interface RulePreview {
+  /** Normalized, as the POST would store it. */
+  matchText: string
+  categoryId: number
+  /** Only the ones whose `rules` carry `ruleId: null`: the ones THIS rule would move. */
+  movements: PreviewMovement[]
+}
+
+/** What the box of the question is showing for the text it holds. */
+export type QuestionCheck =
+  | { step: 'loading'; text: string }
+  | { step: 'ready'; text: string; preview: RulePreview }
+  | { step: 'tooShort'; text: string }
+  /** The preview answered 409: another rule already uses the text. */
+  | { step: 'taken'; text: string }
+  | { step: 'failed'; text: string }
+
+/** The open question after a change of category by hand (feature 34). */
+export interface OtherMovementsQuestionState {
+  movementId: number
+  kind: 'expense' | 'income'
+  categoryId: number
+  categoryName: string
+  check: QuestionCheck
+  /** The English sentence of a failed create (R12), or null. */
+  failure: string | null
+}
+
+/** What the view hands to the store after a change by hand. */
+export interface ManualChange {
+  movementId: number
+  description: string
+  type: 'expense' | 'income' | 'neutral'
+  categoryId: number
+  categoryName: string
+}

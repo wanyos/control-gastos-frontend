@@ -59,6 +59,10 @@
         >
           Not counted
         </span>
+        <!-- Feature 34: only when the closing of the import set the category. -->
+        <span v-if="closingText !== null" data-test="statement-row-closing">
+          {{ closingText }}
+        </span>
       </p>
     </div>
 
@@ -153,6 +157,7 @@ import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
 import { countedLine, depositCountsNothing, depositLine } from '@/shared/deposits'
 import { formatMoney } from '@/shared/money'
+import { closingSourceLine } from '@/shared/movements'
 
 import RowCategoryEditor from './RowCategoryEditor.vue'
 import type { Category, Movement } from '../types'
@@ -197,6 +202,7 @@ const isDeposit = computed(() => props.movement.deposit != null)
 const isDoubtful = computed(() => props.movement.deposit?.ambiguous === true)
 const depositText = computed(() => depositLine(props.movement))
 const counted = computed(() => countedLine(props.movement))
+const closingText = computed(() => closingSourceLine(props.movement))
 
 /**
  * Left out of the month's figures: marked by the user, or one of a paired transfer; a

@@ -478,6 +478,39 @@ describe('useStatementStore', () => {
       expect(store.editingId).toBeNull()
     })
 
+    it('categorize gives back the movement the PATCH answered or null', async () => {
+      mockApi({ movements: json(MIXED_PAGE), patch: json(GROCERIES_EXPENSE) })
+      const store = useStatementStore()
+      await store.show('2026-09')
+
+      // Feature 34: the screen asks about the other movements with this answer.
+      const updated = await store.categorize(10, 2)
+      expect(updated?.id).toBe(10)
+      expect(updated?.categoryId).toBe(2)
+      expect(updated?.category?.name).toBe('Groceries')
+
+      // Nothing written: a rejection, a line that is not on screen, or another write in
+      // flight.
+      setActivePinia(createPinia())
+      vi.restoreAllMocks()
+      mockApi({ movements: json(MIXED_PAGE), patch: json(VALIDATION_ERROR_BODY, 400) })
+      const rejected = useStatementStore()
+      await rejected.show('2026-09')
+      await expect(rejected.categorize(10, 2)).resolves.toBeNull()
+      await expect(rejected.categorize(999, 2)).resolves.toBeNull()
+
+      setActivePinia(createPinia())
+      vi.restoreAllMocks()
+      const slow = deferred()
+      mockApi({ movements: json(MIXED_PAGE), patch: slow.answer })
+      const busy = useStatementStore()
+      await busy.show('2026-09')
+      const first = busy.categorize(10, 2)
+      await expect(busy.categorize(15, 2)).resolves.toBeNull()
+      slow.resolve(jsonResponse(GROCERIES_EXPENSE))
+      expect((await first)?.id).toBe(10)
+    })
+
     it('works the same on a confirmed movement, and no status moves (R6)', async () => {
       const api = mockApi({
         movements: json(MIXED_PAGE),
@@ -682,7 +715,8 @@ describe('useStatementStore', () => {
       const store = useStatementStore()
       await store.show('2026-09')
 
-      await expect(store.categorize(14, 2)).resolves.toBeUndefined()
+      // Never throws; since feature 34 it says nothing was written.
+      await expect(store.categorize(14, 2)).resolves.toBeNull()
 
       expect(store.actionMessage).toBe(
         "Nothing changed. That movement doesn't accept that category.",

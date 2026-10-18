@@ -513,6 +513,8 @@ export function fakeQueue(seed: readonly object[] = [EXPENSE, INCOME, NEUTRAL], 
       const categoryId = body.categoryId as number | null
       row.categoryId = categoryId
       row.category = categoryId === null ? null : (CATEGORY_BY_ID[categoryId] ?? null)
+      // As the backend does since its feature 60: a category by hand is `manual`.
+      row.categorySource = categoryId === null ? null : 'manual'
     }
     if (body.status !== undefined) row.status = body.status
     return { ...row }
@@ -553,3 +555,66 @@ export function fakeQueue(seed: readonly object[] = [EXPENSE, INCOME, NEUTRAL], 
     },
   }
 }
+
+// ─── Feature 34: where the category came from, and the preview of a rule ─────
+
+/** The root category the closing of an import puts the expenses in. Not in the tree. */
+export const OTHER_EXPENSES = { id: 5, name: 'Otros gastos', kind: 'expense', parentId: null }
+
+/** A pending expense whose category was set when the import was closed. */
+export const CLOSING_EXPENSE = {
+  ...base,
+  id: 13,
+  type: 'expense',
+  bookingDate: '2026-08-01',
+  valueDate: '2026-08-01',
+  amount: '48.50',
+  description: 'RECIBO /Academia Ficticia Norte',
+  balanceAfter: null,
+  accountId: 1,
+  account: BANKINTER,
+  categoryId: 5,
+  category: OTHER_EXPENSES,
+  categorySource: 'closing',
+  daySequence: 1,
+}
+
+/** One movement of `categorizedMovements` the rule not created yet would move. */
+export const previewMovement = (
+  movementId: number,
+  description: string,
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> => ({
+  movementId,
+  description,
+  bookingDate: '2026-07-18',
+  amount: '3.85',
+  type: 'expense',
+  categoryId: 2,
+  categoryName: 'Groceries',
+  rules: [{ ruleId: null, matchText: 'cafeteria central' }],
+  ...overrides,
+})
+
+/** `GET /api/category-rules/preview` 200: what creating the rule would move. */
+export const previewAnswer = (
+  matchText: string,
+  categoryId: number,
+  moved: Record<string, unknown>[],
+) => ({
+  matchText,
+  categoryId,
+  categorization: {
+    categorized: moved.length,
+    categorizedMovements: moved,
+    conflictCount: 0,
+    conflicts: [],
+    unmatched: 140,
+  },
+})
+
+/** Two other movements of `cafeteria central` would move to Groceries. */
+export const PREVIEW_CAFETERIA = previewAnswer('cafeteria central', 2, [
+  previewMovement(31, 'CAFETERIA CENTRAL 0412'),
+  previewMovement(37, 'CAFETERIA CENTRAL 0419', { bookingDate: '2026-07-25', amount: '4.10' }),
+])

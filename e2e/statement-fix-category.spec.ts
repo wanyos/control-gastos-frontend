@@ -158,6 +158,25 @@ async function prepare(page: Page, options: Options = {}) {
     route.fulfill({ json: { ambiguousCount: 0, ambiguous: [] } }),
   )
   await page.route('**/api/categories', (route) => route.fulfill({ json: CATEGORIES }))
+  // Feature 34: each change of category asks what a rule with its text would move. Here
+  // it moves nothing, so no question is painted; without the route the safety net would
+  // abort it and Chromium would log the failure as an error.
+  await page.route('**/api/category-rules/preview*', (route) => {
+    const query = new URL(route.request().url()).searchParams
+    return route.fulfill({
+      json: {
+        matchText: (query.get('matchText') ?? '').trim().toLowerCase(),
+        categoryId: Number(query.get('categoryId')),
+        categorization: {
+          categorized: 0,
+          categorizedMovements: [],
+          conflictCount: 0,
+          conflicts: [],
+          unmatched: 0,
+        },
+      },
+    })
+  })
 
   let written = 0
 

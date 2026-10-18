@@ -18,15 +18,26 @@ import {
   previewErrorMessage,
   previewQuery,
   ruleErrorMessage,
+  suggestionTextOf,
   wroteNothing,
 } from './rules'
-import { applyRules, createRule, deleteRule, getRules, getSuggestions, updateRule } from './service'
+import {
+  applyRules,
+  createRule,
+  deleteRule,
+  getRulePreview,
+  getRules,
+  getSuggestions,
+  updateRule,
+} from './service'
 import type {
   ApplyFlow,
   CategoryRule,
   LastApply,
+  ManualChange,
   MatchPreview,
   NewRule,
+  OtherMovementsQuestionState,
   RuleChanges,
   SavedRule,
   SuggestedRule,
@@ -398,6 +409,114 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     }
   }
 
+  // ─── The question after a change of category by hand (feature 34) ─────────
+  // Read only until the human says yes: the preview is a GET, and the only write is
+  // the POST of `acceptQuestion`.
+
+  /** The open question, or null. One at a time: a new change closes the previous one. */
+  const question = ref<OtherMovementsQuestionState | null>(null)
+  /** Goes up with every preview asked for and every close: a late answer is dropped (R5). */
+  let questionToken = 0
+
+  /** Closes the question without sending anything (R13). */
+  function dismissQuestion(): void {
+    questionToken += 1
+    question.value = null
+  }
+
+  /**
+   * After a change of category by hand: asks the preview with the suggested text of the
+   * description and the chosen category, and opens the question only when the new rule
+   * would move at least one other movement. A neutral movement, a description without a
+   * suggested text, a 409, an empty list or any failure open nothing (R1, R8).
+   */
+  async function offerRule(change: ManualChange, client?: HttpClient): Promise<void> {
+    dismissQuestion()
+    if (change.type === 'neutral') return
+    const text = suggestionTextOf(change.description)
+    if (text === null) return
+    const token = questionToken
+    try {
+      const answer = await getRulePreview(
+        { matchText: text, categoryId: change.categoryId },
+        client,
+      )
+      if (token !== questionToken || answer.movements.length === 0) return
+      question.value = {
+        movementId: change.movementId,
+        kind: change.type,
+        categoryId: change.categoryId,
+        categoryName: change.categoryName,
+        check: { step: 'ready', text, preview: answer },
+        failure: null,
+      }
+    } catch {
+      // Nothing to ask about: the change of the one movement already went through.
+    }
+  }
+
+  /**
+   * The text of the question was edited: asks the preview again with it and the same
+   * category. Only the last answer counts (R5); a short text asks nothing (R6).
+   */
+  async function checkQuestionText(text: string, client?: HttpClient): Promise<void> {
+    const current = question.value
+    if (!current) return
+    questionToken += 1
+    const token = questionToken
+    if (isMatchTextTooShort(text)) {
+      current.check = { step: 'tooShort', text }
+      return
+    }
+    current.check = { step: 'loading', text }
+    try {
+      const answer = await getRulePreview(
+        { matchText: text, categoryId: current.categoryId },
+        client,
+      )
+      if (token !== questionToken) return
+      current.check = { step: 'ready', text, preview: answer }
+    } catch (rejection) {
+      if (token !== questionToken) return
+      const failure = toAppError(rejection)
+      current.check =
+        failure instanceof ApiError && failure.status === 409
+          ? { step: 'taken', text }
+          : { step: 'failed', text }
+    }
+  }
+
+  /**
+   * The yes of the question: one POST with the text of the box and the chosen category,
+   * by the same path as any create (the line of the created rule, the box of the result,
+   * `applyRun`). A rejection, or a request that never arrived, leaves the question open
+   * with the sentence and asks for nothing else (R10, R11, R12).
+   */
+  async function acceptQuestion(client?: HttpClient): Promise<boolean> {
+    const asked = question.value
+    if (!asked || asked.check.step !== 'ready' || isSaving.value) return false
+    const matchText = asked.check.text
+    isSaving.value = true
+    asked.failure = null
+    try {
+      const failure = await postRule({ matchText, categoryId: asked.categoryId }, client)
+      if (failure === null) {
+        if (question.value === asked) dismissQuestion()
+        await refreshSuggestions(client)
+        return true
+      }
+      asked.failure = ruleErrorMessage(failure)
+      if (!wroteNothing(failure)) {
+        // It may have been written: the list of rules is asked for again, as in `create`.
+        await load(client)
+        await refreshSuggestions(client)
+      }
+      return false
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   return {
     rules,
     isLoading,
@@ -430,5 +549,10 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     clearPreview,
     loadSuggestions,
     createFromSuggestion,
+    question,
+    offerRule,
+    checkQuestionText,
+    acceptQuestion,
+    dismissQuestion,
   }
 })

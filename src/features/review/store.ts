@@ -301,13 +301,13 @@ export const useReviewStore = defineStore('review', () => {
   }
 
   /** One lane for every action: a second click while one is in flight does nothing (R11). */
-  async function runAction(work: () => Promise<void>): Promise<void> {
-    if (isActing.value) return
+  async function runAction<T>(work: () => Promise<T>): Promise<T | null> {
+    if (isActing.value) return null
     isActing.value = true
     actionError.value = null
     actionMessage.value = null
     try {
-      await work()
+      return await work()
     } finally {
       isActing.value = false
     }
@@ -324,13 +324,16 @@ export const useReviewStore = defineStore('review', () => {
   const nameOf = (categoryId: number | null): string | undefined =>
     findCategory(categories.value, categoryId)?.name
 
-  /** Runs a change over `movements` and records how to undo it. One request, always. */
+  /**
+   * Runs a change over `movements` and records how to undo it. One request, always.
+   * Gives back the movements the API answered with, or null when nothing was written.
+   */
   async function write(
     movements: Movement[],
     changes: MovementChanges,
     send: () => Promise<Movement[]>,
     client?: HttpClient,
-  ): Promise<void> {
+  ): Promise<Movement[] | null> {
     const undo = undoPlan(movements, changes)
     try {
       const updated = await send()
@@ -340,23 +343,30 @@ export const useReviewStore = defineStore('review', () => {
         undo,
       }
       await refreshAfterAction(client)
+      return updated
     } catch (rejection) {
       await reportFailure(rejection, client)
+      return null
     }
   }
 
   const rowOf = (id: number): Movement | undefined =>
     result.value?.movements.find((movement) => movement.id === id)
 
-  /** The category of one row: chosen in the select, saved on its own (R4). */
+  /**
+   * The category of one row: chosen in the select, saved on its own (R4). Gives back
+   * the movement the PATCH answered with, or null when nothing was written (a failure,
+   * or another action in flight): the screen asks about the other movements with it
+   * (feature 34).
+   */
   async function categorizeOne(
     id: number,
     categoryId: number | null,
     client?: HttpClient,
-  ): Promise<void> {
+  ): Promise<Movement | null> {
     const row = rowOf(id)
-    if (!row) return
-    await runAction(() =>
+    if (!row) return null
+    const updated = await runAction(() =>
       write(
         [row],
         { categoryId },
@@ -364,6 +374,7 @@ export const useReviewStore = defineStore('review', () => {
         client,
       ),
     )
+    return updated?.[0] ?? null
   }
 
   async function confirmOne(id: number, client?: HttpClient): Promise<void> {

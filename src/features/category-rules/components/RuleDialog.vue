@@ -56,11 +56,10 @@ import type { Category, CategoryKind } from '@/shared/categories'
 import { SEARCH_DEBOUNCE_MS } from '@/shared/movements'
 
 import RuleMatchPreview from './RuleMatchPreview.vue'
-import { canPreview, isMatchTextTooShort } from '../rules'
+import { TOO_SHORT, canPreview, isMatchTextTooShort } from '../rules'
 import type { MatchPreview, NewRule } from '../types'
 
 const MATCH_HINT = 'Matches any description that contains this text, ignoring case and accents.'
-const TOO_SHORT = 'Use at least 3 letters or digits.'
 
 const props = withDefaults(
   defineProps<{
