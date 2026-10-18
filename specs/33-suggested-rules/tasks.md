@@ -14,25 +14,25 @@ prueba nuevo lleva nombres de personas, comercios reales ni números de cuenta r
 Archivos: `src/features/category-rules/types.ts`, `src/features/category-rules/service.ts`, `src/features/category-rules/rules.ts`, `src/features/category-rules/store.ts`, `src/features/category-rules/components/SuggestedRuleList.vue`, `src/features/category-rules/components/SuggestedRuleRow.vue`, `src/features/category-rules/components/RuleCreatedNotice.vue`, `src/features/category-rules/components/LastApplyReport.vue`, `src/features/category-rules/components/RuleMatchPreview.vue`, `src/features/category-rules/views/RulesView.vue`, `src/features/category-rules/__tests__/fixtures.ts`, `src/features/category-rules/__tests__/service.spec.ts`, `src/features/category-rules/__tests__/rules.spec.ts`, `src/features/category-rules/__tests__/store.spec.ts`, `src/features/category-rules/__tests__/SuggestedRuleRow.spec.ts`, `src/features/category-rules/__tests__/RuleCreatedNotice.spec.ts`, `src/features/category-rules/__tests__/LastApplyReport.spec.ts`, `src/features/category-rules/__tests__/RuleMatchPreview.spec.ts`, `src/features/category-rules/__tests__/RulesView.spec.ts`, `src/features/review/views/ReviewView.vue`, `src/features/review/__tests__/ReviewView.spec.ts`, `src/features/review/__tests__/fixtures.ts`, `src/features/statement/store.ts`, `src/features/statement/views/StatementView.vue`, `src/features/statement/__tests__/store.spec.ts`, `src/features/statement/__tests__/StatementView.spec.ts`, `src/features/statement/__tests__/fixtures.ts`
 Depende de: —
 
-- [ ] T1 — `types.ts` y fixtures (design §1 y §2): `SuggestedMovement`, `SuggestedRule`,
+- [x] T1 — `types.ts` y fixtures (design §1 y §2): `SuggestedMovement`, `SuggestedRule`,
   `SavedRule`, `ResultCause`, y `LastApply` con `cause` y `rule`. En
   `category-rules/__tests__/fixtures.ts`, una respuesta inventada de propuestas (tres, una
   de ingresos, una con `manualMatches: 2`) y una respuesta de `POST` con `categorization`.
   Añade `categorization` a `CREATED_RULE` de `review/__tests__/fixtures.ts` y de
   `statement/__tests__/fixtures.ts` (`categorized: 0`, listas vacías). Cubre: R1–R16
   (soporte).
-- [ ] T2 — `service.ts` (design §2). Tests en `service.spec.ts`:
+- [x] T2 — `service.ts` (design §2). Tests en `service.spec.ts`:
   `reads the suggested rules of the contract`,
   `rejects a suggested rule whose count does not match its movements`,
   `reads the rule and what its pass moved from the answer of a create`,
   `rejects a create answer without categorization`. Los tests de la feature 30 sobre
   `parseApplyResult` no cambian. Cubre: R4, R5, R12.
-- [ ] T3 — `rules.ts`: los textos de design §5. Tests en `rules.spec.ts`:
+- [x] T3 — `rules.ts`: los textos de design §5. Tests en `rules.spec.ts`:
   `writes the headline of a created or changed rule with how many it moved`,
   `writes how many movements categorized by hand also contain the text`,
   `names the kind of a suggestion and how many movements it would take`.
   Cubre: R1, R5, R6, R9, R11, R16.
-- [ ] T4 — `store.ts` (design §3). Tests en `store.spec.ts`:
+- [x] T4 — `store.ts` (design §3). Tests en `store.spec.ts`:
   `creating a rule leaves its result in the box and in the line of the created rule`,
   `only one create travels at a time from the suggestions`,
   `drops the used suggestion and asks for the list again after the rule is created`,
@@ -46,10 +46,10 @@ Depende de: —
   `a suggestion load that fails or does not follow the contract leaves no list`,
   `changing a rule leaves its result in the box`. Ajusta los tests existentes que leían
   `lastCreated` como una regla. Cubre: R4, R5, R6, R7, R8, R10, R11, R12, R14, R15.
-- [ ] T5 — `statement/store.ts` vigila `applyRun` (design §4). Test en
+- [x] T5 — `statement/store.ts` vigila `applyRun` (design §4). Test en
   `statement/__tests__/store.spec.ts`:
   `asks for the month again when a rule is created or changed`. Cubre: R14.
-- [ ] T6 — `SuggestedRuleRow.vue` y `SuggestedRuleList.vue` (design §4). Tests en
+- [x] T6 — `SuggestedRuleRow.vue` y `SuggestedRuleList.vue` (design §4). Tests en
   `SuggestedRuleRow.spec.ts`:
   `shows the text the kind and how many movements a suggestion would take`,
   `shows the movements of a suggestion before any rule is created` (sin ninguna petición),
@@ -59,18 +59,18 @@ Depende de: —
   `offers no way to dismiss a suggestion`,
   `paints the failure of a create in the row of its suggestion`.
   Cubre: R1, R2, R3, R8, R9, R10.
-- [ ] T7 — `RuleCreatedNotice.vue` (design §4). Tests en `RuleCreatedNotice.spec.ts`
+- [x] T7 — `RuleCreatedNotice.vue` (design §4). Tests en `RuleCreatedNotice.spec.ts`
   (nuevo): `says how many movements the new rule categorized and offers no Apply rules now`,
   `adds the unfinished sentence when the pass of the new rule did not finish`.
   Cubre: R6, R11, R13.
-- [ ] T8 — `LastApplyReport.vue`. Tests en `LastApplyReport.spec.ts`:
+- [x] T8 — `LastApplyReport.vue`. Tests en `LastApplyReport.spec.ts`:
   `heads the box with the rule and its category when a rule was created or changed`,
   `adds the unfinished sentence to the box of a rule whose pass did not finish`. Los tests
   de la feature 30 siguen igual (sus fixtures llevan `cause: 'apply'`). Cubre: R5, R11.
-- [ ] T9 — `RuleMatchPreview.vue`: `PREVIEW_NOTE`. Test en `RuleMatchPreview.spec.ts`:
+- [x] T9 — `RuleMatchPreview.vue`: `PREVIEW_NOTE`. Test en `RuleMatchPreview.spec.ts`:
   `says that saving also moves the movements the closing of the import categorized`.
   Cubre: R16.
-- [ ] T10 — `RulesView.vue` (design §4). Tests en `RulesView.spec.ts`:
+- [x] T10 — `RulesView.vue` (design §4). Tests en `RulesView.spec.ts`:
   `lists the suggested rules in the order of the answer`,
   `shows the loading the failure with Try again and the empty list of suggestions`,
   `draws the line of the created rule inside the block that sticks under the top bar`,
@@ -78,13 +78,13 @@ Depende de: —
   `says there are none, and offers no way to make one from here (R7)` a
   `says there are no rules yet` y quítale la parte de «no way to make one». Los tests de
   la feature 30 de este archivo siguen pasando con su nombre. Cubre: R1, R6, R12, R16.
-- [ ] T11 — `ReviewView.vue` (design §4) y `ReviewView.spec.ts`: los tests que pulsaban
+- [x] T11 — `ReviewView.vue` (design §4) y `ReviewView.spec.ts`: los tests que pulsaban
   `apply-rules-now` o esperaban verlo pasan a esperar que no exista; `holds the rule
   notice or the action notice, never both (R4, C5)` conserva su nombre. Test nuevo:
   `the rule notice in Review says how many it moved and has no Apply rules now`. Los tests
   con nombre en los checks de las features 27 y 30 conservan nombre y pasan. Cubre: R6,
   R13.
-- [ ] T12 — `StatementView.vue` (solo el comentario de la ventana de crear regla) y
+- [x] T12 — `StatementView.vue` (solo el comentario de la ventana de crear regla) y
   `StatementView.spec.ts` (la respuesta del `POST` con `categorization`; el test
   `creating the rule writes nothing on the movement it was born from (R17)` conserva su
   nombre). Cubre: R14 (soporte).
