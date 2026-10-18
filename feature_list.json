@@ -1700,6 +1700,75 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 33,
+      "name": "suggested-rules",
+      "title": "Una pantalla con las reglas propuestas",
+      "intent": {
+        "que_quiero": "Una pantalla con la lista de reglas propuestas, de la que más movimientos recoge a la que menos. En cada una elijo la categoría y se crea la regla. Al crearla, veo qué movimientos ha movido y la propuesta desaparece de la lista. Quiero poder quitarme el grueso de `Otros gastos` en una sola sesión, decidiendo unas sesenta.",
+        "por_que": "Porque categorizar movimiento a movimiento es demasiado trabajo, y sin categorías la vista por categoría no sirve. Con una decisión por concepto se resuelven decenas de movimientos de golpe. «Me parece crítico también tener bien categorizados los movimientos. Hacerlo yo a mano no es buena idea; vale que algún movimiento deba ponerlo a mano, pero deberían ser los mínimos.»",
+        "como_se_que_esta_bien": [
+          "Veo la lista de propuestas, cada una con su texto y cuántos movimientos recogería.",
+          "Puedo ver los movimientos de una propuesta antes de decidir.",
+          "Elijo una categoría y se crea la regla; veo cuántos movimientos ha movido y cuáles.",
+          "La propuesta que acabo de usar desaparece de la lista.",
+          "Si una propuesta no me interesa, la dejo y sigo con la siguiente.",
+          "Si la propuesta casa también con movimientos que categoricé yo a mano, me lo dice, y esos no se mueven.",
+          "Si falla, me lo dice y no ha cambiado nada."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero que se cree ninguna regla sin que yo elija la categoría.",
+          "No quiero que la aplicación me proponga la categoría."
+        ],
+        "delego_en_agente": [
+          "Cómo se dibuja la lista y cómo se elige la categoría.",
+          "Si se puede editar el texto de la regla propuesta antes de crearla."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-10-18: la pantalla vive dentro de `Rules`.",
+          "Del 2026-10-18: no se pueden descartar propuestas de momento; una propuesta que no use sigue saliendo.",
+          "Del 2026-10-18: sobre quitar el aviso `Apply rules now` que sale tras crear una regla (crear ya la aplica sola), «creo que sí, no estoy seguro, lo que creas que es mejor». Decisión del leader: se quita en esta feature, porque pediría hacer algo que ya está hecho; el botón `Apply rules` de la pantalla se queda."
+        ]
+      },
+      "acceptance": [],
+      "checks": [],
+      "sdd": true,
+      "status": "pending"
+    },
+    {
+      "id": 34,
+      "name": "manual-category-offers-rule",
+      "title": "Al cambiar una categoría a mano, ofrecer aplicarla a los demás",
+      "intent": {
+        "que_quiero": "Cuando cambio a mano la categoría de un movimiento, en `Movements` o en `Review`, que la aplicación me pregunte si quiero ponerla también en todos los que contienen un texto, diciéndome cuántos y cuáles serían. Si digo que sí, se crea la regla y se aplican. Si digo que no, solo cambia ese movimiento, como ahora.",
+        "por_que": "Porque así cada corrección que hago a mano sirve para siempre: para los movimientos iguales que ya tengo y para los que vengan. Es lo que pedí en la revisión: «tengo 20 movimientos que son de lo mismo, con darle la categoría a uno automáticamente se ponga para todos».",
+        "como_se_que_esta_bien": [
+          "Cambio la categoría de un movimiento y la aplicación me pregunta si la aplico a los demás que contienen un texto.",
+          "Antes de decir que sí, veo cuántos movimientos se moverían y cuáles.",
+          "Puedo cambiar el texto antes de decidir, y lo que se movería se actualiza.",
+          "Si digo que sí, se crea la regla y veo cuántos se han movido.",
+          "Si digo que no, solo ha cambiado ese movimiento.",
+          "Si no hay ningún otro movimiento que se movería, no me pregunta, o me dice que no hay ninguno."
+        ],
+        "que_no_quiero": [
+          "No quiero tocar el backend.",
+          "No quiero que se cree ninguna regla sin que yo diga que sí.",
+          "No quiero que me pregunte cuando ya existe una regla para ese texto."
+        ],
+        "delego_en_agente": [
+          "Cómo se hace la pregunta: en la propia línea, o en una ventana."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-10-18: el texto que se ofrece por defecto es el mismo que propondría la lista de reglas propuestas para ese concepto (opción A).",
+          "Del 2026-10-18: de dónde salió la categoría se enseña de forma discreta solo cuando la puso el cierre de la importación (`Otros gastos` / `Otros ingresos` porque ninguna regla lo reconoció); cuando la puso él o una regla, no se enseña."
+        ]
+      },
+      "acceptance": [],
+      "checks": [],
+      "sdd": true,
+      "status": "pending"
     }
   ]
 }

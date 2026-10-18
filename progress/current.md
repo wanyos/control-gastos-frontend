@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** ninguna. La F32 quedó cerrada el 2026-10-17.
+- **Feature en curso:** F33 `suggested-rules` (SDD), y después F34 `manual-category-offers-rule` (SDD). Parte 2 de `../docs/handoff-categorizacion.md`. Intenciones aprobadas por el humano el 2026-10-18; `spec-author` de la F33 lanzado.
 - **Nivel de consumo:** medio (todos los subagentes en `opus`).
 
 Lo que sigue vivo está en `docs/roadmap.md` (tabla «Cabos sueltos con dueño») y, para las
