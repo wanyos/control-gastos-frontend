@@ -1812,9 +1812,58 @@
         ]
       },
       "acceptance": [],
-      "checks": [],
+      "checks": [
+        {
+          "descripcion": "Cambio la categoría de un movimiento y la aplicación me pregunta si la aplico a los demás que contienen un texto.",
+          "comando": "grep -qF \"a change of category asks the preview with the suggested text and the chosen category and opens the question\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"a change of category asks the preview with the suggested text and the chosen category and opens the question\" && grep -qF \"changing the category of one row in Review opens the question under the notice\" src/features/review/__tests__/ReviewView.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewView.spec.ts -t \"changing the category of one row in Review opens the question under the notice\" && grep -qF \"changing the category of one line in Movements opens the question under the notice\" src/features/statement/__tests__/StatementView.spec.ts && pnpm exec vitest run src/features/statement/__tests__/StatementView.spec.ts -t \"changing the category of one line in Movements opens the question under the notice\""
+        },
+        {
+          "descripcion": "Antes de decir que sí, veo cuántos movimientos se moverían y cuáles.",
+          "comando": "grep -qF \"shows how many other movements would move and lists them before anything is created\" src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts -t \"shows how many other movements would move and lists them before anything is created\""
+        },
+        {
+          "descripcion": "Puedo cambiar el texto antes de decidir, y lo que se movería se actualiza.",
+          "comando": "grep -qF \"editing the text asks the preview again and only the last answer counts\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"editing the text asks the preview again and only the last answer counts\" && grep -qF \"asks again after the text is edited and keeps Create rule off while it checks\" src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts -t \"asks again after the text is edited and keeps Create rule off while it checks\" && grep -qF \"editing the text asks the preview again and the count follows it\" e2e/manual-category-offers-rule.spec.ts && pnpm test:e2e --project=chromium e2e/manual-category-offers-rule.spec.ts -g \"editing the text asks the preview again and the count follows it\""
+        },
+        {
+          "descripcion": "Si digo que sí, se crea la regla y veo cuántos se han movido. (en Movements, en el navegador con el backend simulado, y en Review)",
+          "comando": "grep -qF \"in Movements saying yes creates the rule and the line says how many movements it moved\" e2e/manual-category-offers-rule.spec.ts && pnpm test:e2e --project=chromium e2e/manual-category-offers-rule.spec.ts -g \"in Movements saying yes creates the rule and the line says how many movements it moved\" && grep -qF \"saying yes in Review creates the rule and the line says how many it moved\" src/features/review/__tests__/ReviewView.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewView.spec.ts -t \"saying yes in Review creates the rule and the line says how many it moved\""
+        },
+        {
+          "descripcion": "Si digo que no, solo ha cambiado ese movimiento. (y no se crea ninguna regla sin que yo diga que sí)",
+          "comando": "grep -qF \"saying no sends nothing after the change of the one movement\" e2e/manual-category-offers-rule.spec.ts && pnpm test:e2e --project=chromium e2e/manual-category-offers-rule.spec.ts -g \"saying no sends nothing after the change of the one movement\" && grep -qF \"dismissing the question sends nothing\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"dismissing the question sends nothing\""
+        },
+        {
+          "descripcion": "Si no hay ningún otro movimiento que se movería, no me pregunta, o me dice que no hay ninguno.",
+          "comando": "grep -qF \"asks nothing when no other movement would move\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"asks nothing when no other movement would move\" && grep -qF \"says no other movement would move and keeps Create rule on\" src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts -t \"says no other movement would move and keeps Create rule on\""
+        },
+        {
+          "descripcion": "No quiero que me pregunte cuando ya existe una regla para ese texto.",
+          "comando": "grep -qF \"asks nothing when a rule already uses the suggested text\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"asks nothing when a rule already uses the suggested text\""
+        },
+        {
+          "descripcion": "(añadido) Respuesta del 2026-10-18: el texto que se ofrece es el que propondría la lista de reglas propuestas (los cinco ejemplos del contrato).",
+          "comando": "grep -qF \"the suggested text of a description follows the five steps of the contract\" src/features/category-rules/__tests__/rules.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/rules.spec.ts -t \"the suggested text of a description follows the five steps of the contract\""
+        },
+        {
+          "descripcion": "(añadido) Respuesta del 2026-10-18: de dónde salió la categoría se enseña solo cuando la puso el cierre de la importación.",
+          "comando": "grep -qF \"says the category was set when the import was closed only for that source\" src/features/statement/__tests__/StatementRow.spec.ts && pnpm exec vitest run src/features/statement/__tests__/StatementRow.spec.ts -t \"says the category was set when the import was closed only for that source\" && grep -qF \"says the category was set when the import was closed only for that source\" src/features/review/__tests__/MovementRow.spec.ts && pnpm exec vitest run src/features/review/__tests__/MovementRow.spec.ts -t \"says the category was set when the import was closed only for that source\""
+        },
+        {
+          "descripcion": "(añadido) Al dar una categoría a varias filas a la vez en Review no se pregunta nada.",
+          "comando": "grep -qF \"giving a category to several rows at once asks nothing\" src/features/review/__tests__/ReviewView.spec.ts && pnpm exec vitest run src/features/review/__tests__/ReviewView.spec.ts -t \"giving a category to several rows at once asks nothing\""
+        },
+        {
+          "descripcion": "(añadido) La pregunta no tapa la línea del cambio ni su Undo y se ve aunque cambie una fila del final de la lista.",
+          "comando": "grep -qF \"the question about other movements sits under the notice and is in view from a low row\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"the question about other movements sits under the notice and is in view from a low row\""
+        },
+        {
+          "descripcion": "(añadido) Si crear la regla falla, me lo dice en la pregunta y no ha cambiado nada más.",
+          "comando": "grep -qF \"a rejected create from the question says why and changes nothing else\" src/features/category-rules/__tests__/store.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/store.spec.ts -t \"a rejected create from the question says why and changes nothing else\" && grep -qF \"paints the failure of a create inside the question\" src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts && pnpm exec vitest run src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts -t \"paints the failure of a create inside the question\""
+        }
+      ],
       "sdd": true,
-      "status": "pending"
+      "status": "spec_ready"
     }
   ]
 }
