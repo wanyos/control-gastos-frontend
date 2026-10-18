@@ -16,26 +16,26 @@ conceptos como `RECIBO /Academia Ficticia Norte`, `SUPERMERCADO INVENTADO 4521`,
 Archivos: `src/features/category-rules/types.ts`, `src/features/category-rules/service.ts`, `src/features/category-rules/rules.ts`, `src/features/category-rules/store.ts`, `src/features/category-rules/components/OtherMovementsQuestion.vue`, `src/features/category-rules/components/RuleDialog.vue`, `src/features/category-rules/__tests__/fixtures.ts`, `src/features/category-rules/__tests__/service.spec.ts`, `src/features/category-rules/__tests__/rules.spec.ts`, `src/features/category-rules/__tests__/store.spec.ts`, `src/features/category-rules/__tests__/OtherMovementsQuestion.spec.ts`, `src/shared/movements.ts`, `src/shared/__tests__/movements.spec.ts`, `src/features/review/store.ts`, `src/features/review/views/ReviewView.vue`, `src/features/review/components/MovementRow.vue`, `src/features/review/__tests__/store.spec.ts`, `src/features/review/__tests__/ReviewView.spec.ts`, `src/features/review/__tests__/MovementRow.spec.ts`, `src/features/review/__tests__/fixtures.ts`, `src/features/statement/store.ts`, `src/features/statement/views/StatementView.vue`, `src/features/statement/components/StatementRow.vue`, `src/features/statement/__tests__/store.spec.ts`, `src/features/statement/__tests__/StatementView.spec.ts`, `src/features/statement/__tests__/StatementRow.spec.ts`, `src/features/statement/__tests__/fixtures.ts`
 Depende de: —
 
-- [ ] T1 — `types.ts` (design §2) y fixtures. En `category-rules/__tests__/fixtures.ts`,
+- [x] T1 — `types.ts` (design §2) y fixtures. En `category-rules/__tests__/fixtures.ts`,
   respuestas inventadas del preview: una con dos movimientos de la regla nueva
   (`ruleId: null`) y uno movido por otra regla, una sin ninguno, y el cuerpo de un 409.
   En `review/__tests__/fixtures.ts` y `statement/__tests__/fixtures.ts`, un movimiento con
   `categorySource: 'closing'` en `Otros gastos`. Cubre: R1–R15 (soporte).
-- [ ] T2 — `shared/movements.ts` (design §5, `categorySource`): tipo, lectura en
+- [x] T2 — `shared/movements.ts` (design §5, `categorySource`): tipo, lectura en
   `parseMovement` y `closingSourceLine`. Tests en `movements.spec.ts`:
   `reads categorySource and takes an absent one as null`,
   `rejects a categorySource outside the three of the contract`. Cubre: R15.
-- [ ] T3 — `service.ts`: `getRulePreview` y `parseRulePreview` (design §2). Tests en
+- [x] T3 — `service.ts`: `getRulePreview` y `parseRulePreview` (design §2). Tests en
   `service.spec.ts`: `asks the preview with only matchText and categoryId`,
   `keeps only the movements of the new rule from a preview`,
   `rejects a preview whose list does not add up`. Cubre: R1, R3.
-- [ ] T4 — `rules.ts`: `suggestionTextOf`, `MIN_SUGGESTION_TEXT`, los textos de design §6
+- [x] T4 — `rules.ts`: `suggestionTextOf`, `MIN_SUGGESTION_TEXT`, los textos de design §6
   y `TOO_SHORT` (que `RuleDialog.vue` pasa a importar de aquí, sin cambiar su texto).
   Tests en `rules.spec.ts`:
   `the suggested text of a description follows the five steps of the contract` (los
   cinco ejemplos de la tabla del contrato, `ABC 1234` da null),
   `writes how many other movements would move to the category`. Cubre: R2, R3, R7.
-- [ ] T5 — `store.ts`: `question`, `offerRule`, `checkQuestionText`, `acceptQuestion`,
+- [x] T5 — `store.ts`: `question`, `offerRule`, `checkQuestionText`, `acceptQuestion`,
   `dismissQuestion` (design §4). Tests en `store.spec.ts`:
   `a change of category asks the preview with the suggested text and the chosen category and opens the question`,
   `asks nothing when no other movement would move`,
@@ -49,7 +49,7 @@ Depende de: —
   `a rejected create from the question says why and changes nothing else`
   (400, 404, 409 y red: la única petición es el `POST`),
   `dismissing the question sends nothing`. Cubre: R1, R5, R6, R7, R8, R10, R11, R12, R13.
-- [ ] T6 — `OtherMovementsQuestion.vue` (design §5). Tests en
+- [x] T6 — `OtherMovementsQuestion.vue` (design §5). Tests en
   `OtherMovementsQuestion.spec.ts` (nuevo):
   `shows how many other movements would move and lists them before anything is created`
   (lista plegada; desplegarla no pide nada),
@@ -59,35 +59,36 @@ Depende de: —
   `emits create on Create rule and dismiss on No only this one`,
   `paints the failure of a create inside the question`. Cubre: R3, R4, R5, R6, R7, R12,
   R13.
-- [ ] T7 — `review/store.ts` (`categorizeOne` devuelve el movimiento o `null`) y
+- [x] T7 — `review/store.ts` (`categorizeOne` devuelve el movimiento o `null`) y
   `statement/store.ts` (`categorize`, igual). Tests:
   `categorizeOne gives back the movement the PATCH answered or null` en
   `review/__tests__/store.spec.ts` y
   `categorize gives back the movement the PATCH answered or null` en
   `statement/__tests__/store.spec.ts`. Los demás tests de los dos stores no cambian de
   nombre y pasan. Cubre: R1 (soporte).
-- [ ] T8 — `ReviewView.vue` (design §5). Tests en `ReviewView.spec.ts`:
+- [x] T8 — `ReviewView.vue` (design §5). Tests en `ReviewView.spec.ts`:
   `changing the category of one row in Review opens the question under the notice`,
   `saying yes in Review creates the rule and the line says how many it moved`,
   `giving a category to several rows at once asks nothing`,
   `Undo or another action in Review closes the question`. Los tests con nombre en los
   checks de las features 27, 30 y 33 conservan su nombre y pasan. Cubre: R1, R9, R11,
   R13, R14.
-- [ ] T9 — `StatementView.vue` (design §5, también `RuleCreatedNotice` en su bloque bajo
+- [x] T9 — `StatementView.vue` (design §5, también `RuleCreatedNotice` en su bloque bajo
   la barra). Tests en `StatementView.spec.ts`:
   `changing the category of one line in Movements opens the question under the notice`,
   `Movements shows the line of a created rule and the next write takes it away`,
   `Undo or another write in Movements closes the question`. El test
   `creating the rule writes nothing on the movement it was born from (R17)` conserva su
   nombre y pasa. Cubre: R1, R11, R13, R14.
-- [ ] T10 — `MovementRow.vue` y `StatementRow.vue`: `closingSourceLine` en la línea gris
+- [x] T10 — `MovementRow.vue` y `StatementRow.vue`: `closingSourceLine` en la línea gris
   bajo la descripción. Test con el mismo nombre en `MovementRow.spec.ts` y en
   `StatementRow.spec.ts`:
   `says the category was set when the import was closed only for that source` (con
   `closing` sale; con `manual`, `rule`, `null` y sin el campo, no). Cubre: R15.
 
 ## Lote B — pruebas de navegador y documentos
-Archivos: `e2e/manual-category-offers-rule.spec.ts`, `e2e/action-notice-in-view.spec.ts`, `e2e/statement-fix-category.spec.ts`, `docs/architecture.md`, `docs/guia-de-uso.md`
+Archivos: `e2e/manual-category-offers-rule.spec.ts`, `e2e/action-notice-in-view.spec.ts`, `e2e/statement-fix-category.spec.ts`, `docs/architecture.md`, `docs/guia-de-uso.md`, `src/features/review/__tests__/service.spec.ts`
+> **Corrección del leader (2026-10-18):** se añade `src/features/review/__tests__/service.spec.ts` a este lote. Su test `keeps the whole movement, not only the painted fields` compara el movimiento entero con un objeto escrito a mano, y desde design §5 el movimiento leído trae `categorySource: null`. Solo se añade `categorySource: null,` al objeto esperado; nada más de ese archivo.
 Depende de: Lote A
 
 - [ ] T11 — `e2e/manual-category-offers-rule.spec.ts` (nuevo). Sin backend: primero una
