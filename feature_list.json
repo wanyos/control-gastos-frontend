@@ -1275,7 +1275,7 @@
         },
         {
           "descripcion": "(añadido) Respuesta del 2026-10-11: entra también el aviso de `Review` tras crear una regla (la línea verde con el botón `Apply rules now`).",
-          "comando": "grep -qF \"Review keeps the rule notice and Apply rules now in view from the bottom of the list\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Review keeps the rule notice and Apply rules now in view from the bottom of the list\""
+          "comando": "grep -qF \"Review keeps the rule notice in view from the bottom of the list\" e2e/action-notice-in-view.spec.ts && pnpm test:e2e --project=chromium e2e/action-notice-in-view.spec.ts -g \"Review keeps the rule notice in view from the bottom of the list\""
         },
         {
           "descripcion": "(añadido) No quiero que el aviso me tape la fila que estoy mirando: la fila que se acaba de cambiar queda entera por debajo del aviso.",
@@ -1729,7 +1729,8 @@
         "respuestas_del_humano": [
           "Del 2026-10-18: la pantalla vive dentro de `Rules`.",
           "Del 2026-10-18: no se pueden descartar propuestas de momento; una propuesta que no use sigue saliendo.",
-          "Del 2026-10-18: sobre quitar el aviso `Apply rules now` que sale tras crear una regla (crear ya la aplica sola), «creo que sí, no estoy seguro, lo que creas que es mejor». Decisión del leader: se quita en esta feature, porque pediría hacer algo que ya está hecho; el botón `Apply rules` de la pantalla se queda."
+          "Del 2026-10-18: sobre quitar el aviso `Apply rules now` que sale tras crear una regla (crear ya la aplica sola), «creo que sí, no estoy seguro, lo que creas que es mejor». Decisión del leader: se quita en esta feature, porque pediría hacer algo que ya está hecho; el botón `Apply rules` de la pantalla se queda.",
+          "Del 2026-10-18: aprobó la hoja de decisiones."
         ]
       },
       "acceptance": [],
@@ -1780,7 +1781,7 @@
         }
       ],
       "sdd": true,
-      "status": "spec_ready"
+      "status": "in_progress"
     },
     {
       "id": 34,
