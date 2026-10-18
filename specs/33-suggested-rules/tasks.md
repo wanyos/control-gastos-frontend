@@ -90,7 +90,8 @@ Depende de: —
   nombre). Cubre: R14 (soporte).
 
 ## Lote B — pruebas de navegador y documentos
-Archivos: `e2e/category-rules.spec.ts`, `e2e/action-notice-in-view.spec.ts`, `docs/guia-de-uso.md`, `docs/architecture.md`
+Archivos: `e2e/category-rules.spec.ts`, `e2e/action-notice-in-view.spec.ts`, `docs/guia-de-uso.md`, `docs/architecture.md`, `src/features/category-rules/components/RuleList.vue`
+> **Corrección del leader (2026-10-18):** se añade `RuleList.vue` a este lote. Dos textos suyos dejan de ser verdad con esta feature: el comentario de la línea ~26 («a rule is always born from a movement in Review») y el texto de la lista vacía de la línea ~8 («No rules yet. Create one from a movement in Review.»), que debe nombrar también las reglas propuestas. Solo esos dos textos, y el test que afirme el texto de la lista vacía si lo hay (añadido también a este lote si hace falta).
 Depende de: Lote A
 
 - [ ] T13 — `e2e/category-rules.spec.ts`: en `prepare`, una ruta para
