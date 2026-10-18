@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 
 import { AppError, UNKNOWN } from '@/shared/errors'
 
+import { parseSavedRule } from '../service'
 import {
+  KIND_LABEL,
   BANK_BOILERPLATE,
   MIN_MATCH_TEXT,
   MIN_PROPOSAL_LENGTH,
@@ -12,20 +14,31 @@ import {
   isMatchTextTooShort,
   lastApplyFigures,
   lastApplyHeadline,
+  manualMatchesLine,
   needsRulesReload,
   normalizeMatchText,
   proposeMatchText,
+  ruleCreatedLine,
   ruleErrorMessage,
+  ruleSavedHeadline,
+  showMovementsLabel,
   signedAmount,
+  suggestedCountLine,
+  suggestionsErrorMessage,
+  wroteNothing,
 } from '../rules'
 import type { ApplyResult } from '../types'
 import {
+  ACADEMY_CREATED,
+  ACADEMY_RULE,
   BACKEND_MESSAGES,
   CONFLICT_BODY,
   NOT_FOUND_BODY,
   VALIDATION_BODY,
+  NOTHING_MOVED,
   httpError,
   networkError,
+  saved,
   unreadable,
 } from './fixtures'
 
@@ -293,6 +306,64 @@ describe('rules (R2, R4, R6, R9, R12, R13)', () => {
       expect(signedAmount({ ...movement, type: 'income' })).toBe('41.37')
       // Not what the contract sends, but it must not end up as `--41.37`.
       expect(signedAmount({ ...movement, type: 'expense', amount: '-41.37' })).toBe('-41.37')
+    })
+  })
+
+  describe('suggested rules and what a saved rule moved (feature 33)', () => {
+    const academy = parseSavedRule(ACADEMY_CREATED)
+
+    it('writes the headline of a created or changed rule with how many it moved', () => {
+      expect(ruleSavedHeadline(academy.rule, 'create', 73, '10:42')).toBe(
+        'Rule “academia ficticia norte” → Educación created at 10:42: 73 movements categorized.',
+      )
+      expect(ruleSavedHeadline(academy.rule, 'update', 1, '09:05')).toBe(
+        'Rule “academia ficticia norte” → Educación saved at 09:05: 1 movement categorized.',
+      )
+      expect(ruleSavedHeadline(academy.rule, 'create', 0, '10:42')).toBe(
+        'Rule “academia ficticia norte” → Educación created at 10:42: no movements were categorized.',
+      )
+      expect(ruleCreatedLine(academy)).toBe(
+        'Rule “academia ficticia norte” → Educación created: 3 movements categorized.',
+      )
+      expect(ruleCreatedLine(parseSavedRule(saved(ACADEMY_RULE, NOTHING_MOVED)))).toBe(
+        'Rule “academia ficticia norte” → Educación created: no movements were categorized.',
+      )
+    })
+
+    it('writes how many movements categorized by hand also contain the text', () => {
+      expect(manualMatchesLine(3)).toBe(
+        '3 movements you categorized by hand also contain this text. They will not move.',
+      )
+      expect(manualMatchesLine(1)).toBe(
+        '1 movement you categorized by hand also contains this text. It will not move.',
+      )
+    })
+
+    it('names the kind of a suggestion and how many movements it would take', () => {
+      expect(KIND_LABEL.expense).toBe('Expenses')
+      expect(KIND_LABEL.income).toBe('Income')
+      expect(suggestedCountLine(73)).toBe('73 movements')
+      expect(suggestedCountLine(1)).toBe('1 movement')
+      expect(showMovementsLabel(73)).toBe('Show the 73 movements')
+    })
+
+    it('says in English why the suggested rules could not be loaded', () => {
+      expect(suggestionsErrorMessage(networkError())).toBe("Couldn't reach the server.")
+      expect(suggestionsErrorMessage(unreadable())).toBe(
+        "The server answered, but the suggested rules couldn't be read.",
+      )
+      expect(suggestionsErrorMessage(httpError(500, CONFLICT_BODY))).toBe(
+        'Something went wrong loading the suggested rules.',
+      )
+    })
+
+    it('knows when the contract guarantees nothing was written', () => {
+      expect(wroteNothing(httpError(400, VALIDATION_BODY))).toBe(true)
+      expect(wroteNothing(httpError(404, NOT_FOUND_BODY))).toBe(true)
+      expect(wroteNothing(httpError(409, CONFLICT_BODY))).toBe(true)
+      expect(wroteNothing(networkError())).toBe(true)
+      expect(wroteNothing(httpError(500, CONFLICT_BODY))).toBe(false)
+      expect(wroteNothing(unreadable())).toBe(false)
     })
   })
 })

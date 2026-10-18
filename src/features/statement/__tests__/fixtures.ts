@@ -414,6 +414,14 @@ export const CREATED_RULE = {
   category: GROCERIES,
   createdAt: '2026-09-27T10:00:00.000Z',
   updatedAt: '2026-09-27T10:00:00.000Z',
+  // Since feature 33 the POST runs the pass and says what it moved: here, nothing.
+  categorization: {
+    categorized: 0,
+    categorizedMovements: [],
+    conflictCount: 0,
+    conflicts: [],
+    unmatched: 0,
+  },
 }
 
 /** The backend's own 404 body, in Spanish as the real one. */

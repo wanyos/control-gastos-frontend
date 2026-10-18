@@ -18,8 +18,9 @@ import {
   previewErrorMessage,
   previewQuery,
   ruleErrorMessage,
+  wroteNothing,
 } from './rules'
-import { applyRules, createRule, deleteRule, getRules, updateRule } from './service'
+import { applyRules, createRule, deleteRule, getRules, getSuggestions, updateRule } from './service'
 import type {
   ApplyFlow,
   CategoryRule,
@@ -27,13 +28,16 @@ import type {
   MatchPreview,
   NewRule,
   RuleChanges,
+  SavedRule,
+  SuggestedRule,
 } from './types'
 
 /**
- * The categorization rules: the list, the dialogs' state and the on-demand pass.
- * Actions never throw: a failure lives in a message the view paints (the net-worth
- * pattern). Nothing here touches the review queue — Review watches `applyRun`
- * instead, so the dependency stays one way (design.md §1).
+ * The categorization rules: the list, the dialogs' state, the on-demand pass and,
+ * since feature 33, the suggested rules. Actions never throw: a failure lives in a
+ * message the view paints (the net-worth pattern). Nothing here touches the review
+ * queue or the month of Movements — they watch `applyRun` instead, so the dependency
+ * stays one way (design.md §1).
  */
 export const useCategoryRulesStore = defineStore('category-rules', () => {
   /** Null when never loaded or when the last load failed. */
@@ -50,14 +54,17 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
   const saveMessage = ref<string | null>(null)
   /** The English sentence of a failed (or already gone) delete (R9). */
   const deleteMessage = ref<string | null>(null)
-  /** The rule the last successful create made: the notice over the queue (R5). */
-  const lastCreated = ref<CategoryRule | null>(null)
+  /** The rule the last successful create made, and what it moved: the line in view. */
+  const lastCreated = ref<SavedRule | null>(null)
 
   /** What the match preview of the open dialog is showing (feature 18). */
   const preview = ref<MatchPreview>({ step: 'idle' })
 
   const applyFlow = ref<ApplyFlow>({ step: 'closed' })
-  /** Goes up when an apply ends, whatever the outcome: Review watches it (R14). */
+  /**
+   * Goes up when an apply ends, whatever the outcome, and since feature 33 when a
+   * create or a change may have moved movements: Review and Movements watch it.
+   */
   const applyRun = ref(0)
   /**
    * What the last pass that finished without an error did, and when (feature 30).
@@ -66,7 +73,18 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
    */
   const lastApply = ref<LastApply | null>(null)
 
+  // ─── The suggested rules (feature 33) ───────────────────────────────────
+  /** Null when never loaded or when the last load failed. */
+  const suggestions = ref<SuggestedRule[] | null>(null)
+  const suggestionsLoading = ref(false)
+  const suggestionsError = ref<AppError | null>(null)
+  /** The failed create of one suggestion, painted in its own row (R10). */
+  const suggestionFailure = ref<{ matchText: string; message: string } | null>(null)
+
   let categoriesRequested = false
+  let suggestionsRequested = false
+  /** Goes up with every load, so an answer that is no longer the last one is dropped. */
+  let suggestionsToken = 0
 
   async function load(client?: HttpClient): Promise<void> {
     isLoading.value = true
@@ -108,28 +126,50 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     else list[at] = saved
   }
 
+  /** What was saved is the result of the box, on Rules and on Review (R5). */
+  function keepResult(saved: SavedRule, cause: 'create' | 'update'): void {
+    lastApply.value = { at: new Date(), result: saved.result, cause, rule: saved.rule }
+  }
+
   /**
-   * Creates a rule and nothing else: it does not apply the rules and it does not
-   * categorize the movement it was born from (R5, decisions.md 🔴 3 and 🔴 5).
-   * Returns true when the dialog may close.
+   * The POST itself. Its pass may move movements, so Review and Movements are told
+   * whenever that may have happened: a saved rule, or a failure that is not one of
+   * those where the contract guarantees nothing was written (R14).
+   */
+  async function postRule(rule: NewRule, client?: HttpClient): Promise<AppError | null> {
+    saveMessage.value = null
+    deleteMessage.value = null
+    lastCreated.value = null
+    try {
+      const saved = await createRule(
+        { matchText: rule.matchText, categoryId: rule.categoryId },
+        client,
+      )
+      replace(saved.rule)
+      lastCreated.value = saved
+      keepResult(saved, 'create')
+      applyRun.value += 1
+      return null
+    } catch (rejection) {
+      const failure = toAppError(rejection)
+      if (!wroteNothing(failure)) applyRun.value += 1
+      return failure
+    }
+  }
+
+  /**
+   * Creates a rule. Since feature 33 the backend also runs the pass with it: what it
+   * moved is kept for the box and for the line in view. A pass that broke halfway
+   * still saved the rule, so the dialog may close. Returns true when it may close.
    */
   async function create(rule: NewRule, client?: HttpClient): Promise<boolean> {
     if (isSaving.value) return false
     if (isMatchTextTooShort(rule.matchText)) return false
     isSaving.value = true
-    saveMessage.value = null
-    deleteMessage.value = null
-    lastCreated.value = null
     try {
-      const created = await createRule(
-        { matchText: rule.matchText, categoryId: rule.categoryId },
-        client,
-      )
-      replace(created)
-      lastCreated.value = created
-      return true
-    } catch (rejection) {
-      await reportSaveFailure(rejection, client)
+      const failure = await postRule(rule, client)
+      if (failure === null) return true
+      await reportSaveFailure(failure, client)
       return false
     } finally {
       isSaving.value = false
@@ -157,10 +197,19 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     deleteMessage.value = null
     lastCreated.value = null
     try {
-      replace(await updateRule(id, changes, client))
+      const saved = await updateRule(id, changes, client)
+      replace(saved.rule)
+      keepResult(saved, 'update')
+      applyRun.value += 1
+      await refreshSuggestions(client)
       return true
     } catch (rejection) {
-      await reportSaveFailure(rejection, client)
+      const failure = toAppError(rejection)
+      await reportSaveFailure(failure, client)
+      if (!wroteNothing(failure)) {
+        applyRun.value += 1
+        await refreshSuggestions(client)
+      }
       return false
     } finally {
       isSaving.value = false
@@ -181,12 +230,14 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     try {
       await deleteRule(id, client)
       forget(id)
+      await refreshSuggestions(client)
     } catch (rejection) {
       const failure = toAppError(rejection)
       deleteMessage.value = deleteErrorMessage(failure)
       // A 404 means it was already gone: the row must leave the list anyway.
       if (failure instanceof ApiError && failure.status === 404) forget(id)
       else if (needsRulesReload(failure)) await load(client)
+      if (!wroteNothing(failure)) await refreshSuggestions(client)
     } finally {
       isSaving.value = false
     }
@@ -265,19 +316,85 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     lastCreated.value = null
     // The result on screen is about the pass before this one: it goes first (feature 30).
     lastApply.value = null
+    let failure: AppError | null = null
     try {
       const result = await applyRules(client)
       if (result.error) {
         applyFlow.value = { step: 'failed', message: applyErrorMessage(result.error) }
       } else {
-        lastApply.value = { at: new Date(), result }
+        lastApply.value = { at: new Date(), result, cause: 'apply', rule: null }
         applyFlow.value = { step: 'done', result }
       }
     } catch (rejection) {
-      applyFlow.value = { step: 'failed', message: applyErrorMessage(toAppError(rejection)) }
+      failure = toAppError(rejection)
+      applyFlow.value = { step: 'failed', message: applyErrorMessage(failure) }
     } finally {
       // Whatever happened, the queue may have changed: Review reloads on this (R14).
       applyRun.value += 1
+    }
+    if (failure === null || !wroteNothing(failure)) await refreshSuggestions(client)
+  }
+
+  // ─── The suggested rules (feature 33) ─────────────────────────────────────
+
+  /** Read only. A failure leaves no list, and the view offers Try again (R12). */
+  async function loadSuggestions(client?: HttpClient): Promise<void> {
+    suggestionsRequested = true
+    suggestionsToken += 1
+    const token = suggestionsToken
+    suggestionsLoading.value = true
+    suggestionsError.value = null
+    try {
+      const list = await getSuggestions(client)
+      if (token !== suggestionsToken) return
+      suggestions.value = list
+    } catch (rejection) {
+      if (token !== suggestionsToken) return
+      suggestions.value = null
+      suggestionsError.value = toAppError(rejection)
+    } finally {
+      if (token === suggestionsToken) suggestionsLoading.value = false
+    }
+  }
+
+  /** Changing, deleting or applying may change what is suggested: asked again if shown (R15). */
+  async function refreshSuggestions(client?: HttpClient): Promise<void> {
+    if (suggestionsRequested) await loadSuggestions(client)
+  }
+
+  /**
+   * Creates the rule of a suggestion with the category chosen in its row: its text as
+   * it came, untouched (R4). On success the suggestion leaves the list at once and the
+   * list is asked for again (R7). A rejection, or a request that never arrived, leaves
+   * everything as it was and asks for nothing else (R10).
+   */
+  async function createFromSuggestion(
+    suggestion: SuggestedRule,
+    categoryId: number,
+    client?: HttpClient,
+  ): Promise<boolean> {
+    if (isSaving.value) return false
+    isSaving.value = true
+    suggestionFailure.value = null
+    try {
+      const failure = await postRule({ matchText: suggestion.matchText, categoryId }, client)
+      if (failure === null) {
+        const list = suggestions.value
+        if (list) suggestions.value = list.filter((one) => one.matchText !== suggestion.matchText)
+        await loadSuggestions(client)
+        return true
+      }
+      suggestionFailure.value = {
+        matchText: suggestion.matchText,
+        message: ruleErrorMessage(failure),
+      }
+      if (!wroteNothing(failure)) {
+        await load(client)
+        await loadSuggestions(client)
+      }
+      return false
+    } finally {
+      isSaving.value = false
     }
   }
 
@@ -291,6 +408,10 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     saveMessage,
     deleteMessage,
     lastCreated,
+    suggestions,
+    suggestionsLoading,
+    suggestionsError,
+    suggestionFailure,
     applyFlow,
     applyRun,
     lastApply,
@@ -307,5 +428,7 @@ export const useCategoryRulesStore = defineStore('category-rules', () => {
     dismissLastApply,
     previewMatches,
     clearPreview,
+    loadSuggestions,
+    createFromSuggestion,
   }
 })

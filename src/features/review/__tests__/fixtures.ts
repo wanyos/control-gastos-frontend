@@ -416,6 +416,14 @@ export const CREATED_RULE = {
   category: FOOD,
   createdAt: '2026-09-06T10:00:00.000Z',
   updatedAt: '2026-09-06T10:00:00.000Z',
+  // Since feature 33 the POST runs the pass and says what it moved: here, nothing.
+  categorization: {
+    categorized: 0,
+    categorizedMovements: [],
+    conflictCount: 0,
+    conflicts: [],
+    unmatched: 0,
+  },
 }
 
 /** One element of `categorizedMovements` (feature 30): an expense one rule sent to Food. */

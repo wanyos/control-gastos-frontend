@@ -17,11 +17,17 @@ const ACCOUNT = {
 
 const UTILITIES = { id: 6, name: 'Suministros', kind: 'expense', parentId: null }
 const GROCERIES = { id: 4, name: 'Supermercado', kind: 'expense', parentId: null }
+const EDUCATION = { id: 8, name: 'Educación', kind: 'expense', parentId: null }
 
 const CATEGORIES = [
   { ...GROCERIES, createdAt: '2026-08-06T18:30:00.000Z', children: [] },
   { ...UTILITIES, createdAt: '2026-08-06T18:31:00.000Z', children: [] },
+  { ...EDUCATION, createdAt: '2026-08-06T18:32:00.000Z', children: [] },
 ]
+
+const CATEGORY_BY_ID = new Map<number, typeof GROCERIES>(
+  [GROCERIES, UTILITIES, EDUCATION].map((category) => [category.id, category]),
+)
 
 type Movement = Record<string, unknown>
 
@@ -109,9 +115,36 @@ const APPLY_RESULT: ApplyAnswer = {
   unmatched: 5,
 }
 
+/** One element of `GET /api/category-rules/suggestions`, as the contract shapes it. */
+interface Suggestion {
+  matchText: string
+  kind: 'expense' | 'income'
+  movementCount: number
+  movements: { movementId: number; description: string; bookingDate: string; amount: string }[]
+  manualMatches: number
+}
+
+/** A suggestion that takes exactly these pending movements of the fake. */
+const suggestionOf = (matchText: string, movements: Movement[], manualMatches = 0): Suggestion => ({
+  matchText,
+  kind: 'expense',
+  movementCount: movements.length,
+  movements: movements.map((row) => ({
+    movementId: row.id as number,
+    description: String(row.description),
+    bookingDate: String(row.bookingDate),
+    amount: String(row.amount),
+  })),
+  manualMatches,
+})
+
 interface Options {
   /** Answers the POST that creates a rule with an error instead of creating it. */
   createFailsWith?: { status: number; body: unknown }
+  /** What `GET /api/category-rules/suggestions` answers; none by default. */
+  suggestions?: Suggestion[]
+  /** Answers `GET /api/category-rules/suggestions` with this status instead of the list. */
+  suggestionsFailWith?: number
   /** The rules /rules starts with. */
   rules?: ReturnType<typeof rule>[]
   /** The pending movements of the queue, instead of the two of every other test. */
@@ -134,6 +167,43 @@ async function prepare(page: Page, options: Options = {}) {
   const rules = new Map<number, ReturnType<typeof rule>>(
     (options.rules ?? []).map((one) => [one.id, one]),
   )
+  let suggestions = [...(options.suggestions ?? [])]
+
+  /**
+   * The pass a POST or a PATCH runs since feature 60 of the backend, cut down to what
+   * these tests need: every pending movement without a category whose description
+   * contains the text of the saved rule gets its category, and the answer lists them as
+   * `categorization` (the same shape as applying). The real pass runs every rule and also
+   * moves what the closing of an import categorized; no test here depends on that.
+   */
+  const runPass = (saved: ReturnType<typeof rule>) => {
+    const pending = [...rows.values()].filter(
+      (row) => row.status === 'pending_review' && row.categoryId === null,
+    )
+    const category = CATEGORY_BY_ID.get(saved.categoryId) ?? GROCERIES
+    const categorizedMovements = pending.flatMap((row) => {
+      if (!String(row.description).toLowerCase().includes(saved.matchText.toLowerCase())) return []
+      row.categoryId = category.id
+      row.category = category
+      return [
+        categorizedMovement(row.id as number, String(row.description), {
+          bookingDate: row.bookingDate,
+          amount: row.amount,
+          type: row.type,
+          categoryId: category.id,
+          categoryName: category.name,
+          rules: [{ ruleId: saved.id, matchText: saved.matchText }],
+        }),
+      ]
+    })
+    return {
+      categorized: categorizedMovements.length,
+      categorizedMovements,
+      conflictCount: 0,
+      conflicts: [],
+      unmatched: pending.length - categorizedMovements.length,
+    }
+  }
 
   const watch = {
     writes: [] as Request[],
@@ -201,10 +271,12 @@ async function prepare(page: Page, options: Options = {}) {
     const created = rule(
       20 + rules.size,
       body.matchText,
-      body.categoryId === 6 ? UTILITIES : GROCERIES,
+      CATEGORY_BY_ID.get(body.categoryId) ?? GROCERIES,
     )
     rules.set(created.id, created)
-    return route.fulfill({ status: 201, json: created })
+    // The text a rule now recognises is no longer suggested.
+    suggestions = suggestions.filter((one) => one.matchText !== body.matchText)
+    return route.fulfill({ status: 201, json: { ...created, categorization: runPass(created) } })
   })
 
   await page.route('**/api/category-rules/*', (route) => {
@@ -248,7 +320,21 @@ async function prepare(page: Page, options: Options = {}) {
       category: body.categoryId === 4 ? GROCERIES : current.category,
     }
     rules.set(id, updated)
-    return route.fulfill({ json: updated })
+    return route.fulfill({ json: { ...updated, categorization: runPass(updated) } })
+  })
+
+  // The suggested rules (feature 33). Playwright tries the last route first, so this one,
+  // added after `**/api/category-rules/*`, answers `/suggestions` before that one can
+  // read it as the id of a rule and answer 404.
+  await page.route('**/api/category-rules/suggestions', (route) => {
+    if (route.request().method() !== 'GET') return route.abort()
+    if (options.suggestionsFailWith !== undefined) {
+      return route.fulfill({
+        status: options.suggestionsFailWith,
+        json: { statusCode: options.suggestionsFailWith, code: 'INTERNAL_ERROR' },
+      })
+    }
+    return route.fulfill({ json: suggestions })
   })
 
   return watch
@@ -263,7 +349,9 @@ const writes = (watch: Awaited<ReturnType<typeof prepare>>) =>
 
 test.use({ testIdAttribute: 'data-test' })
 
-test('a rule is born from a row, and creating it applies nothing', async ({ page }) => {
+test('a rule is born from a row and its line says how many movements it moved', async ({
+  page,
+}) => {
   const watch = await prepare(page)
   await page.goto('/review')
   await expect(page.getByTestId('movement-row')).toHaveCount(2)
@@ -274,9 +362,14 @@ test('a rule is born from a row, and creating it applies nothing', async ({ page
   await page.getByTestId('rule-category').getByRole('combobox').selectOption('6')
   await page.getByTestId('rule-save').click()
 
-  await expect(page.getByTestId('rule-created-notice')).toContainText('iberdrola')
-  await expect(page.getByTestId('rule-created-notice')).toContainText('Suministros')
-  await expect(page.getByTestId('apply-rules-now')).toBeVisible()
+  // Since feature 33 the POST runs the pass: its line says how many it moved, and there
+  // is nothing left to apply from it.
+  await expect(page.getByTestId('rule-created-notice')).toHaveText(
+    'Rule “iberdrola” → Suministros created: 1 movement categorized.',
+  )
+  await expect(page.getByTestId('apply-rules-now')).toHaveCount(0)
+  // The queue was asked for again: the movement the rule matched has its category.
+  await expect(page.getByTestId('movement-category').first()).toHaveText('Suministros')
   expect(writes(watch)).toEqual([
     {
       method: 'POST',
@@ -289,14 +382,18 @@ test('a rule is born from a row, and creating it applies nothing', async ({ page
 })
 
 test('applying asks first, sends one bodyless POST and refreshes the queue', async ({ page }) => {
-  const watch = await prepare(page)
+  // Since feature 33 the only way to apply is the button of Rules, and creating a rule
+  // already moves what it matches: the rule exists from the start, so what moves the
+  // movement below is the pass.
+  const watch = await prepare(page, { rules: [rule(7, 'iberdrola', UTILITIES)] })
   await page.goto('/review')
-  await page.getByTestId('movement-create-rule').first().click()
-  await page.getByTestId('rule-category').getByRole('combobox').selectOption('6')
-  await page.getByTestId('rule-save').click()
-  await expect(page.getByTestId('apply-rules-now')).toBeVisible()
+  await expect(page.getByTestId('review-uncategorized-count')).toHaveText(
+    '2 pending movements have no category.',
+  )
+  await goByMenu(page, 'Rules')
+  await expect(page.getByTestId('rule-row')).toHaveCount(1)
 
-  await page.getByTestId('apply-rules-now').click()
+  await page.getByTestId('apply-rules').click()
 
   await expect(page.getByTestId('apply-confirm')).toContainText(
     'Only pending movements without a category are touched.',
@@ -319,7 +416,11 @@ test('applying asks first, sends one bodyless POST and refreshes the queue', asy
   await page.getByTestId('apply-close').click()
 
   // The queue was asked for again, without reloading the page.
+  await goByMenu(page, 'Review')
   await expect(page.getByTestId('movement-category').first()).toHaveText('Suministros')
+  await expect(page.getByTestId('review-uncategorized-count')).toHaveText(
+    '1 pending movement has no category.',
+  )
   const applied = writes(watch).filter((call) => call.path.endsWith('/apply'))
   expect(applied).toEqual([{ method: 'POST', path: '/api/category-rules/apply', body: null }])
   expect(writes(watch).some((call) => call.path.startsWith('/api/movements'))).toBe(false)
@@ -412,7 +513,7 @@ test('the dialog says how many movements a text would match, and writes nothing'
   )
   await expect(page.getByTestId('rule-preview-sample')).toContainText('-96,29')
   await expect(page.getByTestId('rule-preview')).toContainText(
-    'Estimate: what a pass would look at today, not what it will change.',
+    'Saving also moves the matching movements whose category was set when the import was closed. They are not in this count.',
   )
   expect(reads.at(-1)).toContain('uncategorized=true')
   expect(reads.at(-1)).toContain('status=pending_review')
@@ -722,5 +823,229 @@ test('the result of applying looks the same on Rules and on Review and the next 
     { method: 'POST', path: '/api/category-rules/apply', body: null },
   ])
   expect(watch.consoleErrors).toEqual([])
+  expect(watch.pageErrors).toEqual([])
+})
+
+// ─── Feature 33: suggested rules, and what creating a rule moved ───────────
+
+/** Four receipts of a made-up academy and two tickets of a made-up supermarket. */
+const ACADEMY_ROWS = [
+  movement(31, 'RECIBO ACADEMIA FICTICIA NORTE MARZO', {
+    bookingDate: '2026-03-02',
+    amount: '47.85',
+  }),
+  movement(32, 'RECIBO ACADEMIA FICTICIA NORTE ABRIL', {
+    bookingDate: '2026-04-01',
+    amount: '47.85',
+  }),
+  movement(33, 'RECIBO ACADEMIA FICTICIA NORTE MAYO', {
+    bookingDate: '2026-05-04',
+    amount: '52.10',
+  }),
+  movement(34, 'RECIBO ACADEMIA FICTICIA NORTE JUNIO', {
+    bookingDate: '2026-06-01',
+    amount: '52.10',
+  }),
+]
+const MARKET_ROWS = [
+  movement(41, 'COMPRA SUPERMERCADO INVENTADO 0412', {
+    bookingDate: '2026-06-13',
+    amount: '23.64',
+  }),
+  movement(42, 'COMPRA SUPERMERCADO INVENTADO 0412', {
+    bookingDate: '2026-06-27',
+    amount: '61.08',
+  }),
+]
+const ACADEMY = suggestionOf('academia ficticia norte', ACADEMY_ROWS, 2)
+const MARKET = suggestionOf('supermercado inventado', MARKET_ROWS)
+
+const suggestionTexts = (page: Page) => page.getByTestId('suggested-rule-text').allInnerTexts()
+
+test('a suggested rule becomes a rule and the box lists the movements it moved', async ({
+  page,
+}) => {
+  const watch = await prepare(page, {
+    movements: [...ACADEMY_ROWS, ...MARKET_ROWS],
+    suggestions: [ACADEMY, MARKET],
+  })
+  await page.goto('/rules')
+  await expect(page.getByTestId('suggested-rule')).toHaveCount(2)
+  expect(await suggestionTexts(page)).toEqual([
+    '“academia ficticia norte”',
+    '“supermercado inventado”',
+  ])
+  const academy = page.getByTestId('suggested-rule').first()
+  await expect(academy.getByTestId('suggested-rule-count')).toHaveText('4 movements')
+  await expect(page.getByTestId('rules-empty')).toBeVisible()
+  await expect(page.getByTestId('last-apply')).toHaveCount(0)
+
+  await academy.getByTestId('suggested-rule-category').getByRole('combobox').selectOption('8')
+  await academy.getByTestId('suggested-rule-create').click()
+
+  // One POST, with the text of the suggestion and the category chosen in its row (R4).
+  await expect(page.getByTestId('last-apply')).toHaveCount(1)
+  expect(writes(watch)).toEqual([
+    {
+      method: 'POST',
+      path: '/api/category-rules',
+      body: { matchText: 'academia ficticia norte', categoryId: 8 },
+    },
+  ])
+
+  // The box says which rule, its category, that it was created and how many moved (R5).
+  await expect(page.getByTestId('last-apply-headline')).toHaveText(
+    /^Rule “academia ficticia norte” → Educación created at \d{2}:\d{2}: 4 movements categorized\.$/,
+  )
+  await expect(page.getByTestId('last-apply-show-movements')).toHaveText('Show the 4 movements')
+  await page.getByTestId('last-apply-show-movements').click()
+  const listed = page.getByTestId('last-apply-movement')
+  await expect(listed).toHaveCount(4)
+  await expect(listed.getByTestId('last-apply-movement-description')).toHaveText(
+    ACADEMY_ROWS.map((row) => String(row.description)),
+  )
+  await expect(listed.getByTestId('last-apply-movement-category')).toHaveText(
+    Array.from({ length: 4 }, () => 'Educación'),
+  )
+  await expect(listed.first().getByTestId('last-apply-movement-amount')).toContainText('-47,85')
+
+  // The line of the created rule says the same, and offers nothing to apply (R6, R13).
+  await expect(page.getByTestId('rule-created-notice')).toHaveText(
+    'Rule “academia ficticia norte” → Educación created: 4 movements categorized.',
+  )
+  await expect(page.getByTestId('apply-rules-now')).toHaveCount(0)
+
+  // The suggestion used is gone; the other one stays, and the rule is in the list (R7, R8).
+  await expect(page.getByTestId('suggested-rule')).toHaveCount(1)
+  expect(await suggestionTexts(page)).toEqual(['“supermercado inventado”'])
+  await expect(page.getByTestId('rule-row')).toHaveCount(1)
+  await expect(page.getByTestId('rule-row')).toContainText('academia ficticia norte')
+
+  expect(writes(watch)).toHaveLength(1)
+  expect(watch.consoleErrors).toEqual([])
+  expect(watch.pageErrors).toEqual([])
+})
+
+/** Twenty-four made-up suppliers, two receipts each: enough for /rules to scroll. */
+const MANY_ROWS = Array.from({ length: 24 }, (_item, index) => {
+  const name = `PROVEEDOR FICTICIO ${String(index + 1).padStart(2, '0')}`
+  return [
+    movement(100 + index * 2, `RECIBO ${name} JULIO`, {
+      bookingDate: '2026-07-03',
+      amount: (18.37 + index * 2.41).toFixed(2),
+    }),
+    movement(101 + index * 2, `RECIBO ${name} AGOSTO`, {
+      bookingDate: '2026-08-04',
+      amount: (19.12 + index * 2.41).toFixed(2),
+    }),
+  ]
+})
+const MANY_SUGGESTIONS = MANY_ROWS.map((pair, index) =>
+  suggestionOf(`proveedor ficticio ${String(index + 1).padStart(2, '0')}`, pair),
+)
+
+test('the line of a rule created from a suggestion low in the list is in view', async ({
+  page,
+}) => {
+  const watch = await prepare(page, {
+    movements: MANY_ROWS.flat(),
+    suggestions: MANY_SUGGESTIONS,
+  })
+  await page.goto('/rules')
+  await expect(page.getByTestId('suggested-rule')).toHaveCount(24)
+
+  const last = page.getByTestId('suggested-rule').last()
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+  await last.scrollIntoViewIfNeeded()
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+  await last.getByTestId('suggested-rule-category').getByRole('combobox').selectOption('6')
+  await last.getByTestId('suggested-rule-create').click()
+
+  const notice = page.getByTestId('rule-created-notice')
+  await expect(notice).toHaveText(
+    'Rule “proveedor ficticio 24” → Suministros created: 2 movements categorized.',
+  )
+  await expect(page.getByTestId('suggested-rule')).toHaveCount(23)
+  // The page is still scrolled, and the whole line is between the top bar and the bottom
+  // of the window, inside the block that sticks under the top bar.
+  expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+  await expect(
+    page.locator('[data-test="sticky-below-top-bar"] [data-test="rule-created-notice"]'),
+  ).toHaveCount(1)
+  await expect
+    .poll(() =>
+      notice.evaluate((element) => {
+        const bar = document
+          .querySelector('[data-test="topbar-title"]')
+          ?.closest('header')
+          ?.getBoundingClientRect()
+        if (!bar) return 'no top bar'
+        const box = element.getBoundingClientRect()
+        return box.height > 0 && box.top >= bar.bottom - 0.5 && box.bottom <= window.innerHeight
+      }),
+    )
+    .toBe(true)
+
+  expect(writes(watch)).toEqual([
+    {
+      method: 'POST',
+      path: '/api/category-rules',
+      body: { matchText: 'proveedor ficticio 24', categoryId: 6 },
+    },
+  ])
+  expect(watch.consoleErrors).toEqual([])
+  expect(watch.pageErrors).toEqual([])
+})
+
+test('a create from a suggestion that fails leaves the list as it was and says why', async ({
+  page,
+}) => {
+  const watch = await prepare(page, {
+    movements: [...ACADEMY_ROWS, ...MARKET_ROWS],
+    suggestions: [ACADEMY, MARKET],
+    createFailsWith: {
+      status: 409,
+      body: {
+        statusCode: 409,
+        code: 'CONFLICT',
+        message: 'Ya existe una regla con el texto «academia ficticia norte»',
+      },
+    },
+  })
+  await page.goto('/rules')
+  await expect(page.getByTestId('suggested-rule')).toHaveCount(2)
+  await expect(page.getByTestId('rules-empty')).toBeVisible()
+
+  // From here on, every request the page sends.
+  const sent: string[] = []
+  page.on('request', (request) => {
+    const url = new URL(request.url())
+    if (url.pathname.startsWith('/api/')) sent.push(`${request.method()} ${url.pathname}`)
+  })
+
+  const academy = page.getByTestId('suggested-rule').first()
+  await academy.getByTestId('suggested-rule-category').getByRole('combobox').selectOption('8')
+  await academy.getByTestId('suggested-rule-create').click()
+
+  // The English sentence, in the row of the suggestion, and nowhere else (R10).
+  await expect(academy.getByTestId('suggested-rule-error')).toHaveText(
+    'Nothing was saved: another rule already uses that text.',
+  )
+  await expect(page.getByTestId('suggested-rule-error')).toHaveCount(1)
+  // Everything as it was: both suggestions, no rule, no box and no line.
+  expect(await suggestionTexts(page)).toEqual([
+    '“academia ficticia norte”',
+    '“supermercado inventado”',
+  ])
+  await expect(page.getByTestId('rules-empty')).toBeVisible()
+  await expect(page.getByTestId('last-apply')).toHaveCount(0)
+  await expect(page.getByTestId('rule-created-notice')).toHaveCount(0)
+  // No other request than that POST.
+  expect(sent).toEqual(['POST /api/category-rules'])
+
+  // The only console error is Chromium's own note about the 409 this test asked for.
+  expect(watch.consoleErrors.filter((text) => !text.includes('Failed to load resource'))).toEqual(
+    [],
+  )
   expect(watch.pageErrors).toEqual([])
 })

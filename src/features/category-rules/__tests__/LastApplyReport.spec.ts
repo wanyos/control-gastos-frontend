@@ -4,8 +4,11 @@ import { mount } from '@vue/test-utils'
 import { formatDate, formatMoney } from '@/shared/money'
 
 import LastApplyReport from '../components/LastApplyReport.vue'
-import { parseApplyResult } from '../service'
+import { parseApplyResult, parseSavedRule } from '../service'
+import type { ResultCause } from '../types'
 import {
+  ACADEMY_CREATED,
+  ACADEMY_UNFINISHED,
   APPLY_OK,
   INCOME_MOVEMENT,
   TWELVE_CATEGORIZED,
@@ -18,7 +21,14 @@ const AT = new Date(2026, 9, 12, 10, 42)
 
 const mountReport = (raw: object = {}, at: Date = AT) =>
   mount(LastApplyReport, {
-    props: { report: { at, result: parseApplyResult({ ...APPLY_OK, ...raw }) } },
+    props: {
+      report: {
+        at,
+        result: parseApplyResult({ ...APPLY_OK, ...raw }),
+        cause: 'apply' as const,
+        rule: null,
+      },
+    },
   })
 
 /** The answer of the contract: two movements, the first one with two rules. */
@@ -186,5 +196,45 @@ describe('LastApplyReport (feature 30)', () => {
     expect(
       rows[1]?.findAll('[data-test="last-apply-movement-rule"]').map((one) => one.text()),
     ).toEqual(['“taller ejemplo”'])
+  })
+
+  // ─── The pass that ran when a rule was created or changed (feature 33) ──
+
+  const mountSaved = (raw: Record<string, unknown>, cause: Exclude<ResultCause, 'apply'>) => {
+    const saved = parseSavedRule(raw)
+    return mount(LastApplyReport, {
+      props: { report: { at: AT, result: saved.result, cause, rule: saved.rule } },
+    })
+  }
+
+  it('heads the box with the rule and its category when a rule was created or changed', async () => {
+    const created = mountSaved(ACADEMY_CREATED, 'create')
+
+    expect(created.get('[data-test="last-apply-headline"]').text()).toBe(
+      'Rule “academia ficticia norte” → Educación created at 10:42: 3 movements categorized.',
+    )
+    expect(created.find('[data-test="last-apply-unfinished"]').exists()).toBe(false)
+    // The list of what it moved, as after applying.
+    await created.get('[data-test="last-apply-show-movements"]').trigger('click')
+    const rows = created.findAll('[data-test="last-apply-movement"]')
+    expect(rows).toHaveLength(3)
+    expect(rows[0]?.get('[data-test="last-apply-movement-category"]').text()).toBe('Educación')
+
+    const changed = mountSaved(ACADEMY_CREATED, 'update')
+    expect(changed.get('[data-test="last-apply-headline"]').text()).toBe(
+      'Rule “academia ficticia norte” → Educación saved at 10:42: 3 movements categorized.',
+    )
+  })
+
+  it('adds the unfinished sentence to the box of a rule whose pass did not finish', () => {
+    const wrapper = mountSaved(ACADEMY_UNFINISHED, 'create')
+
+    expect(wrapper.get('[data-test="last-apply-headline"]').text()).toBe(
+      'Rule “academia ficticia norte” → Educación created at 10:42: 1 movement categorized.',
+    )
+    expect(wrapper.get('[data-test="last-apply-unfinished"]').text()).toBe(
+      'Not all of its movements could be moved; the rest will move the next time you create or change a rule.',
+    )
+    expect(wrapper.text()).not.toContain('La pasada se cortó')
   })
 })

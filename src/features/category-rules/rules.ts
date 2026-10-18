@@ -7,7 +7,14 @@ import { API_NETWORK, ApiError, ValidationError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
 import type { MovementQuery } from '@/shared/movements'
 
-import type { ApplyResult, CategorizedMovement } from './types'
+import type {
+  ApplyResult,
+  CategorizedMovement,
+  CategoryRule,
+  ResultCause,
+  SavedRule,
+  SuggestedRule,
+} from './types'
 
 /** The contract's floor: at least 3 characters once normalized. */
 export const MIN_MATCH_TEXT = 3
@@ -281,6 +288,16 @@ export function deleteErrorMessage(error: AppError): string {
   return `Something went wrong. ${RELOADING_RULES}`
 }
 
+/**
+ * True when the contract guarantees nothing was written: the backend rejected the rule
+ * (400, 404, 409) or the request never reached it. Anything else may have saved the
+ * rule and moved movements (feature 33, R10, R14, R15).
+ */
+export function wroteNothing(error: AppError): boolean {
+  if (error instanceof ApiError && [400, 404, 409].includes(error.status ?? 0)) return true
+  return error.code === API_NETWORK
+}
+
 /** True when the failure leaves the list possibly lying: it must be asked for again (R6). */
 export function needsRulesReload(error: AppError): boolean {
   if (error instanceof ApiError && (error.status === 409 || error.status === 400)) return false
@@ -415,4 +432,86 @@ export function previewErrorMessage(error: AppError): string {
   }
   if (error instanceof ApiError && error.status === 400) return 'The backend rejected that search.'
   return "Couldn't check how many match."
+}
+
+// ─── Suggested rules, and what creating or changing a rule moved (feature 33) ──
+
+/** The sentence under the title of Rules (R16). */
+export const RULES_INTRO =
+  'Rules categorize pending movements without a category when you import, or when you apply them here. Creating or changing a rule also moves the movements whose category was set when the import was closed.'
+
+/** The note under the count of the rule dialog (R16). */
+export const PREVIEW_NOTE =
+  'Saving also moves the matching movements whose category was set when the import was closed. They are not in this count.'
+
+export const SUGGESTIONS_TITLE = 'Suggested rules'
+
+export const SUGGESTIONS_INTRO =
+  'Texts that repeat among the movements no rule recognises. Choose a category to create the rule; nothing is created until you do.'
+
+export const SUGGESTIONS_LOADING = 'Loading suggested rules…'
+
+export const NO_SUGGESTIONS = 'No suggested rules right now.'
+
+export const OWN_RULES_TITLE = 'Your rules'
+
+/** If its pass broke halfway: the rule exists, and what was moved stays moved (R11). */
+export const UNFINISHED_MOVE =
+  'Not all of its movements could be moved; the rest will move the next time you create or change a rule.'
+
+/** Whether a suggestion is about expenses or about income (R1). */
+export const KIND_LABEL: Record<SuggestedRule['kind'], string> = {
+  expense: 'Expenses',
+  income: 'Income',
+}
+
+/** `73 movements` / `1 movement`: how many a suggestion would take (R1). */
+export function suggestedCountLine(count: number): string {
+  return countOf(count)
+}
+
+/** The button that unfolds the movements of a suggestion (R2). */
+export function showMovementsLabel(count: number): string {
+  return `Show the ${countOf(count)}`
+}
+
+export const HIDE_MOVEMENTS = 'Hide the movements'
+
+/** How many movements categorized by hand also contain the text, and that they stay (R9). */
+export function manualMatchesLine(count: number): string {
+  return count === 1
+    ? '1 movement you categorized by hand also contains this text. It will not move.'
+    : `${count} movements you categorized by hand also contain this text. They will not move.`
+}
+
+/** The English sentence of a list of suggestions that could not be loaded (R12). */
+export function suggestionsErrorMessage(error: AppError): string {
+  if (error.code === API_NETWORK) return "Couldn't reach the server."
+  if (error instanceof ValidationError) {
+    return "The server answered, but the suggested rules couldn't be read."
+  }
+  return 'Something went wrong loading the suggested rules.'
+}
+
+const movedPart = (categorized: number): string =>
+  categorized === 0 ? 'no movements were categorized' : `${countOf(categorized)} categorized`
+
+/**
+ * `Rule “academia ficticia norte” → Educación created at 10:42: 73 movements
+ * categorized.` The head of the box after a rule was created or changed (R5).
+ */
+export function ruleSavedHeadline(
+  rule: CategoryRule,
+  cause: Exclude<ResultCause, 'apply'>,
+  categorized: number,
+  clock: string,
+): string {
+  const verb = cause === 'create' ? 'created' : 'saved'
+  return `Rule “${rule.matchText}” → ${rule.category.name} ${verb} at ${clock}: ${movedPart(categorized)}.`
+}
+
+/** `Rule “academia ficticia norte” → Educación created: 73 movements categorized.` (R6) */
+export function ruleCreatedLine(saved: SavedRule): string {
+  const { rule, result } = saved
+  return `Rule “${rule.matchText}” → ${rule.category.name} created: ${movedPart(result.categorized)}.`
 }

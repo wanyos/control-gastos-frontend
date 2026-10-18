@@ -94,10 +94,13 @@ describe('RuleMatchPreview (R3, R4, R5, R6, R9, R10)', () => {
     expect(wrapper.find('[data-test="rule-preview-sample"]').exists()).toBe(false)
   })
 
-  it('admits the number is an estimate, right under it', () => {
-    expect(paint(ready(34)).get('[data-test="rule-preview-note"]').text()).toBe(
-      'Estimate: what a pass would look at today, not what it will change.',
+  it('says that saving also moves the movements the closing of the import categorized', () => {
+    const note = paint(ready(34)).get('[data-test="rule-preview-note"]').text()
+
+    expect(note).toBe(
+      'Saving also moves the matching movements whose category was set when the import was closed. They are not in this count.',
     )
+    expect(note).not.toContain('Estimate')
   })
 
   it('shows the English sentence of a failed count, and no number (R10)', () => {

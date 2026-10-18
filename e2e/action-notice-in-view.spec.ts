@@ -174,8 +174,51 @@ async function routeReview(page: Page, watch: Watch, options: { reject?: boolean
     }),
   )
   const stop = stopInto(watch)
-  /** The rules created through this fake, so that applying them can be answered. */
+  /** The rules created through this fake, so that the pass of each POST can be answered. */
   const created: { id: number; matchText: string; categoryId: number }[] = []
+
+  /**
+   * The pass of the rules created through this fake, as the contract describes it: every
+   * pending movement without a category whose description contains the text of a rule
+   * gets its category, and the answer lists each of them. Since feature 60 of the backend
+   * the POST that creates a rule runs it (feature 33). Nothing in this file applies the
+   * rules any more (`Apply rules now` is gone), so a POST to `/apply` reaches the first
+   * route and fails the test.
+   */
+  const runPass = () => {
+    const pending = [...rows.values()].filter(
+      (row) => row.status === 'pending_review' && row.categoryId === null,
+    )
+    const categorizedMovements = pending.flatMap((row) => {
+      const matched = created.filter((one) =>
+        String(row.description).toLowerCase().includes(one.matchText.toLowerCase()),
+      )
+      const [first] = matched
+      if (!first) return []
+      const category = CATEGORY_BY_ID.get(first.categoryId) ?? null
+      row.categoryId = first.categoryId
+      row.category = category
+      return [
+        {
+          movementId: row.id,
+          description: row.description,
+          bookingDate: row.bookingDate,
+          amount: row.amount,
+          type: row.type,
+          categoryId: first.categoryId,
+          categoryName: category?.name ?? '',
+          rules: matched.map((one) => ({ ruleId: one.id, matchText: one.matchText })),
+        },
+      ]
+    })
+    return {
+      categorized: categorizedMovements.length,
+      categorizedMovements,
+      conflictCount: 0,
+      conflicts: [],
+      unmatched: pending.length - categorizedMovements.length,
+    }
+  }
 
   const answerGet = (route: Route, query: URLSearchParams) => {
     const q = (query.get('q') ?? '').toLowerCase()
@@ -256,46 +299,8 @@ async function routeReview(page: Page, watch: Watch, options: { reject?: boolean
         category: CATEGORY_BY_ID.get(body.categoryId) ?? null,
         createdAt: '2026-10-02T09:14:00.000Z',
         updatedAt: '2026-10-02T09:14:00.000Z',
-      },
-    })
-  })
-  // Applying the rules created above, as the contract describes it (feature 30): every
-  // pending movement without a category whose description contains the text of a rule
-  // gets its category, and the answer lists each of them. With no rule, nobody foresaw it.
-  await page.route('**/api/category-rules/apply', (route) => {
-    if (route.request().method() !== 'POST' || created.length === 0) return stop(route)
-    const pending = [...rows.values()].filter(
-      (row) => row.status === 'pending_review' && row.categoryId === null,
-    )
-    const categorizedMovements = pending.flatMap((row) => {
-      const matched = created.filter((one) =>
-        String(row.description).toLowerCase().includes(one.matchText.toLowerCase()),
-      )
-      const [first] = matched
-      if (!first) return []
-      const category = CATEGORY_BY_ID.get(first.categoryId) ?? null
-      row.categoryId = first.categoryId
-      row.category = category
-      return [
-        {
-          movementId: row.id,
-          description: row.description,
-          bookingDate: row.bookingDate,
-          amount: row.amount,
-          type: row.type,
-          categoryId: first.categoryId,
-          categoryName: category?.name ?? '',
-          rules: matched.map((one) => ({ ruleId: one.id, matchText: one.matchText })),
-        },
-      ]
-    })
-    return route.fulfill({
-      json: {
-        categorized: categorizedMovements.length,
-        categorizedMovements,
-        conflictCount: 0,
-        conflicts: [],
-        unmatched: pending.length - categorizedMovements.length,
+        // Since feature 60 of the backend the POST runs the pass itself (feature 33).
+        categorization: runPass(),
       },
     })
   })
@@ -666,9 +671,7 @@ test('Review keeps the summary and its Undo in view after giving a category to t
   expectNothingUnforeseen(watch)
 })
 
-test('Review keeps the rule notice and Apply rules now in view from the bottom of the list', async ({
-  page,
-}) => {
+test('Review keeps the rule notice in view from the bottom of the list', async ({ page }) => {
   const watch = watchPage(page)
   await routeReview(page, watch)
   await page.goto('/review')
@@ -686,9 +689,8 @@ test('Review keeps the rule notice and Apply rules now in view from the bottom o
   await expect(page.getByTestId('action-summary')).toHaveCount(0)
   expect(await scrollY(page)).toBeGreaterThan(0)
   await expectInView(page, page.getByTestId('rule-created-notice'))
-  await expectInView(page, page.getByTestId('apply-rules-now'))
   await expectStuckUnderTopBar(page)
-  // Creating a rule writes nothing on any movement.
+  // The app itself writes nothing on any movement: what the rule moved, the backend moved.
   expect(watch.writes.map((write) => `${write.method} ${write.path}`)).toEqual([
     'POST /api/category-rules',
   ])
@@ -1049,25 +1051,22 @@ const BAKERY_ROWS = 8
 
 /**
  * Leaves `Review` as it is right after a rules pass: a rule is created from the first
- * row, applied from its notice and the dialog closed. What the pass did is then painted
- * between the title and the filters, and no notice is showing.
+ * row, and since feature 33 creating it already runs the pass. What the pass did is then
+ * painted between the title and the filters, and the line of the created rule is the
+ * notice showing (there is no `Apply rules now` to press any more).
  */
 async function applyRulesInReview(page: Page): Promise<void> {
   await reviewRow(page, REVIEW_FIRST_ID).getByTestId('movement-create-rule').click()
   await page.getByTestId('rule-text').getByRole('textbox').fill('panaderia')
   await page.getByTestId('rule-category').getByRole('combobox').selectOption(String(TRANSPORT.id))
   await page.getByTestId('rule-save').click()
-  await page.getByTestId('apply-rules-now').click()
-  await page.getByTestId('apply-confirmed').click()
-  await expect(page.getByTestId('apply-figure').first()).toHaveText(
-    `${BAKERY_ROWS} movements categorized`,
-  )
-  await page.getByTestId('apply-close').click()
-  await expect(page.getByTestId('apply-figure')).toHaveCount(0)
+  await expect(page.getByTestId('rule-dialog')).toHaveCount(0)
   await expect(page.getByTestId('last-apply-headline')).toHaveText(
-    new RegExp(`^Rules applied at \\d{2}:\\d{2}: ${BAKERY_ROWS} movements categorized\\.$`),
+    new RegExp(
+      `^Rule “panaderia” → Transport created at \\d{2}:\\d{2}: ${BAKERY_ROWS} movements categorized\\.$`,
+    ),
   )
-  await expect(page.locator(BLOCK)).toHaveCount(0)
+  await expect(page.locator(`${BLOCK} [data-test="rule-created-notice"]`)).toHaveCount(1)
 }
 
 // tasks.md does not ask for these two tests; the leader did when handing over the second
@@ -1101,11 +1100,14 @@ for (const state of ['folded', 'open'] as const) {
     await bringUnderTopBar(page, target)
     expect(await scrollY(page)).toBeGreaterThan(0)
     await expectAtBottomOfTopBar(page, target)
-    await expect(page.locator(BLOCK)).toHaveCount(0)
+    // Since feature 33 the line of the created rule is the notice already showing; the
+    // action below puts the action notice in its place (C5).
+    await expect(page.locator(`${BLOCK} [data-test="rule-created-notice"]`)).toHaveCount(1)
     await reviewCategory(target).selectOption(String(GROCERIES.id))
     await expect(page.getByTestId('action-summary')).toContainText(
       '1 movement categorized as Groceries',
     )
+    await expect(page.getByTestId('rule-created-notice')).toHaveCount(0)
 
     await expectRowClearOfNotice(page, target)
     await expectInView(page, page.getByTestId('action-summary'))
@@ -1120,7 +1122,6 @@ for (const state of ['folded', 'open'] as const) {
         path: '/api/category-rules',
         body: { matchText: 'panaderia', categoryId: TRANSPORT.id },
       },
-      { method: 'POST', path: '/api/category-rules/apply', body: null },
       {
         method: 'PATCH',
         path: `/api/movements/${REVIEW_FIRST_ID + 30}`,

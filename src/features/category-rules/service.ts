@@ -1,7 +1,8 @@
 // Categorization rules data access (feature 17): the four writes the contract
 // allows on a rule, plus the on-demand pass. Every body is built field by field, so
 // nothing but `matchText` and `categoryId` can ever travel, and the apply goes with
-// no body at all. Per ADR-002 the raw responses are mapped to the frontend types
+// no body at all. Since feature 33 it also reads the suggested rules, and the POST and
+// the PATCH answer with what the pass that ran with them moved. Per ADR-002 the raw responses are mapped to the frontend types
 // with the shared boundary checks, so a contract drift surfaces as a
 // ValidationError naming the failing field.
 
@@ -21,16 +22,21 @@ import type {
   RuleChanges,
   RuleConflict,
   RuleMatch,
+  SavedRule,
+  SuggestedMovement,
+  SuggestedRule,
 } from './types'
 
 /** Paths are absolute so they resolve against the API origin (see docs/stack.md). */
 export const RULES_PATH = '/api/category-rules'
 export const APPLY_PATH = '/api/category-rules/apply'
+export const SUGGESTIONS_PATH = '/api/category-rules/suggestions'
 
 const listChecks = createValidators(`GET ${RULES_PATH}`)
 const createChecks = createValidators(`POST ${RULES_PATH}`)
 const updateChecks = createValidators(`PATCH ${RULES_PATH}/:id`)
 const applyChecks = createValidators(`POST ${APPLY_PATH}`)
+const suggestionsChecks = createValidators(`GET ${SUGGESTIONS_PATH}`)
 
 /** A pass never categorizes a `neutral` movement, so the answer never lists one. */
 const CATEGORIZED_TYPES = ['income', 'expense'] as const
@@ -115,36 +121,101 @@ function parseCategorized(v: Validators, raw: unknown, path: string): Categorize
   }
 }
 
+/** `categorized` when the object is the answer itself, `categorization.categorized` inside one. */
+const fieldOf = (path: string, field: string): string => (path === '' ? field : `${path}.${field}`)
+
 /**
- * Maps `POST /api/category-rules/apply`, or throws ValidationError. Only the `code`
- * of a failed pass is kept: its `message` comes in Spanish and nothing paints it (R13).
- * The list of what was categorized must have exactly `categorized` movements: a list
- * that does not add up is an answer nobody can read (feature 30).
+ * Reads what a categorization pass did: the answer of the apply, and the
+ * `categorization` of a POST or a PATCH of a rule (feature 33). Only the `code` of a
+ * failed pass is kept: its `message` comes in Spanish and nothing paints it (R13). The
+ * list of what was categorized must have exactly `categorized` movements: a list that
+ * does not add up is an answer nobody can read (feature 30). `path` is '' for the
+ * apply, whose fields sit at the root.
  */
-export function parseApplyResult(raw: unknown): ApplyResult {
-  const v = applyChecks
-  const body = v.asObject(raw, 'response')
+export function parseCategorization(v: Validators, raw: unknown, path: string): ApplyResult {
+  const body = v.asObject(raw, path === '' ? 'response' : path)
   const failure = body.error
-  const categorized = v.asInteger(body.categorized, 'categorized')
+  const categorized = v.asInteger(body.categorized, fieldOf(path, 'categorized'))
+  const listPath = fieldOf(path, 'categorizedMovements')
   const categorizedMovements = v
-    .asArray(body.categorizedMovements, 'categorizedMovements')
-    .map((item, i) => parseCategorized(v, item, `categorizedMovements[${i}]`))
+    .asArray(body.categorizedMovements, listPath)
+    .map((item, i) => parseCategorized(v, item, `${listPath}[${i}]`))
   if (categorizedMovements.length !== categorized) {
-    v.reject('categorizedMovements', `a list of ${categorized} movements`)
+    v.reject(listPath, `a list of ${categorized} movements`)
   }
+  const conflictsPath = fieldOf(path, 'conflicts')
   return {
     categorized,
     categorizedMovements,
-    conflictCount: v.asInteger(body.conflictCount, 'conflictCount'),
+    conflictCount: v.asInteger(body.conflictCount, fieldOf(path, 'conflictCount')),
     conflicts: v
-      .asArray(body.conflicts, 'conflicts')
-      .map((item, i) => parseConflict(v, item, `conflicts[${i}]`)),
-    unmatched: v.asInteger(body.unmatched, 'unmatched'),
+      .asArray(body.conflicts, conflictsPath)
+      .map((item, i) => parseConflict(v, item, `${conflictsPath}[${i}]`)),
+    unmatched: v.asInteger(body.unmatched, fieldOf(path, 'unmatched')),
     error:
       failure === undefined || failure === null
         ? null
-        : { code: v.asText(v.asObject(failure, 'error').code, 'error.code') },
+        : {
+            code: v.asText(
+              v.asObject(failure, fieldOf(path, 'error')).code,
+              fieldOf(path, 'error.code'),
+            ),
+          },
   }
+}
+
+/** Maps `POST /api/category-rules/apply`, or throws ValidationError. */
+export function parseApplyResult(raw: unknown): ApplyResult {
+  return parseCategorization(applyChecks, raw, '')
+}
+
+/**
+ * Maps the answer of a POST or a PATCH of a rule: the rule at the root and, always,
+ * `categorization` with what its pass moved (feature 33). Without it the answer is
+ * unreadable, as an apply answer without its list is.
+ */
+export function parseSavedRule(raw: unknown, v: Validators = createChecks): SavedRule {
+  const rule = parseOne(v, raw, 'response')
+  const body = v.asObject(raw, 'response')
+  return { rule, result: parseCategorization(v, body.categorization, 'categorization') }
+}
+
+function parseSuggestedMovement(v: Validators, raw: unknown, path: string): SuggestedMovement {
+  const movement = v.asObject(raw, path)
+  return {
+    movementId: v.asInteger(movement.movementId, `${path}.movementId`),
+    description: v.asString(movement.description, `${path}.description`),
+    bookingDate: v.asDateOnly(movement.bookingDate, `${path}.bookingDate`),
+    amount: v.asDecimal(movement.amount, `${path}.amount`),
+  }
+}
+
+function parseSuggestion(v: Validators, raw: unknown, path: string): SuggestedRule {
+  const suggestion = v.asObject(raw, path)
+  const movementCount = v.asInteger(suggestion.movementCount, `${path}.movementCount`)
+  const movements = v
+    .asArray(suggestion.movements, `${path}.movements`)
+    .map((item, i) => parseSuggestedMovement(v, item, `${path}.movements[${i}]`))
+  if (movements.length !== movementCount) {
+    v.reject(`${path}.movements`, `a list of ${movementCount} movements`)
+  }
+  return {
+    matchText: v.asText(suggestion.matchText, `${path}.matchText`),
+    kind: v.asMember(suggestion.kind, CATEGORIZED_TYPES, `${path}.kind`),
+    movementCount,
+    movements,
+    manualMatches: v.asInteger(suggestion.manualMatches, `${path}.manualMatches`),
+  }
+}
+
+/**
+ * Maps `GET /api/category-rules/suggestions`, or throws ValidationError. A suggestion
+ * whose `movementCount` is not the length of its `movements` is rejected: the number
+ * shown has to be the one that moves (feature 33, R12).
+ */
+export function parseSuggestions(raw: unknown): SuggestedRule[] {
+  const v = suggestionsChecks
+  return v.asArray(raw, 'response').map((item, i) => parseSuggestion(v, item, `[${i}]`))
 }
 
 /**
@@ -170,23 +241,34 @@ export async function getRules(client: HttpClient = http): Promise<CategoryRule[
   return parseRules(await client<unknown>(RULES_PATH))
 }
 
-/** Creates a rule. It categorizes nothing by itself: that is the apply pass (R5). */
-export async function createRule(rule: NewRule, client: HttpClient = http): Promise<CategoryRule> {
-  const body = ruleBody(rule)
-  return parseRule(await client<unknown>(RULES_PATH, withBody('POST', body)), createChecks)
+/** The suggested rules, in the order the API sends them. Read only (feature 33). */
+export async function getSuggestions(client: HttpClient = http): Promise<SuggestedRule[]> {
+  return parseSuggestions(await client<unknown>(SUGGESTIONS_PATH))
 }
 
-/** Changes a rule. Only what changed travels, and an empty body never leaves (R8). */
+/**
+ * Creates a rule. Since feature 60 of the backend the same request runs the pass, and
+ * the answer says what it moved (feature 33).
+ */
+export async function createRule(rule: NewRule, client: HttpClient = http): Promise<SavedRule> {
+  const body = ruleBody(rule)
+  return parseSavedRule(await client<unknown>(RULES_PATH, withBody('POST', body)), createChecks)
+}
+
+/**
+ * Changes a rule. Only what changed travels, and an empty body never leaves (R8). Like
+ * the POST, it runs the pass and answers with what it moved (feature 33).
+ */
 export async function updateRule(
   id: number,
   changes: RuleChanges,
   client: HttpClient = http,
-): Promise<CategoryRule> {
+): Promise<SavedRule> {
   const body = ruleBody(changes)
   if (Object.keys(body).length === 0) {
     updateChecks.reject('body', 'a change of matchText or categoryId')
   }
-  return parseRule(
+  return parseSavedRule(
     await client<unknown>(`${RULES_PATH}/${id}`, withBody('PATCH', body)),
     updateChecks,
   )

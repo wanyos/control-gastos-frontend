@@ -9,6 +9,9 @@
           <p class="font-mono text-sm tabular-nums text-ink-muted" data-test="last-apply-figures">
             {{ figures }}
           </p>
+          <p v-if="isUnfinished" class="text-sm text-warning" data-test="last-apply-unfinished">
+            {{ UNFINISHED_MOVE }}
+          </p>
         </div>
 
         <BaseButton
@@ -61,7 +64,8 @@
 <script setup lang="ts">
 // What the last rules pass did, left in view after its dialog is closed: how many
 // movements it categorized and at what time, which ones, and the conflicts (feature
-// 30). Rules and Review paint this same component. It reads no store and writes
+// 30). Since feature 33 also the pass that ran when a rule was created or changed:
+// then the head names the rule. Rules and Review paint this same component. It reads no store and writes
 // nothing: the two lists start folded, each behind its own button.
 import { computed, ref } from 'vue'
 
@@ -71,7 +75,7 @@ import { formatClock } from '@/shared/money'
 
 import CategorizedMovementList from './CategorizedMovementList.vue'
 import RuleConflictList from './RuleConflictList.vue'
-import { lastApplyFigures, lastApplyHeadline } from '../rules'
+import { UNFINISHED_MOVE, lastApplyFigures, lastApplyHeadline, ruleSavedHeadline } from '../rules'
 import type { LastApply } from '../types'
 
 const props = defineProps<{ report: LastApply }>()
@@ -81,8 +85,16 @@ const emit = defineEmits<{ dismiss: [] }>()
 const showsMovements = ref(false)
 const showsConflicts = ref(false)
 
-const headline = computed(() =>
-  lastApplyHeadline(props.report.result.categorized, formatClock(props.report.at)),
+const headline = computed(() => {
+  const { at, cause, result, rule } = props.report
+  const clock = formatClock(at)
+  if (cause === 'apply' || rule === null) return lastApplyHeadline(result.categorized, clock)
+  return ruleSavedHeadline(rule, cause, result.categorized, clock)
+})
+
+/** A saved rule whose pass broke halfway: the rule stays, the rest moves later (R11). */
+const isUnfinished = computed(
+  () => props.report.cause !== 'apply' && props.report.result.error !== null,
 )
 const figures = computed(() => lastApplyFigures(props.report.result))
 

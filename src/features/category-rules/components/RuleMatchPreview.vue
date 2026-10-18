@@ -54,7 +54,7 @@
         </li>
       </ul>
 
-      <p class="text-2xs text-ink-faint" data-test="rule-preview-note">{{ ESTIMATE }}</p>
+      <p class="text-2xs text-ink-faint" data-test="rule-preview-note">{{ PREVIEW_NOTE }}</p>
     </template>
   </div>
 </template>
@@ -70,14 +70,8 @@ import BaseSpinner from '@/shared/components/BaseSpinner.vue'
 import { formatDate, formatMoney } from '@/shared/money'
 import type { Movement } from '@/shared/movements'
 
-import { PREVIEW_SAMPLE_SIZE, matchCountLine, matchWarning } from '../rules'
+import { PREVIEW_NOTE, PREVIEW_SAMPLE_SIZE, matchCountLine, matchWarning } from '../rules'
 import type { MatchPreview } from '../types'
-
-/**
- * The count is what a pass would look at today, not what it will change: the preview
- * asks the search of the backend and a pass runs the rules (design.md §5).
- */
-const ESTIMATE = 'Estimate: what a pass would look at today, not what it will change.'
 
 const props = defineProps<{ preview: MatchPreview }>()
 

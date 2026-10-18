@@ -1,6 +1,7 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 
+import { useCategoryRulesStore } from '@/features/category-rules/store'
 import type { HttpClient } from '@/services/http'
 import { getAccounts } from '@/shared/accounts'
 import { getCategories } from '@/shared/categories'
@@ -622,6 +623,18 @@ export const useStatementStore = defineStore('statement', () => {
       ambiguousGroups.value = null
     }
   }
+
+  // ─── After a rule is created or changed, or the rules are applied (feature 33) ──
+  // The backend moves movements when a rule is saved: the month is asked for again,
+  // quietly, if one is on screen. This store watches the rules store, never the other
+  // way round, as Review does (design.md §4).
+  const rulesStore = useCategoryRulesStore()
+  watch(
+    () => rulesStore.applyRun,
+    () => {
+      if (result.value) void refreshQuietly()
+    },
+  )
 
   return {
     month,

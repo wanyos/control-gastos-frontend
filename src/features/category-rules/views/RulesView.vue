@@ -3,10 +3,7 @@
     <header class="flex flex-wrap items-start justify-between gap-3">
       <div class="flex flex-col gap-2">
         <h1 class="font-display text-lg font-bold tracking-[-0.01em] text-ink-strong">Rules</h1>
-        <p class="text-sm text-ink-muted">
-          Rules categorize pending movements without a category when you import, or when you apply
-          them here.
-        </p>
+        <p class="text-sm text-ink-muted" data-test="rules-intro">{{ RULES_INTRO }}</p>
       </div>
 
       <BaseButton :disabled="!canApply" data-test="apply-rules" @click="store.openApply()">
@@ -21,6 +18,25 @@
       :report="store.lastApply"
       @dismiss="store.dismissLastApply()"
     />
+
+    <!-- The line of the rule just created, in view however far down the page is
+         (feature 33, the same block Review uses since feature 27). -->
+    <StickyBelowTopBar v-if="store.lastCreated">
+      <RuleCreatedNotice :saved="store.lastCreated" />
+    </StickyBelowTopBar>
+
+    <SuggestedRuleList
+      :suggestions="store.suggestions"
+      :loading="store.suggestionsLoading"
+      :error-message="suggestionsFailure"
+      :categories="store.categories"
+      :busy="store.isSaving"
+      :failure="store.suggestionFailure"
+      @create="onCreateSuggested"
+      @retry="store.loadSuggestions()"
+    />
+
+    <h2 class="font-display text-base font-bold text-ink-strong">{{ OWN_RULES_TITLE }}</h2>
 
     <p v-if="store.deleteMessage" class="text-sm text-negative" data-test="rules-delete-message">
       {{ store.deleteMessage }}
@@ -82,22 +98,28 @@
 
 <script setup lang="ts">
 // The rules screen: see them, change them, delete them, and apply them on demand.
-// It never writes anything about a movement — changing or deleting a rule leaves
-// what it already categorized alone (R8, R9) — and applying always asks first (R10).
+// Since feature 33 it also lists the suggested rules, and creates one from a suggestion
+// with the category chosen in its row. The screen never writes on a movement itself:
+// creating or changing a rule makes the backend move the ones it matches, and what it
+// moved is shown in the box and in the line of the created rule. Deleting a rule leaves
+// what it already categorized alone (R9), and applying always asks first (R10).
 import { computed, onMounted, ref } from 'vue'
 import { WandSparkles } from '@lucide/vue'
 
 import BaseButton from '@/shared/components/BaseButton.vue'
 import BaseCard from '@/shared/components/BaseCard.vue'
+import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 
 import ApplyRulesDialog from '../components/ApplyRulesDialog.vue'
 import DeleteRuleDialog from '../components/DeleteRuleDialog.vue'
 import LastApplyReport from '../components/LastApplyReport.vue'
 import RuleDialog from '../components/RuleDialog.vue'
+import RuleCreatedNotice from '../components/RuleCreatedNotice.vue'
 import RuleList from '../components/RuleList.vue'
-import { loadErrorMessage } from '../rules'
+import SuggestedRuleList from '../components/SuggestedRuleList.vue'
+import { OWN_RULES_TITLE, RULES_INTRO, loadErrorMessage, suggestionsErrorMessage } from '../rules'
 import { useCategoryRulesStore } from '../store'
-import type { CategoryRule, NewRule } from '../types'
+import type { CategoryRule, NewRule, SuggestedRule } from '../types'
 
 const store = useCategoryRulesStore()
 
@@ -107,10 +129,16 @@ const deleting = ref<CategoryRule | null>(null)
 onMounted(() => {
   void store.load()
   void store.loadCategories()
+  void store.loadSuggestions()
 })
 
 /** The English sentence of a failed load; the backend's own message is never painted. */
 const failure = computed(() => (store.loadError ? loadErrorMessage(store.loadError) : ''))
+
+/** The English sentence of a failed load of the suggested rules (R12). */
+const suggestionsFailure = computed(() =>
+  store.suggestionsError ? suggestionsErrorMessage(store.suggestionsError) : null,
+)
 
 /** Applying with no rules would be a mass write that can do nothing (R10). */
 const canApply = computed(() => (store.rules?.length ?? 0) > 0 && !store.isLoading)
@@ -147,6 +175,10 @@ async function onSave(next: NewRule): Promise<void> {
     store.clearPreview()
     editing.value = null
   }
+}
+
+function onCreateSuggested(suggestion: SuggestedRule, categoryId: number): void {
+  void store.createFromSuggestion(suggestion, categoryId)
 }
 
 async function onDelete(): Promise<void> {

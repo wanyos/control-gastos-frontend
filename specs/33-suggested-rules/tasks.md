@@ -94,7 +94,7 @@ Archivos: `e2e/category-rules.spec.ts`, `e2e/action-notice-in-view.spec.ts`, `do
 > **Corrección del leader (2026-10-18):** se añade `RuleList.vue` a este lote. Dos textos suyos dejan de ser verdad con esta feature: el comentario de la línea ~26 («a rule is always born from a movement in Review») y el texto de la lista vacía de la línea ~8 («No rules yet. Create one from a movement in Review.»), que debe nombrar también las reglas propuestas. Solo esos dos textos, y el test que afirme el texto de la lista vacía si lo hay (añadido también a este lote si hace falta).
 Depende de: Lote A
 
-- [ ] T13 — `e2e/category-rules.spec.ts`: en `prepare`, una ruta para
+- [x] T13 — `e2e/category-rules.spec.ts`: en `prepare`, una ruta para
   `GET /api/category-rules/suggestions` (con una opción para la lista y para hacerla
   fallar) **antes** de la de `**/api/category-rules/*`, y `categorization` en las
   respuestas del `POST` y del `PATCH` (moviendo en `rows` lo que diga). Adapta
@@ -109,7 +109,7 @@ Depende de: Lote A
   `a create from a suggestion that fails leaves the list as it was and says why`.
   `the result of applying stays in view from Rules to Review` conserva su nombre y pasa.
   Cubre: R4, R5, R6, R7, R10, R13.
-- [ ] T14 — `e2e/action-notice-in-view.spec.ts`: el `POST` simulado devuelve
+- [x] T14 — `e2e/action-notice-in-view.spec.ts`: el `POST` simulado devuelve
   `categorization` y mueve en `rows` las filas que casan, como haría el backend.
   `applyRulesInReview` deja de pulsar `apply-rules-now`: crear la regla ya deja el
   recuadro (cabecera `Rule “panaderia” → Transport created at …`). Renombra
@@ -118,7 +118,7 @@ Depende de: Lote A
   `apply-rules-now`. **No toques `feature_list.json`**: el check de la feature 27 que
   filtra por el nombre viejo lo cambia el leader (está en la hoja). Los demás tests con
   nombre en los checks de la feature 27 conservan su nombre y pasan. Cubre: R13, R14.
-- [ ] T15 — `docs/guia-de-uso.md`, sección `6. Rules` y donde se cite `Apply rules now`.
+- [x] T15 — `docs/guia-de-uso.md`, sección `6. Rules` y donde se cite `Apply rules now`.
   **El archivo tiene notas del humano** (líneas que empiezan por `--` y bloques
   «Mis notas de esta prueba»): no se tocan, y no se reescribe el texto de un paso que
   tenga debajo un `-- ok` suyo. Donde un paso así ya no es verdad (el 9 de crear una
@@ -127,7 +127,7 @@ Depende de: Lote A
   `Edit → Save` de las tablas «Qué escribe y cómo se deshace», y la nota de la cabecera
   sobre `Apply rules now`. Pasos nuevos para la lista de reglas propuestas. Cubre: —
   (documento).
-- [ ] T16 — `docs/architecture.md`: componentes nuevos de `category-rules`, `getSuggestions`
+- [x] T16 — `docs/architecture.md`: componentes nuevos de `category-rules`, `getSuggestions`
   y `parseSavedRule` en el servicio, `RuleCreatedNotice` sin `Apply rules now` en el
   párrafo de la feature 27, y que `statement/store.ts` vigila `applyRun`. Cubre: —
   (documento).

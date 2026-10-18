@@ -62,11 +62,7 @@
     <!-- Only while there is something to say: the block has an opaque background, so
          it must not exist empty (feature 27). -->
     <StickyBelowTopBar v-if="hasNotice" :keep-clear-of="touchedRow">
-      <RuleCreatedNotice
-        v-if="rules.lastCreated"
-        :rule="rules.lastCreated"
-        @apply="rules.openApply()"
-      />
+      <RuleCreatedNotice v-if="rules.lastCreated" :saved="rules.lastCreated" />
 
       <ActionNotice
         v-else
@@ -145,6 +141,8 @@
       @preview="onPreviewRule"
     />
 
+    <!-- No button of this screen opens it since feature 33, but a pass started in
+         Rules may still be running when the screen changes: it has to stay in view. -->
     <ApplyRulesDialog
       :flow="rules.applyFlow"
       @confirm="rules.confirmApply()"
@@ -329,8 +327,9 @@ const closedAllSentence = computed(() => {
 })
 
 // ─── Rules (feature 17) ────────────────────────────────────────────────────
-// A rule is born from a row, but creating it writes nothing on that movement
-// (decisions.md 🔴 5) and applies nothing by itself (🔴 3).
+// A rule is born from a row. The screen writes nothing on that movement; since
+// feature 33 the backend moves the movements the rule matches when it is created,
+// and the line of the created rule says how many.
 
 /** The movement the rule dialog is open for, or null. */
 const ruling = ref<Movement | null>(null)

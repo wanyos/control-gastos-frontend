@@ -5,24 +5,35 @@ import { ValidationError } from '@/shared/errors'
 import {
   APPLY_PATH,
   RULES_PATH,
+  SUGGESTIONS_PATH,
   applyRules,
   createRule,
   deleteRule,
   getRules,
+  getSuggestions,
   parseApplyResult,
   parseRule,
   parseRules,
+  parseSavedRule,
+  parseSuggestions,
   updateRule,
 } from '../service'
 import {
+  ACADEMY_CREATED,
+  ACADEMY_MOVED,
+  ACADEMY_RULE,
+  ACADEMY_SUGGESTION,
   APPLY_OK,
   IBERDROLA,
   INCOME_MOVEMENT,
   MERCADONA,
+  SUGGESTIONS,
+  SUPERMARKET_SUGGESTION,
   THREE_RULES,
   TWO_RULES_MOVEMENT,
   answer,
   fakeClient,
+  saved,
 } from './fixtures'
 
 describe('category-rules service (R5, R8, R9, R11, C2)', () => {
@@ -53,7 +64,7 @@ describe('category-rules service (R5, R8, R9, R11, C2)', () => {
 
   describe('creating', () => {
     it('sends exactly matchText and categoryId, as JSON', async () => {
-      const api = fakeClient({ [`POST ${RULES_PATH}`]: answer(MERCADONA) })
+      const api = fakeClient({ [`POST ${RULES_PATH}`]: answer(saved(MERCADONA)) })
 
       const created = await createRule({ matchText: 'mercadona', categoryId: 4 }, api.client)
 
@@ -63,11 +74,11 @@ describe('category-rules service (R5, R8, R9, R11, C2)', () => {
       expect(call?.contentType).toBe('application/json')
       expect(Object.keys(call?.body as object)).toEqual(['matchText', 'categoryId'])
       expect(call?.body).toEqual({ matchText: 'mercadona', categoryId: 4 })
-      expect(created.id).toBe(7)
+      expect(created.rule.id).toBe(7)
     })
 
     it('never lets a stray property travel', async () => {
-      const api = fakeClient({ [`POST ${RULES_PATH}`]: answer(MERCADONA) })
+      const api = fakeClient({ [`POST ${RULES_PATH}`]: answer(saved(MERCADONA)) })
       const smuggled = { matchText: 'mercadona', categoryId: 4, id: 99, status: 'confirmed' }
 
       await createRule(smuggled as { matchText: string; categoryId: number }, api.client)
@@ -76,9 +87,114 @@ describe('category-rules service (R5, R8, R9, R11, C2)', () => {
     })
   })
 
+  describe('what a create or a change moved (feature 33)', () => {
+    it('reads the rule and what its pass moved from the answer of a create', async () => {
+      const api = fakeClient({ [`POST ${RULES_PATH}`]: answer(ACADEMY_CREATED) })
+
+      const created = await createRule(
+        { matchText: 'academia ficticia norte', categoryId: 12 },
+        api.client,
+      )
+
+      expect(created.rule).toEqual({
+        id: 31,
+        matchText: 'academia ficticia norte',
+        categoryId: 12,
+        category: { id: 12, name: 'Educación', kind: 'expense', parentId: null },
+        createdAt: ACADEMY_RULE.createdAt,
+        updatedAt: ACADEMY_RULE.updatedAt,
+      })
+      expect(created.result.categorized).toBe(3)
+      expect(created.result.categorizedMovements.map((one) => one.movementId)).toEqual([
+        405, 437, 466,
+      ])
+      expect(created.result.categorizedMovements[0]?.rules).toEqual([
+        { ruleId: 31, matchText: 'academia ficticia norte' },
+      ])
+      expect(created.result.unmatched).toBe(214)
+      expect(created.result.error).toBeNull()
+
+      // The PATCH answers the same shape.
+      const patch = fakeClient({ [`PATCH ${RULES_PATH}/31`]: answer(ACADEMY_CREATED) })
+      const changed = await updateRule(31, { categoryId: 12 }, patch.client)
+      expect(changed.result.categorizedMovements).toHaveLength(ACADEMY_MOVED.length)
+
+      // A pass that broke halfway: what it moved, and only the code of the error.
+      const half = parseSavedRule({
+        ...ACADEMY_CREATED,
+        categorization: {
+          ...(ACADEMY_CREATED.categorization as object),
+          error: { code: 'RULES_PASS_FAILED', message: 'La pasada se cortó' },
+        },
+      })
+      expect(half.result.error).toEqual({ code: 'RULES_PASS_FAILED' })
+      expect(JSON.stringify(half)).not.toContain('La pasada se cortó')
+    })
+
+    it('rejects a create answer without categorization', async () => {
+      const api = fakeClient({ [`POST ${RULES_PATH}`]: answer(MERCADONA) })
+
+      await expect(
+        createRule({ matchText: 'mercadona', categoryId: 4 }, api.client),
+      ).rejects.toThrow(`POST ${RULES_PATH}: categorization is not an object`)
+
+      expect(() =>
+        parseSavedRule({ ...ACADEMY_CREATED, categorization: { ...APPLY_OK, categorized: 4 } }),
+      ).toThrow(
+        `POST ${RULES_PATH}: categorization.categorizedMovements is not a list of 4 movements`,
+      )
+      const patch = fakeClient({ [`PATCH ${RULES_PATH}/8`]: answer(IBERDROLA) })
+      await expect(updateRule(8, { categoryId: 6 }, patch.client)).rejects.toThrow(
+        `PATCH ${RULES_PATH}/:id: categorization is not an object`,
+      )
+    })
+  })
+
+  describe('the suggested rules (feature 33)', () => {
+    it('reads the suggested rules of the contract', async () => {
+      const api = fakeClient({ [`GET ${SUGGESTIONS_PATH}`]: answer(SUGGESTIONS) })
+
+      const list = await getSuggestions(api.client)
+
+      expect(api.calls).toEqual([
+        { path: SUGGESTIONS_PATH, method: 'GET', body: undefined, contentType: undefined },
+      ])
+      expect(list.map((one) => one.matchText)).toEqual([
+        'supermercado inventado',
+        'academia ficticia norte',
+        'cooperativa sintetica',
+      ])
+      expect(list[0]).toEqual({
+        ...SUPERMARKET_SUGGESTION,
+        kind: 'expense',
+        movements: SUPERMARKET_SUGGESTION.movements,
+      })
+      expect(list[2]?.kind).toBe('income')
+      expect(list[0]?.manualMatches).toBe(2)
+      expect(parseSuggestions([])).toEqual([])
+    })
+
+    it('rejects a suggested rule whose count does not match its movements', () => {
+      expect(() => parseSuggestions([{ ...ACADEMY_SUGGESTION, movementCount: 4 }])).toThrow(
+        `GET ${SUGGESTIONS_PATH}: [0].movements is not a list of 4 movements`,
+      )
+      const withoutManual: Record<string, unknown> = { ...ACADEMY_SUGGESTION }
+      delete withoutManual.manualMatches
+      expect(() => parseSuggestions([withoutManual])).toThrow(
+        `GET ${SUGGESTIONS_PATH}: [0].manualMatches is not an integer`,
+      )
+      expect(() => parseSuggestions([{ ...ACADEMY_SUGGESTION, kind: 'neutral' }])).toThrow(
+        `GET ${SUGGESTIONS_PATH}: [0].kind is not one of income | expense`,
+      )
+      expect(() => parseSuggestions({ suggestions: [] })).toThrow(
+        `GET ${SUGGESTIONS_PATH}: response is not an array`,
+      )
+    })
+  })
+
   describe('changing', () => {
     it('sends only the field that changed', async () => {
-      const api = fakeClient({ [`PATCH ${RULES_PATH}/8`]: answer(IBERDROLA) })
+      const api = fakeClient({ [`PATCH ${RULES_PATH}/8`]: answer(saved(IBERDROLA)) })
 
       await updateRule(8, { categoryId: 6 }, api.client)
 
@@ -88,7 +204,7 @@ describe('category-rules service (R5, R8, R9, R11, C2)', () => {
     })
 
     it('sends both when both changed', async () => {
-      const api = fakeClient({ [`PATCH ${RULES_PATH}/8`]: answer(IBERDROLA) })
+      const api = fakeClient({ [`PATCH ${RULES_PATH}/8`]: answer(saved(IBERDROLA)) })
 
       await updateRule(8, { matchText: 'iberdrola', categoryId: 6 }, api.client)
 

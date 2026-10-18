@@ -1,7 +1,8 @@
 // Frontend types for the categorization rules (feature 17), written from
 // gastos-backend/docs/api-contract.md → `POST /api/category-rules`,
 // `GET /api/category-rules`, `PATCH /api/category-rules/:id`,
-// `DELETE /api/category-rules/:id` and `POST /api/category-rules/apply`.
+// `DELETE /api/category-rules/:id`, `POST /api/category-rules/apply` and, since
+// feature 33, `GET /api/category-rules/suggestions`.
 // Types are not shared between features (docs/architecture.md): the apply result
 // looks like import's `Categorization`, but it is another endpoint and it is
 // declared — and parsed — here.
@@ -85,11 +86,43 @@ export interface ApplyResult {
   error: { code: string } | null
 }
 
-/** What the last pass that finished without an error did. Kept in memory only. */
+/** One movement a suggested rule would take (feature 33). Amount positive; sign from `kind`. */
+export interface SuggestedMovement {
+  movementId: number
+  description: string
+  bookingDate: string
+  amount: string
+}
+
+/** One element of `GET /api/category-rules/suggestions` (feature 33). */
+export interface SuggestedRule {
+  /** Already normalized: the `matchText` the POST would store. */
+  matchText: string
+  kind: 'expense' | 'income'
+  /** Always the length of `movements`: a list that does not add up is rejected. */
+  movementCount: number
+  movements: SuggestedMovement[]
+  /** Movements categorized by hand that also contain the text: they never move. */
+  manualMatches: number
+}
+
+/** A rule the POST or the PATCH saved, with what the pass that ran with it moved. */
+export interface SavedRule {
+  rule: CategoryRule
+  result: ApplyResult
+}
+
+/** Which action produced the result in the box (feature 33). */
+export type ResultCause = 'apply' | 'create' | 'update'
+
+/** What the last pass that finished did, whoever ran it. Kept in memory only. */
 export interface LastApply {
-  /** When the POST answered. */
+  /** When the POST (or the PATCH) answered. */
   at: Date
   result: ApplyResult
+  cause: ResultCause
+  /** The rule created or changed; null when `cause` is `apply`. */
+  rule: CategoryRule | null
 }
 
 /** What the apply dialog is showing right now. */

@@ -29,6 +29,7 @@ import {
   PAGE_OF_THREE,
   PAGE_TWO,
   VALIDATION_ERROR_BODY,
+  categorizedMovement,
   changed,
   deferred,
   fakeQueue,
@@ -583,7 +584,7 @@ describe('ReviewView', () => {
       expect(api.count(RULES)).toBe(0)
     })
 
-    it('creates it with one POST of two fields, and applies nothing by itself (R5)', async () => {
+    it('creates it with one POST of two fields, and asks for no separate pass (R5)', async () => {
       const queue = fakeQueue()
       const { api, wrapper } = await mountView('/review', {
         movements: queue.movements,
@@ -606,12 +607,64 @@ describe('ReviewView', () => {
       const notice = wrapper.get('[data-test="rule-created-notice"]')
       expect(notice.text()).toContain('cafeteria')
       expect(notice.text()).toContain('Food')
-      expect(notice.text()).toContain('Apply rules now')
+      // Since feature 33 creating already runs the pass: nothing to apply from the line.
+      expect(notice.text()).not.toContain('Apply rules now')
+      expect(wrapper.find('[data-test="apply-rules-now"]').exists()).toBe(false)
+    })
+
+    it('the rule notice in Review says how many it moved and has no Apply rules now', async () => {
+      const queue = fakeQueue()
+      const moved = {
+        ...CREATED_RULE,
+        categorization: {
+          categorized: 2,
+          categorizedMovements: [
+            categorizedMovement(310, 'CAFETERIA SINTETICA PLAZA', {
+              rules: [{ ruleId: 7, matchText: 'cafeteria' }],
+            }),
+            categorizedMovement(316, 'CAFETERIA SINTETICA ESTACION', {
+              bookingDate: '2026-08-19',
+              amount: '6.85',
+              rules: [{ ruleId: 7, matchText: 'cafeteria' }],
+            }),
+          ],
+          conflictCount: 0,
+          conflicts: [],
+          unmatched: 58,
+        },
+      }
+      const { api, wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi({ post: () => Promise.resolve(jsonResponse(moved, { status: 201 })) }),
+      })
+      const queriesBefore = api.movementQueries().length
+      await openDialog(wrapper)
+
+      document.querySelector<HTMLElement>('[data-test="rule-save"]')?.click()
+      await flushPromises()
+
+      const block = wrapper.get('[data-test="sticky-below-top-bar"]')
+      expect(block.get('[data-test="rule-created-notice"]').text()).toBe(
+        'Rule “cafeteria” → Food created: 2 movements categorized.',
+      )
+      expect(wrapper.find('[data-test="apply-rules-now"]').exists()).toBe(false)
+      expect(wrapper.text()).not.toContain('Apply rules now')
+      // The box says the same with the time, and lists what moved.
+      expect(wrapper.get('[data-test="last-apply-headline"]').text()).toMatch(
+        /^Rule “cafeteria” → Food created at \d{2}:\d{2}: 2 movements categorized\.$/,
+      )
+      await wrapper.get('[data-test="last-apply-show-movements"]').trigger('click')
+      expect(wrapper.findAll('[data-test="last-apply-movement"]')).toHaveLength(2)
+      // The queue and its count were asked for again; no pass was asked for apart.
+      expect(api.movementQueries().length).toBeGreaterThan(queriesBefore)
+      expect(api.count(APPLY_RULES)).toBe(0)
+      expect(api.patches()).toEqual([])
     })
 
     it('asks before applying, and one confirmation sends one pass (R10, R11)', async () => {
       const queue = fakeQueue()
-      const { api, wrapper } = await mountView('/review', {
+      const { api, pinia, wrapper } = await mountView('/review', {
         movements: queue.movements,
         patch: queue.patch,
         rules: rulesApi(),
@@ -620,7 +673,10 @@ describe('ReviewView', () => {
       document.querySelector<HTMLElement>('[data-test="rule-save"]')?.click()
       await flushPromises()
 
-      await wrapper.get('[data-test="apply-rules-now"]').trigger('click')
+      // Since feature 33 the line offers no Apply rules now: a pass started in Rules is
+      // what can still be running here, and its dialog is still the one of this screen.
+      expect(wrapper.find('[data-test="apply-rules-now"]').exists()).toBe(false)
+      useCategoryRulesStore(pinia).openApply()
       await flushPromises()
 
       const dialog = document.querySelector('[role="dialog"]')
@@ -816,6 +872,8 @@ describe('ReviewView', () => {
       useCategoryRulesStore(pinia).lastApply = {
         at: new Date(2026, 9, 12, 10, 42),
         result: parseApplyResult(APPLY_RESULT),
+        cause: 'apply',
+        rule: null,
       }
     }
 
@@ -1023,7 +1081,7 @@ describe('ReviewView', () => {
       await flushPromises()
 
       expect(wrapper.get(BLOCK).find('[data-test="rule-created-notice"]').exists()).toBe(true)
-      expect(wrapper.get(BLOCK).find('[data-test="apply-rules-now"]').exists()).toBe(true)
+      expect(wrapper.get(BLOCK).find('[data-test="apply-rules-now"]').exists()).toBe(false)
       expect(wrapper.find('[data-test="action-summary"]').exists()).toBe(false)
 
       await wrapper.findAll('[data-test="movement-confirm"]')[1]?.trigger('click')

@@ -142,8 +142,9 @@
       @cancel="asking = null"
     />
 
-    <!-- The rule dialog of the F17 as it is, with the preview of the F18 (R16). Saving
-         it writes NOTHING on the movement it was born from (R17). -->
+    <!-- The rule dialog of the F17 as it is, with the preview of the F18 (R16). This
+         screen writes NOTHING on the movement it was born from (R17); since feature 33
+         the backend may move it, if its category was set when the import was closed. -->
     <RuleDialog
       v-if="ruling"
       :open="true"
@@ -280,8 +281,9 @@ function onCategorize(id: number, categoryId: number | null): void {
 }
 
 // ─── Rules from a line (feature 21: R16, R17) ──────────────────────────────
-// The dialog of the F17 as it is. A rule is born from a line, but creating it writes
-// nothing on that movement and applies nothing by itself: that is the F17's own gesture.
+// The dialog of the F17 as it is. A rule is born from a line; the screen writes nothing
+// on that movement. Since feature 33 the backend moves what the rule matches when it is
+// created, and the month is asked for again (the store watches `applyRun`).
 
 /** The movement the rule dialog is open for, or null. */
 const ruling = ref<Movement | null>(null)

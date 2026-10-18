@@ -134,6 +134,105 @@ export const APPLY_OK = {
   unmatched: 5,
 }
 
+// ─── Since feature 33: what a POST or a PATCH of a rule moved, and the suggestions ──
+
+/** The `categorization` of a pass that moved nothing. */
+export const NOTHING_MOVED = {
+  categorized: 0,
+  categorizedMovements: [],
+  conflictCount: 0,
+  conflicts: [],
+  unmatched: 0,
+}
+
+/** The answer of a POST or a PATCH: the rule at the root and what its pass moved. */
+export const saved = (
+  raw: Record<string, unknown>,
+  categorization: Record<string, unknown> = NOTHING_MOVED,
+): Record<string, unknown> => ({ ...raw, categorization })
+
+export const EDUCATION = { id: 12, name: 'Educación', kind: 'expense', parentId: null }
+
+/** The rule a suggestion becomes: `academia ficticia norte` → Educación. */
+export const ACADEMY_RULE = rule(31, 'academia ficticia norte', EDUCATION)
+
+/** The three movements creating it moved, as `categorizedMovements` lists them. */
+export const ACADEMY_MOVED = [405, 437, 466].map((movementId, index) =>
+  categorizedMovement(movementId, 'RECIBO /Academia Ficticia Norte', {
+    bookingDate: `2026-0${7 + index}-01`,
+    amount: '48.50',
+    categoryId: 12,
+    categoryName: 'Educación',
+    rules: [{ ruleId: 31, matchText: 'academia ficticia norte' }],
+  }),
+)
+
+/** `POST /api/category-rules` 201 with `categorization` (feature 33). */
+export const ACADEMY_CREATED = saved(ACADEMY_RULE, {
+  categorized: 3,
+  categorizedMovements: ACADEMY_MOVED,
+  conflictCount: 0,
+  conflicts: [],
+  unmatched: 214,
+})
+
+/** The same 201 whose pass broke halfway: one movement moved, and the error. */
+export const ACADEMY_UNFINISHED = saved(ACADEMY_RULE, {
+  categorized: 1,
+  categorizedMovements: ACADEMY_MOVED.slice(0, 1),
+  conflictCount: 0,
+  conflicts: [],
+  unmatched: 214,
+  error: { code: 'RULES_PASS_FAILED', message: 'La pasada se cortó a mitad' },
+})
+
+const suggestedMovement = (
+  movementId: number,
+  description: string,
+  bookingDate: string,
+  amount: string,
+): Record<string, unknown> => ({ movementId, description, bookingDate, amount })
+
+/** `GET /api/category-rules/suggestions`: three, one of income, one with manual matches. */
+export const SUPERMARKET_SUGGESTION = {
+  matchText: 'supermercado inventado',
+  kind: 'expense',
+  movementCount: 4,
+  movements: [
+    suggestedMovement(412, 'SUPERMERCADO INVENTADO 4521', '2026-07-03', '23.87'),
+    suggestedMovement(418, 'SUPERMERCADO INVENTADO 0087', '2026-07-11', '41.06'),
+    suggestedMovement(433, 'SUPERMERCADO INVENTADO 4521', '2026-08-02', '17.39'),
+    suggestedMovement(451, 'SUPERMERCADO INVENTADO 4521', '2026-08-19', '36.72'),
+  ],
+  manualMatches: 2,
+}
+
+export const ACADEMY_SUGGESTION = {
+  matchText: 'academia ficticia norte',
+  kind: 'expense',
+  movementCount: 3,
+  movements: [
+    suggestedMovement(405, 'RECIBO /Academia Ficticia Norte', '2026-07-01', '48.50'),
+    suggestedMovement(437, 'RECIBO /Academia Ficticia Norte', '2026-08-01', '48.50'),
+    suggestedMovement(466, 'RECIBO /Academia Ficticia Norte', '2026-09-01', '48.50'),
+  ],
+  manualMatches: 0,
+}
+
+export const COOPERATIVE_SUGGESTION = {
+  matchText: 'cooperativa sintetica',
+  kind: 'income',
+  movementCount: 3,
+  movements: [
+    suggestedMovement(409, 'ABONO /Cooperativa Sintetica 07', '2026-07-02', '126.35'),
+    suggestedMovement(440, 'ABONO /Cooperativa Sintetica 08', '2026-08-04', '118.90'),
+    suggestedMovement(468, 'ABONO /Cooperativa Sintetica 09', '2026-09-03', '131.12'),
+  ],
+  manualMatches: 0,
+}
+
+export const SUGGESTIONS = [SUPERMARKET_SUGGESTION, ACADEMY_SUGGESTION, COOPERATIVE_SUGGESTION]
+
 /** The backend's own error bodies, in Spanish as the real ones. */
 export const CONFLICT_BODY = {
   statusCode: 409,
@@ -227,6 +326,8 @@ export function mockFetch(answers: {
   apply?: () => Promise<Response>
   /** GET /api/movements: the count of the match preview (feature 18). */
   movements?: (url: URL) => Promise<Response>
+  /** GET /api/category-rules/suggestions (feature 33). Defaults to an empty list. */
+  suggestions?: () => Promise<Response>
 }) {
   const calls: Call[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
@@ -241,6 +342,9 @@ export function mockFetch(answers: {
     if (url.pathname === '/api/categories' && answers.categories) return answers.categories()
     if (url.pathname === '/api/movements' && answers.movements) return answers.movements(url)
     if (url.pathname === '/api/category-rules/apply' && answers.apply) return answers.apply()
+    if (url.pathname === '/api/category-rules/suggestions') {
+      return answers.suggestions ? answers.suggestions() : jsonOf([])
+    }
     if (url.pathname === '/api/category-rules' && answers.rules) return answers.rules()
     if (url.pathname.startsWith('/api/category-rules/') && answers.rule) return answers.rule()
     return Promise.reject(new TypeError(`unexpected ${call.method} ${call.path}`))

@@ -96,19 +96,30 @@ src/
                           # RuleMatchPreview (a cuántos afecta el texto, feature #18);
                           # LastApplyReport (qué hizo la última aplicación de las reglas; lo
                           # pintan `Rules` y `Review`) y CategorizedMovementList (sus filas,
-                          # una por movimiento categorizado) (#30)
-      views/              # RulesView (ruta /rules)
+                          # una por movimiento categorizado) (#30); SuggestedRuleList y
+                          # SuggestedRuleRow (las reglas propuestas de `Rules`, una fila por
+                          # propuesta con su desplegable de categoría y `Create rule`) (#33)
+      views/              # RulesView (ruta /rules); desde la #33 pinta también las reglas
+                          # propuestas, encima de las reglas propias
       store.ts            # useCategoryRulesStore: lista, diálogos y la pasada bajo demanda;
                           # `lastApply` (la respuesta de la última aplicación y su hora, solo
-                          # en memoria) y `dismissLastApply` (#30)
+                          # en memoria) y `dismissLastApply` (#30); desde la #33, las
+                          # propuestas (`loadSuggestions`, `createFromSuggestion`), y
+                          # `lastCreated` y `lastApply` guardan también lo que movió crear o
+                          # cambiar una regla
       service.ts          # GET/POST /api/category-rules, PATCH y DELETE /:id, POST /apply;
                           # `parseApplyResult` valida también `categorizedMovements` y que
-                          # tenga tantos elementos como `categorized` (#30)
+                          # tenga tantos elementos como `categorized` (#30); desde la #33,
+                          # `getSuggestions` (GET /api/category-rules/suggestions) y
+                          # `parseSavedRule`, que exige `categorization` en la respuesta del
+                          # POST y del PATCH (la lee `parseCategorization`, la misma de /apply)
       rules.ts            # normalización del backend, texto propuesto, umbrales y textos de la
                           # previsualización y de los errores (puras; #17 y #18);
-                          # `lastApplyHeadline`, `lastApplyFigures` y `signedAmount` (#30)
+                          # `lastApplyHeadline`, `lastApplyFigures` y `signedAmount` (#30);
+                          # textos de las propuestas y de la regla guardada (#33)
       types.ts            # CategoryRule, NewRule, ApplyResult…; desde la #30, AppliedRule,
-                          # CategorizedMovement, `ApplyResult.categorizedMovements` y LastApply
+                          # CategorizedMovement, `ApplyResult.categorizedMovements` y LastApply;
+                          # desde la #33, SuggestedRule, SavedRule y `LastApply.cause`
     statement/            # feature #19: el extracto, mi histórico mes a mes; desde la #21
                           # también corrige la categoría de una línea (su única escritura)
       components/         # MonthNav, MonthTotals, StatementList, StatementRow,
@@ -230,8 +241,10 @@ src/
 > **La frase de la última acción se ve con la página bajada (feature #27).** En `Review`,
 > `Movements` y `Transfers`, la línea que dice qué hizo la última acción, con su botón
 > `Undo`, o por qué falló, va envuelta en `shared/components/StickyBelowTopBar.vue`. En
-> `Review` envuelve también la línea de la regla recién creada (`RuleCreatedNotice`, con
-> `Apply rules now`), que sigue sin salir a la vez que la otra. Ese componente es un
+> `Review` envuelve también la línea de la regla recién creada (`RuleCreatedNotice`), que
+> sigue sin salir a la vez que la otra. Desde la feature #33 esa línea ya no lleva el botón
+> `Apply rules now`: dice cuántos movimientos movió crear la regla, y `Rules` la pinta
+> también, dentro del mismo `StickyBelowTopBar`. Ese componente es un
 > `div` con `position: sticky`, `top` igual al alto de la barra superior
 > (`--topbar-h`), el fondo de la página (`bg-surface-app`, opaco) y el nivel
 > `--z-sticky`: el mismo de la barra superior, por encima de las etiquetas de día del
@@ -368,7 +381,10 @@ src/
 > **Y desde la feature #21 tiene una dependencia, en el mismo sentido que ya existía:**
 > `statement/views/StatementView.vue` monta `RuleDialog` de `category-rules`, igual que
 > lo hace `ReviewView`. Es `statement` → `category-rules`; `category-rules` sigue sin
-> conocer a nadie, así que no aparece ningún ciclo. De `review` **no importa nada** (ni
+> conocer a nadie, así que no aparece ningún ciclo. Desde la feature #33,
+> `statement/store.ts` además **observa** `applyRun` del store de reglas, igual que
+> `review/store.ts`, y vuelve a pedir el mes en pantalla cuando sube (crear o cambiar una
+> regla mueve movimientos, y aplicar las reglas también); el sentido sigue siendo el mismo. De `review` **no importa nada** (ni
 > `review` de él): lo que las dos pantallas comparten sale de `shared/`, y lo que es
 > vocabulario de una pantalla (la fila, el selector de la fila, el aviso de deshacer)
 > está **copiado** a propósito —`StatementRow`, `RowCategoryEditor`,
@@ -404,9 +420,13 @@ src/
 > **solo lectura** (tipos, `buildMovementsQuery`, `parseMovementPage`, `getMovements` y
 > `SEARCH_DEBOUNCE_MS`) se mueve a `shared/movements.ts` y `review/{types,service,filters}.ts`
 > la re-exportan con el mismo nombre; los dos `PATCH` que escriben se quedan en
-> `review/service.ts`, que es la única pantalla que escribe movimientos. Crear una regla **no**
-> escribe nada sobre ningún movimiento; la única escritura en masa es
-> `POST /api/category-rules/apply`, y siempre pasa por una confirmación. **Desde la feature
+> `review/service.ts`, que es la única pantalla que escribe movimientos. El frontend no
+> escribe nada sobre ningún movimiento al crear una regla, pero **desde la feature #33**
+> (feature 60 del backend) el `POST` y el `PATCH` de una regla hacen que el backend pase las
+> reglas y la respuesta trae `categorization`, con la misma forma que la de aplicar: el
+> store la guarda en `lastApply` (con `cause` `create` o `update` y la regla) y sube
+> `applyRun`. La escritura en masa que se pide a mano es `POST /api/category-rules/apply`,
+> y siempre pasa por una confirmación. **Desde la feature
 > #30** la respuesta de esa petición trae la lista de los movimientos que categorizó
 > (`categorizedMovements`, tantos como `categorized`; si no cuadra, la respuesta se trata
 > como ilegible), el store de reglas la guarda **solo en memoria** como resultado de la

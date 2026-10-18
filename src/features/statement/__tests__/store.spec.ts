@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
+import { useCategoryRulesStore } from '@/features/category-rules/store'
+import type { HttpClient } from '@/services/http'
 import { ApiError, ValidationError } from '@/shared/errors'
 
 import { EMPTY_FILTERS } from '../filters'
@@ -9,6 +12,7 @@ import { useStatementStore } from '../store'
 import {
   ACCOUNTS,
   CATEGORIES,
+  CREATED_RULE,
   DEPOSIT_MATURITY,
   DEPOSIT_MONTH_PAGE,
   EXPENSE,
@@ -1543,5 +1547,43 @@ describe('useStatementStore', () => {
     const undone = store.shownMovements.find((row) => row.id === 52)
     expect(api.patches()).toHaveLength(2)
     expect(undone?.deposit?.countedAmount).toBe('37.07')
+  })
+
+  // ─── After a rule is created or changed (feature 33, R14) ──────────────────
+
+  it('asks for the month again when a rule is created or changed', async () => {
+    const api = mockApi({ movements: json(MONTH_PAGE), createRule: json(CREATED_RULE, 201) })
+    const rules = useCategoryRulesStore()
+    const store = useStatementStore()
+
+    // No month on screen yet: creating a rule asks for nothing about it.
+    await rules.create({ matchText: 'cafeteria central', categoryId: 2 })
+    await flushPromises()
+    expect(api.queries()).toEqual([])
+
+    await store.show('2026-09')
+    expect(api.queries()).toHaveLength(1)
+
+    await rules.create({ matchText: 'panaderia inventada', categoryId: 2 })
+    await flushPromises()
+    expect(api.queries()).toHaveLength(2)
+    expect(api.queries()[1]).toBe(api.queries()[0])
+
+    // A change answers through its own client; the month is asked for again all the same.
+    const patchOnly = (async () => ({
+      ...CREATED_RULE,
+      categoryId: 1,
+    })) as unknown as HttpClient
+    await rules.update(71, { matchText: 'cafeteria central', categoryId: 1 }, patchOnly)
+    await flushPromises()
+    expect(api.queries()).toHaveLength(3)
+
+    // Quietly: the month on screen stays while it is asked for, and only GETs went out.
+    expect(store.isLoading).toBe(false)
+    expect(store.result).not.toBeNull()
+    expect(api.calls.filter((call) => call.method !== 'GET').map((call) => call.method)).toEqual([
+      'POST',
+      'POST',
+    ])
   })
 })

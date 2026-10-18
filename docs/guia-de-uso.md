@@ -13,8 +13,10 @@
 > backend no está arrancado»; todos los pasos que escriben en tus datos (poner
 > categoría, crear o aplicar reglas, marcar, enlazar o desenlazar parejas,
 > importar); y si al crear una regla desde `Movements` sale luego en `Review` el
-> aviso con el botón `Apply rules now`. Eso sale de leer el código y de las
-> pruebas hechas al cerrar cada feature, no de esta revisión.
+> aviso de la regla creada. Eso sale de leer el código y de las
+> pruebas hechas al cerrar cada feature, no de esta revisión. (Ese aviso llevaba
+> entonces un botón `Apply rules now`; desde la feature 33 ya no existe: crear la
+> regla ya pone su categoría a los movimientos que casan.)
 >
 > **Sobre las cifras.** Las cifras de tus datos que aparecen aquí llevan la fecha
 > en que se midieron. Son de ese día, no de hoy: si has importado o marcado algo
@@ -94,7 +96,7 @@ En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
 | `Investments` | Nada todavía: pantalla vacía | — |
 | `Movements` | Todos tus movimientos mes a mes, con sus sumas | **Escribe**: la categoría de un movimiento, y si un movimiento cuenta o no en las sumas |
 | `Review` | La lista de lo importado que aún no has dado por bueno | **Escribe**: la categoría y el estado (pendiente o confirmado) |
-| `Rules` | Las reglas que ponen categoría solas según el texto del concepto | **Escribe**: crea, cambia y borra reglas; al aplicarlas, pone categoría a muchos movimientos de golpe |
+| `Rules` | Las reglas que ponen categoría solas según el texto del concepto, y las reglas que propone la aplicación | **Escribe**: crea, cambia y borra reglas; al crearlas, cambiarlas o aplicarlas, pone categoría a muchos movimientos de golpe |
 | `Transfers` | Los traspasos entre tus cuentas que la aplicación tiene enlazados de dos en dos | **Escribe**: enlaza y desenlaza dos movimientos |
 | Botón `Import` (barra superior) | Trae los archivos nuevos de Google Drive | **Escribe**: crea movimientos, y puede crear cuentas y productos. No se deshace desde la aplicación |
 
@@ -643,7 +645,7 @@ solo cuentan sus intereses. La pantalla lo enseña así:
 |---|---|---|---|
 | Elegir una categoría en una línea | Solo la categoría de ese movimiento. Funciona igual si está pendiente o confirmado | Importe, fecha, concepto y estado (no se puede confirmar ni devolver a pendiente desde aquí) | `Undo` en la línea verde. O volviendo a abrir el editor y eligiendo la categoría de antes (o `No category`) |
 | `Exclude from totals` / `Include in totals` | Solo la marca de «no cuenta en las sumas» de los movimientos marcados. Las tres cifras se vuelven a pedir al backend. En un movimiento de depósito la marca se guarda, pero no cambia ninguna cifra (desde la feature 57 del backend) | Importe, fecha, concepto, categoría y estado. El movimiento **no se borra ni se esconde** | `Undo`, que devuelve exactamente los que cambiaron. O seleccionándolos y pulsando la acción contraria |
-| `Create rule` desde el editor | Crea una regla. **No toca** el movimiento del que sale | Todo lo del movimiento | Borrando la regla en `Rules` |
+| `Create rule` desde el editor | Crea una regla y, desde la feature 33, en ese mismo momento el backend pone su categoría a los pendientes sin categoría que contienen el texto y a los que categorizó el cierre de una importación (confirmados o no). El movimiento del que sale cambia solo si es de esos. El mes se vuelve a pedir solo | Lo que categorizaste a mano, y lo que ya categorizó otra regla. Importe, fecha, concepto y estado | La regla, borrándola en `Rules`. Lo que movió **no se deshace desde la aplicación**: se corrige movimiento a movimiento |
 
 **El `Undo` dura poco.** Solo deshace la última acción, y desaparece al cambiar
 de mes, al tocar un filtro, al tocar la casilla `Hide what does not count` o
@@ -688,8 +690,9 @@ veces, una por mes.
   ni por forma de pago. Este último no va a existir.
 - No hay columna de saldo, ni exportar, ni acciones en bloque sobre la
   categoría.
-- **Crear una regla desde aquí no ofrece aplicarla.** Para aplicarla hay que ir
-  a `Rules`.
+- **Crear una regla desde aquí ya pone su categoría a los movimientos que casan**
+  (desde la feature 33), pero esta pantalla no dice cuántos fueron: lo dice el
+  recuadro que sale en `Rules` y en `Review`.
 - La frase que la nota gris añade a veces sobre grupos que parecen traspasos y
   no se pudieron emparejar está dentro de `More about what counts`, la última:
   no se ve hasta que lo abres. Se lee **una sola vez**, la primera vez que abres
@@ -911,11 +914,17 @@ pudiendo cambiar desde `Movements`, pero de confirmado no vuelve a pendiente.
 
 **Para qué sirve.** Una regla dice: «todo movimiento cuyo concepto contenga
 este texto va a esta categoría». Las reglas se aplican solas al importar, y
-también cuando tú pulsas `Apply rules`. Solo tocan movimientos **pendientes y
-sin categoría**.
+también cuando tú pulsas `Apply rules`; ahí solo tocan movimientos
+**pendientes y sin categoría**. Desde la feature 33, **crear o cambiar una
+regla también las aplica**, en ese mismo momento y con todas las reglas, y
+además recoloca los movimientos cuya categoría puso el cierre de una
+importación (confirmados o no). Nunca tocan lo que categorizaste a mano ni lo
+que ya categorizó una regla.
 
-Las reglas **se crean desde un movimiento** (en `Review` o en `Movements`), no
-desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
+Las reglas se crean desde un movimiento (en `Review` o en `Movements`) o,
+desde la feature 33, desde la lista de **reglas propuestas** de esta misma
+pantalla. Aquí se ven, se crean desde una propuesta, se cambian, se borran y se
+aplican.
 
 ### Qué probar — primero lo que solo mira
 
@@ -923,6 +932,13 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
    entre comillas, una flecha, la categoría, una etiqueta `Income` o
    `Expense`, y los botones `Edit` y `Delete`. El 2026-09-22 había 63 reglas.
    -- ok
+
+   **Nuevo desde la feature 33, sin probar en tu primera revisión:** esa lista
+   lleva ahora el título `Your rules` y tiene encima el bloque de reglas
+   propuestas (pasos 16 a 22). La frase bajo el título `Rules` dice ahora:
+   `Rules categorize pending movements without a category when you import, or
+   when you apply them here. Creating or changing a rule also moves the
+   movements whose category was set when the import was closed.`
 
 2. Pulsa `Edit` en una regla. **Debes ver** una ventana `Edit rule` con el
    texto, y debajo, sin teclear nada, una frase que dice cuántos movimientos
@@ -950,6 +966,11 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
    `Estimate: what a pass would look at today, not what it will change.`
    -- ok
 
+   **Nuevo desde la feature 33, sin probar en tu primera revisión:** la letra
+   pequeña ya no es esa. **Debe** decir `Saving also moves the matching
+   movements whose category was set when the import was closed. They are not
+   in this count.` El número sigue contando solo los pendientes sin categoría.
+
 6. Cambia el texto y espera un momento. **El número debe actualizarse solo.**
    -- ok
 
@@ -970,6 +991,19 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
    nada.
    -- ok
 
+   **Nuevo desde la feature 33, sin probar en tu primera revisión:** lo de
+   arriba ya no pasa así. Crear la regla ya pone su categoría a los
+   movimientos que casan, sin pulsar nada más, y el botón `Apply rules now` ya
+   no existe. Al pulsar `Create rule` **debes ver** la ventana cerrarse; una
+   línea verde `Rule “…” → … created: N movements categorized.`, que se queda
+   a la vista aunque bajes por la lista; y, bajo el título de `Review`, un
+   recuadro que empieza por `Rule “…” → … created at`, la hora y cuántos
+   movimientos se categorizaron, con `Show the N movements` para ver cuáles.
+   La lista de `Review` se vuelve a pedir sola, así que el movimiento del que
+   salió la regla, si casaba, ya sale con su categoría. Si no se pudieron
+   mover todos, la línea y el recuadro añaden `Not all of its movements could
+   be moved; the rest will move the next time you create or change a rule.`
+
 10. Repite el paso 4 con el mismo texto. Al guardar, **debes ver**
     `Nothing was saved: another rule already uses that text.` La ventana sigue
     abierta.
@@ -983,6 +1017,13 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
 12. Pulsa `Edit` en la regla que has creado, cambia el texto y pulsa `Save`.
     **Debes ver** el texto nuevo en la lista.
     -- ok
+
+    **Nuevo desde la feature 33, sin probar en tu primera revisión:** guardar
+    el cambio también pone su categoría a los movimientos que casan con la
+    regla cambiada. **Debes ver** además, bajo el título de `Rules`, un
+    recuadro que empieza por `Rule “…” → … saved at`, la hora y cuántos
+    movimientos se categorizaron. Lo que la regla ya había categorizado antes
+    se queda como estaba.
 
 13. Pulsa `Delete`. **Debes ver** una pregunta que dice
     `Movements it already categorized keep their category.` Pulsa `Delete`.
@@ -1021,21 +1062,75 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
     aplicación lo sustituye por su resultado.
     -- no veo que haya cambiado nada despues del paso anterior
 
+### Qué probar — las reglas propuestas (nuevo desde la feature 33; crear una escribe)
+
+> **Nuevo desde la feature 33, sin probar en tu primera revisión.** La
+> aplicación busca textos que se repiten entre los movimientos que ninguna
+> regla reconoce y te los propone como reglas, de la que más movimientos
+> recoge a la que menos. No se crea nada hasta que eliges una categoría y
+> pulsas `Create rule`.
+
+16. Pulsa `Rules`. **Debes ver**, entre el título y `Your rules`, un bloque
+    `Suggested rules` con la frase `Texts that repeat among the movements no
+    rule recognises. Choose a category to create the rule; nothing is created
+    until you do.` y una fila por propuesta: el texto entre comillas, una
+    etiqueta `Expenses` o `Income`, cuántos movimientos recogería
+    (`… movements`), un botón `Show the … movements`, un desplegable que
+    empieza en `Choose a category…` y un botón `Create rule` apagado. Mientras
+    llega la lista sale `Loading suggested rules…`; si no hay ninguna,
+    `No suggested rules right now.`; si falla, una frase en inglés con
+    `Try again`.
+
+17. Pulsa `Show the … movements` en una propuesta. **Debes ver** debajo sus
+    movimientos, cada uno con fecha, concepto e importe con signo. Pulsa
+    `Hide the movements` y se pliegan. Esto no escribe nada.
+
+18. Abre el desplegable de una propuesta. **Debes ver** solo categorías de su
+    tipo (de gasto en una de `Expenses`, de ingreso en una de `Income`).
+    `Create rule` se enciende solo al elegir una. El texto de la propuesta no
+    se puede cambiar.
+
+19. Si una propuesta dice `… movements you categorized by hand also contain
+    this text. They will not move.`, esos movimientos que categorizaste tú se
+    quedan con su categoría aunque crees la regla.
+
+20. No hay ningún botón para descartar una propuesta: la que no te interese,
+    la dejas y sigues.
+
+21. **(Escribe una regla y pone categoría a varios movimientos.)** Elige una
+    categoría en una propuesta y pulsa su `Create rule`. **Debes ver** que la
+    propuesta desaparece de la lista; la línea verde
+    `Rule “…” → … created: N movements categorized.`, que se queda a la vista
+    aunque hayas bajado; bajo el título, el recuadro
+    `Rule “…” → … created at …: N movements categorized.` con
+    `Show the N movements`, que lista cuáles y con qué categoría; y la regla
+    nueva en `Your rules`. Ve a `Review`: el mismo recuadro está bajo el
+    título y la lista ya está al día. La regla se deshace con `Delete`; lo que
+    movió **no se deshace desde la aplicación**.
+
+22. Si crear la regla falla (por ejemplo, porque otra regla ya usa ese
+    texto), **debes ver** la frase en inglés en la fila de esa propuesta
+    (`Nothing was saved: another rule already uses that text.`), y la lista,
+    tus reglas y el recuadro como estaban.
+
 ### Qué escribe y cómo se deshace
 
 | Acción | Qué cambia exactamente | Qué no cambia nunca | Cómo se deshace |
 |---|---|---|---|
-| `Create rule` | Crea una regla | Ningún movimiento, tampoco el de origen | `Delete` en `Rules` |
-| `Edit` → `Save` | El texto o la categoría de la regla | Ningún movimiento. Lo que la regla ya categorizó se queda como estaba | Editándola otra vez |
+| `Create rule` (desde un movimiento o desde una regla propuesta) | Crea una regla y, desde la feature 33, en ese mismo momento aplica todas las reglas: pone categoría a los pendientes sin categoría que casan y recoloca los que categorizó el cierre de una importación (confirmados o no). Lo dicen la línea verde y el recuadro | Lo que categorizaste a mano y lo que ya categorizó una regla. Importe, fecha, concepto y estado | La regla, con `Delete` en `Rules`. Lo que movió **no se deshace desde la aplicación**: se corrige movimiento a movimiento en `Review` o en `Movements` |
+| `Edit` → `Save` | El texto o la categoría de la regla y, desde la feature 33, lo mismo que al crearla: aplica todas las reglas en ese momento. Lo dice el recuadro | Lo que categorizaste a mano. Lo que la regla ya categorizó se queda como estaba | La regla, editándola otra vez. Lo que movió, movimiento a movimiento |
 | `Delete` | Borra la regla | Ningún movimiento. Lo que categorizó conserva su categoría | Creándola de nuevo desde un movimiento |
 | `Apply rules` | Pone categoría a los **pendientes sin categoría** que casan con alguna regla | Lo confirmado, lo que ya tiene categoría, los movimientos neutros. Importe, fecha, concepto y estado | **No se deshace desde la aplicación.** Se corrige movimiento a movimiento en `Review` o en `Movements` |
 
 ### Lo que no hace o hace a medias
 
-- **El número de la ventana es una estimación, y lo dice.** Puede quedarse
-  corto al editar una regla (lo que ya categorizó ya no está «sin categoría»)
-  y largo si otra regla casa con los mismos movimientos, porque un choque los
-  deja sin categorizar.
+- **El número de la ventana no es exactamente lo que se moverá.** Solo cuenta
+  pendientes sin categoría: desde la feature 33, al guardar también se mueven
+  los que categorizó el cierre de una importación, y la letra pequeña lo dice.
+  Puede quedarse corto al editar una regla (lo que ya categorizó ya no está
+  «sin categoría») y largo si otra regla casa con los mismos movimientos,
+  porque un choque los deja sin categorizar. El número de una regla propuesta
+  sí es exactamente el que se mueve.
 
 - **El texto que propone a veces es malo.** Arrastra palabras de trámite y
   puntuación (de «ANUL. /VivaGym» propone `anul. /vivagym`) y se queda flojo
@@ -1050,18 +1145,21 @@ desde esta pantalla. Aquí se ven, se cambian, se borran y se aplican.
 
 - **El recuadro con lo que hizo la última aplicación no se guarda.** Vive
   mientras la página esté abierta: se va con `Dismiss`, al recargar y al
-  aplicar otra vez. Su lista es solo para mirar: para cambiar uno de esos
+  aplicar otra vez (desde la feature 33, también lo sustituye lo que movió
+  crear o cambiar una regla). Su lista es solo para mirar: para cambiar uno de esos
   movimientos hay que buscarlo en `Review`. Lo que categorizan las reglas al
   importar no sale en él, y si la aplicación falla a medias tampoco se pinta,
   aunque algún movimiento se haya categorizado.
 
-- **No se puede crear una regla en blanco** desde `Rules`.
+- **No se puede crear una regla en blanco** desde `Rules`: aquí solo se crean
+  desde una regla propuesta, con su texto tal cual.
 - No se crean, renombran ni borran categorías.
 - Si a un pendiente le quitas la categoría y hay una regla que casa con él,
-  al aplicar se la vuelve a poner. Para evitarlo: confírmalo sin categoría, o
+  al aplicar se la vuelve a poner (desde la feature 33, también al crear o
+  cambiar cualquier regla). Para evitarlo: confírmalo sin categoría, o
   cambia la regla.
 - Aplicar las reglas borra el `Undo` y las casillas marcadas que tuvieras en
-  `Review`.
+  `Review` (desde la feature 33, también crear o cambiar una regla).
 - Por encima de 100 caracteres de texto, la ventana deja de contar, aunque
   deja guardar.
 
@@ -1382,11 +1480,19 @@ categoría es donde se ve avanzar este trabajo.
 
 2. Elige un comercio que se repita y pulsa su `Create rule`. Mira en la
    ventana a cuántos afectaría y repasa los ejemplos. Ajusta el texto hasta
-   que el número y los ejemplos sean los que esperas. Guarda.
+   que el número y los ejemplos sean los que esperas. Guarda. Desde la
+   feature 33, guardar ya categoriza los movimientos que casan: el recuadro
+   que sale bajo el título dice cuántos, y `Show the … movements` enseña
+   cuáles. Repasa que cada uno ha ido a la categoría que esperabas. Recuerda
+   que esto no se deshace desde la aplicación.
 
-3. Repite con los comercios que más se repitan.
+3. Repite con los comercios que más se repitan. Desde la feature 33 es más
+   rápido desde `Rules`, con la lista `Suggested rules`: los textos que más
+   se repiten ya vienen propuestos y solo eliges la categoría (sección 6,
+   pasos 16 a 22).
 
-4. Ve a `Rules` y pulsa `Apply rules`. Lee cuántos se categorizaron y los
+4. Ve a `Rules` y pulsa `Apply rules` si quieres pasar todas las reglas otra
+   vez sobre lo pendiente sin categoría. Lee cuántos se categorizaron y los
    choques. Al cerrar la ventana, ese número sigue a la vista bajo el título:
    pulsa `Show the … movements` y repasa que cada movimiento ha ido a la
    categoría que esperabas. Recuerda que esto no se deshace desde la
