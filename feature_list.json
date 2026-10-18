@@ -1808,7 +1808,8 @@
         ],
         "respuestas_del_humano": [
           "Del 2026-10-18: el texto que se ofrece por defecto es el mismo que propondría la lista de reglas propuestas para ese concepto (opción A).",
-          "Del 2026-10-18: de dónde salió la categoría se enseña de forma discreta solo cuando la puso el cierre de la importación (`Otros gastos` / `Otros ingresos` porque ninguna regla lo reconoció); cuando la puso él o una regla, no se enseña."
+          "Del 2026-10-18: de dónde salió la categoría se enseña de forma discreta solo cuando la puso el cierre de la importación (`Otros gastos` / `Otros ingresos` porque ninguna regla lo reconoció); cuando la puso él o una regla, no se enseña.",
+          "Del 2026-10-18: aprobó la hoja de decisiones tal como está, incluido que el texto por defecto lo calcule la pantalla."
         ]
       },
       "acceptance": [],
@@ -1863,7 +1864,7 @@
         }
       ],
       "sdd": true,
-      "status": "spec_ready"
+      "status": "in_progress"
     }
   ]
 }
