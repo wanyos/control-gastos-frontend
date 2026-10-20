@@ -41,7 +41,7 @@ Cuenta hoy como gasto o como ingreso y no lo es.
 Es el cabo suelto 14 del roadmap, con más casos de los que se habían visto: no
 son solo salidas, también hay **entradas** (25.700 €) que cuentan como ingreso.
 
-**Decidido por el humano el 2026-10-17:** no se reconoce ninguna transferencia como propia. Una salida es un gasto y una entrada es un ingreso, también entre sus cuentas; se deja de emparejar y se deshacen las parejas (`../docs/handoff-sin-emparejar-traspasos.md`). Las de antes a cuentas sin movimientos en la aplicación (la mayoría de esta tabla) las marca él a mano como que no cuentan.
+*(Nota del 2026-10-20: lo de este párrafo se descartó el mismo 2026-10-17, porque rompería `Monthly cost`; el 2026-10-20 el backend hizo la tabla de cuentas propias y los dudosos, su feature 62.)* **Decidido por el humano el 2026-10-17:** no se reconoce ninguna transferencia como propia. Una salida es un gasto y una entrada es un ingreso, también entre sus cuentas; se deja de emparejar y se deshacen las parejas (`../docs/handoff-sin-emparejar-traspasos.md`). Las de antes a cuentas sin movimientos en la aplicación (la mayoría de esta tabla) las marca él a mano como que no cuentan.
 
 ### B. Lo que pasa dentro de la cuenta de MyInvestor
 
