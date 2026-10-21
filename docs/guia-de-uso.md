@@ -66,6 +66,7 @@ pantalla tiene datos. Cada una lo dice a su manera:
 | `Transfers` | `Couldn't load the doubtful transfers.` y `Couldn't load the linked pairs.`, cada una con su `Try again`. Desde la feature 35, también `Couldn't load the doubtful movements.` con su `Try again`, y en el menú `Transfers` sale sin número. |
 | `Overview` y `Movements` | `Something went wrong loading this month.` con `Try again`. |
 | `Monthly cost` (desde la feature 32) | `Something went wrong loading the monthly cost.` con `Try again`. |
+| `My accounts` (desde la feature 36) | En lugar de la tabla, `Something went wrong loading your accounts.` con `Try again`, y en el bloque `Forms of your name`, `Something went wrong loading the forms of your name.` con su propio `Try again`. |
 | Botón `Import` | No sale el aviso de archivos nuevos. Al pulsarlo: `Couldn't reach the server` y `Nothing has been imported.` |
 
 En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
@@ -74,9 +75,10 @@ En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
 
 ### Tres cosas que valen para toda la aplicación
 
-- **El menú de la izquierda** tiene ocho entradas, en este orden: `Net Worth`,
-  `Review`, `Rules`, `Transfers`, `Overview`, `Monthly cost`, `Movements`,
-  `Investments`. `Monthly cost` está desde la feature 32. Junto a `Review`
+- **El menú de la izquierda** tiene nueve entradas, en este orden: `Net Worth`,
+  `Review`, `Rules`, `Transfers`, `My accounts`, `Overview`, `Monthly cost`,
+  `Movements`, `Investments`. `Monthly cost` está desde la feature 32 y
+  `My accounts` desde la feature 36. Junto a `Review`
   puede salir un número (sección 5) y, desde la feature 35, otro junto a
   `Transfers` (sección 7).
 - **La barra de arriba** enseña el nombre de la pantalla y, a la derecha, el
@@ -102,6 +104,7 @@ En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
 | `Review` | La lista de lo importado que aún no has dado por bueno | **Escribe**: la categoría y el estado (pendiente o confirmado) |
 | `Rules` | Las reglas que ponen categoría solas según el texto del concepto, y las reglas que propone la aplicación | **Escribe**: crea, cambia y borra reglas; al crearlas, cambiarlas o aplicarlas, pone categoría a muchos movimientos de golpe |
 | `Transfers` | Los traspasos entre tus cuentas que la aplicación tiene enlazados de dos en dos. Desde la feature 35, también los movimientos dudosos de dinero propio: los que solo nombran el banco de una de tus cuentas, para que digas si son tuyos | **Escribe**: enlaza y desenlaza dos movimientos, y guarda tu respuesta a un movimiento dudoso (`It's mine` o `Not mine`) |
+| `My accounts` | La tabla de tus cuentas y productos, de cualquier banco, con los textos con los que aparece cada una en los conceptos, y las formas de tu nombre. Desde la feature 36 | **Escribe**: da de alta y cambia filas de la tabla de tus cuentas y las formas de tu nombre; no borra |
 | Botón `Import` (barra superior) | Trae los archivos nuevos de Google Drive. Desde la feature 35, el informe dice además cuántos movimientos dudosos de dinero propio nuevos trajo | **Escribe**: crea movimientos, y puede crear cuentas y productos. No se deshace desde la aplicación |
 
 ---
@@ -1471,6 +1474,125 @@ al desenlazar **ese sigue sin contar**. La pregunta y el aviso lo dicen.
   menú dice el total.
 - El número junto a `Transfers` cuenta solo los movimientos dudosos de dinero
   propio, no los grupos de `Doubtful transfers`.
+
+> **Mis notas de esta prueba**
+> - Falla:
+> - Quiero cambiar:
+> - No entiendo:
+
+---
+
+## 7b. `My accounts` — mira y escribe
+
+> **Sección nueva desde la feature 36, sin probar en tu primera revisión.** Sale
+> de leer el código y de las pruebas hechas al cerrar la feature, con datos
+> inventados. Nadie ha abierto todavía esta pantalla en el navegador contra tus
+> datos. Que tu tabla tiene 12 filas lo dijiste tú al pedir la feature
+> (2026-10-21); no se ha comprobado pidiéndolo al backend.
+
+**Para qué sirve.** Enseña la tabla de tus cuentas y productos, de cualquier
+banco, con los textos con los que aparece cada una en los conceptos, y encima
+las formas en que aparece tu nombre. Con esa tabla y esas formas, el backend
+decide qué movimientos son dinero que va de una cuenta tuya a otra (y no
+cuentan en las sumas) y cuáles son dudosos (los que salen en `Transfers`). Desde
+aquí se da de alta una fila, se cambia una fila y se cambia la lista de formas
+de tu nombre. **No se borra ninguna fila.**
+
+### Qué probar — primero lo que solo mira
+
+1. Pulsa `My accounts` en el menú, justo debajo de `Transfers`. **Debes ver**
+   que la dirección cambia a `/own-accounts`, el título `My accounts`, debajo
+   una frase que empieza por `Your accounts and products, in any bank`, y a la
+   derecha el botón `Add account`.
+
+2. Mira el bloque `Forms of your name`, encima de la tabla. **Debes ver** cada
+   forma de tu nombre en su línea, en orden alfabético, y un botón `Edit`. Si
+   no hubiera ninguna, dice `No forms of your name yet.`
+
+3. Mira la tabla. **Debes ver** una fila por cuenta (12 según lo que dijiste al
+   pedir la feature), ordenadas por banco y después por nombre, con las
+   columnas `Name`, `Bank`, `Number`, `Type`, `Opened`, `Closed` y
+   `Appears as`, y un botón `Edit` al final de cada fila. El número de cuenta
+   sale entero. El tipo sale como `Checking account`, `Savings account`,
+   `Investment`, `Deposit`, `Crypto` u `Other`. En `Appears as`, cada texto en
+   su línea.
+
+4. Busca una fila sin número o sin fechas. **Debes ver** `—` en esa celda, no
+   una celda vacía. Una fila sin textos dice `No texts`. Una cuenta cerrada se
+   ve igual que una abierta, con su fecha en `Closed`.
+
+5. Busca un botón para borrar una fila. **No debe haber ninguno.**
+
+### Qué probar — dar de alta y cambiar (escribe)
+
+6. Pulsa `Add account`. **Debes ver** una ventana `Add an account` con la
+   frase `A row with no texts recognizes nothing. Rows can't be deleted: leave
+   it with no texts instead.` y los campos `Name`, `Bank`, `Account number`,
+   `Type` (con `Choose a type…`), `Opened on`, `Closed on` y, bajo
+   `Appears as`, un botón `Add text`. Con `Name`, `Bank` o `Type` vacíos,
+   **debes ver** `Save` desactivado y junto al campo `Write something here.` o
+   `Choose a type.`
+
+7. En la misma ventana, pulsa `Add text` y escribe un texto de una o dos
+   letras. **Debes ver** debajo `Use at least 3 letters or digits.` y `Save`
+   desactivado. Cuentan solo letras y cifras: los símbolos no suman. Pulsa
+   `Remove` junto a ese campo: desaparece. Pulsa `Cancel` sin guardar.
+
+8. **Escribe.** Da de alta una fila de verdad solo si te hace falta una. Rellena
+   al menos `Name`, `Bank` y `Type` y pulsa `Save`. **Debes ver** que la
+   ventana se cierra y que la fila nueva sale en la tabla en su sitio (por
+   banco y nombre). Los campos que dejes vacíos no se mandan.
+
+9. **Escribe.** Pulsa `Edit` en una fila y cambia sus textos (cambia uno, añade
+   otro con `Add text` o quita uno con `Remove`). Pulsa `Save`. **Debes ver**
+   que la ventana se cierra y que la fila enseña la lista nueva. Si dos textos
+   son iguales una vez comparados (sin mayúsculas, tildes ni símbolos), el
+   backend guarda solo el primero y la fila enseña uno.
+
+10. **Escribe.** Pulsa `Edit` en una cuenta que hayas cerrado y pon la fecha en
+    `Closed on`. Pulsa `Save`. **Debes ver** la fecha en la columna `Closed` de
+    esa fila. Una fecha de cierre anterior a la de apertura no deja guardar:
+    dice `The closing date can't be before the opening date.`
+
+11. Pulsa `Edit` en una fila y, sin cambiar nada, pulsa `Save`. **Debes ver**
+    que la ventana se cierra: no se manda nada.
+
+12. **Escribe.** Pulsa `Edit` en el bloque `Forms of your name`. **Debes ver**
+    una ventana con un campo por forma (`Form 1`, `Form 2`…), cada uno con
+    `Remove`, y un botón `Add a form`. Cambia la lista y pulsa `Save`. **Debes
+    ver** que el bloque enseña la lista que guardó el backend, en orden
+    alfabético.
+
+13. Ve a `Movements` u `Overview` y mira si las sumas cambian como esperas.
+    Esta pantalla no te lo dice.
+
+### Qué escribe y cómo se deshace
+
+| Acción | Qué guarda | Qué no toca | Cómo se deshace |
+|---|---|---|---|
+| `Save` en `Add an account` | Una fila nueva en la tabla de tus cuentas, con sus textos | Ningún movimiento directamente; cambia qué movimientos cuentan en las sumas la próxima vez que se pidan | **No se puede borrar.** Se deja sin textos con `Edit` y entonces no reconoce nada |
+| `Save` en `Edit account` | Solo los campos que cambiaste de esa fila. Los textos, si cambia cualquiera, se guardan como la lista entera | Lo mismo | Volviendo a `Edit` y poniendo lo que había. No hay `Undo` |
+| `Save` en `Forms of your name` | La lista entera de formas de tu nombre. **Guardar la lista vacía las borra todas**, sin preguntar más | Lo mismo | Volviendo a `Edit` y escribiendo las que había. No hay `Undo` |
+
+Si guardar falla, la ventana se queda abierta con lo que escribiste y dice por
+qué: `Nothing was saved: the server didn't accept one of the fields.` (o
+`… one of the forms.`), `Nothing was saved: that account no longer exists.`, o,
+si no se sabe si se guardó, `Something went wrong saving.` y la tabla (o la
+lista) vuelve a pedirse para enseñar lo que hay de verdad. Si tampoco se puede
+volver a leer (por ejemplo, sin conexión), dice que no se pudo leer otra vez y
+que recargues la página para ver lo que tiene el servidor.
+
+### Lo que no hace o hace a medias
+
+- **No borra filas.** El backend no lo permite: una fila que no sirve se deja
+  sin textos.
+- **No dice qué movimientos cambian al guardar.** Para verlo, entra en
+  `Movements`, `Review`, `Overview`, `Monthly cost` o `Transfers`: todas
+  vuelven a pedir sus datos cada vez que entras.
+- **El número junto a `Transfers` en el menú puede no cambiar** al guardar aquí
+  hasta que se vuelva a pedir (por ejemplo, al entrar en `Transfers`).
+- El banco se escribe a mano, no se elige de una lista.
+- La tabla no se puede ordenar, filtrar ni buscar. Sale en el orden del backend.
 
 > **Mis notas de esta prueba**
 > - Falla:

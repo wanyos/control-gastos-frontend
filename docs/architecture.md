@@ -237,6 +237,26 @@ src/
                           # cambio de un recibo en palabras, el reparto de los recibos con y sin
                           # cargos, los subtotales de cada bloque y si no hay nada que contar
       types.ts            # Charge, Bill, ChargeGroup, VariableEntry, MonthlyCost, LoadState
+    own-accounts/         # feature #36: la tabla de tus cuentas propias y las formas de tu
+                          # nombre (ruta /own-accounts, entrada `My accounts` justo debajo de
+                          # Transfers en el menú); da de alta y cambia filas, nunca borra
+      components/         # OwnAccountTable (una fila por cuenta, con `Edit`; sin botón de
+                          # borrar), OwnAccountDialog (la ventana para dar de alta y para
+                          # cambiar una fila), TextListField (una lista de campos de texto
+                          # con `Remove` y un botón de añadir; la usan las dos ventanas),
+                          # HolderNames (el bloque de las formas del nombre, encima de la
+                          # tabla) y HolderNamesDialog (la ventana de las formas del nombre)
+      views/              # OwnAccountsView (pide la tabla y las formas del nombre al montarse)
+      store.ts            # useOwnAccountsStore: la tabla y las formas del nombre, cada una con
+                          # su estado; qué ventana está abierta; `saveAccount` y `saveNames`,
+                          # que tras guardar vuelven a pedir lo que cambió
+      service.ts          # GET y POST /api/own-accounts, PATCH /api/own-accounts/:id,
+                          # GET y PUT /api/own-accounts/holder-names; ningún DELETE
+      texts.ts            # todo lo puro: cómo compara un texto el backend (`normalizeOwnText`),
+                          # las comprobaciones de la ventana, el cuerpo del POST, lo que cambió
+                          # de una fila para el PATCH, y todos los textos, incluidos los de error
+      types.ts            # OwnAccountType, OwnAccount, OwnAccountDraft, NewOwnAccount,
+                          # OwnAccountChanges, LoadState
   shared/                 # componentes/composables/utils reutilizables entre features
     components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
@@ -385,6 +405,22 @@ src/
 > (`formatMonthLabel`, y el tipo `MonthKey`); de `features/net-worth/types.ts` toma solo
 > los tipos `DecimalString` y `DateOnly`, como las demás. Ninguna feature importa de ella;
 > el router la monta.
+>
+> **La tabla de tus cuentas propias escribe solo en su tabla (feature #36).**
+> `features/own-accounts/` manda tres escrituras y ninguna más: `POST /api/own-accounts`
+> (dar de alta una fila, con `name`, `bank`, `type` y solo los demás campos que estén
+> rellenos), `PATCH /api/own-accounts/:id` (solo los campos que difieren de la fila; `texts`
+> viaja entera si cambió cualquiera de sus textos) y `PUT /api/own-accounts/holder-names`
+> (la lista entera de las formas del nombre). Nunca `DELETE`: el contrato no lo tiene, y
+> una fila que ya no sirve se deja sin textos. Antes de mandar, la ventana no deja guardar
+> lo que el backend rechazaría con 400. Tras guardar una fila **se vuelve a pedir la tabla
+> entera** en vez de insertar la respuesta, para que salga en el orden del backend y con
+> los textos como él los guardó; tras un fallo que pudo haber escrito (todo salvo el 400)
+> también. **No avisa a ninguna otra pantalla**: cambiar la tabla o las formas del nombre
+> cambia qué movimientos cuentan en `Movements`, `Review`, `Overview`, `Monthly cost` y
+> `Transfers`, y todas ellas vuelven a pedir sus datos cada vez que se entra. No importa
+> código de ninguna otra feature (de `features/net-worth/types.ts` toma solo `DateOnly`,
+> como las demás) ni ninguna importa de ella; el router la monta.
 >
 > **La pantalla que escribe `transferId` (feature #24).** `features/transfers/` es el
 > único sitio de la app que enlaza y desenlaza parejas de traspaso, y hasta la feature

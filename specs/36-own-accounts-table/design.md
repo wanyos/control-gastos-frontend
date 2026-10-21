@@ -259,3 +259,5 @@ Ningún tipo de error nuevo. `service.ts` lanza `ApiError` (vía `http`) y `Vali
   siempre (Para qué sirve, Qué probar — primero lo que solo mira, Qué probar — dar de alta
   y cambiar (escribe), Qué escribe y cómo se deshace, Lo que no hace o hace a medias) y su
   bloque vacío de notas; y una fila en la tabla «Mapa de la aplicación».
+
+> **Corrección del leader (2026-10-21), tras la revisión:** (1) cuando una escritura falla y la segunda lectura de la tabla (o de las formas del nombre) **también** falla, la ventana no puede decir que la tabla enseña lo que tiene el servidor. En ese caso dice, en inglés como el resto: «Something went wrong saving, and the table couldn't be read again. Reload the page to see what the server has.» (con las formas del nombre, «…the list couldn't be read again…»). La frase de `texts.ts` de ahora solo sale cuando la segunda lectura funciona. (2) El check 9 exige además el test `blank name or bank or no type keep Save off` en `OwnAccountDialog.spec.ts`: un nombre en blanco, un banco en blanco o sin tipo dejan `Save` apagado.

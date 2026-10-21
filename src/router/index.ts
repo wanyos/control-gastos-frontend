@@ -3,6 +3,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import {
   ArrowLeftRight,
   ChartLine,
+  Landmark,
   LayoutDashboard,
   Link2,
   ListChecks,
@@ -16,6 +17,7 @@ import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
 import RulesView from '@/features/category-rules/views/RulesView.vue'
 import MonthlyCostView from '@/features/monthly-cost/views/MonthlyCostView.vue'
 import OverviewView from '@/features/overview/views/OverviewView.vue'
+import OwnAccountsView from '@/features/own-accounts/views/OwnAccountsView.vue'
 import ReviewView from '@/features/review/views/ReviewView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
 import TransfersView from '@/features/transfers/views/TransfersView.vue'
@@ -46,6 +48,7 @@ export const REVIEW_ROUTE_NAME = 'review'
  * screen from `/review`, which is the queue of what is still pending. `/overview` is the
  * month at a glance since feature 25; the home is still the net worth. `/monthly-cost`
  * (feature 32), right below it, is what a month costs: the other screen of figures to look at.
+ * `/own-accounts` (feature 36), right below `Transfers`, is the table of your own accounts.
  */
 export const routes: RouteRecordRaw[] = [
   { path: '/', redirect: { name: HOME_ROUTE_NAME } },
@@ -72,6 +75,12 @@ export const routes: RouteRecordRaw[] = [
     name: 'transfers',
     component: TransfersView,
     meta: { label: 'Transfers', icon: Link2 },
+  },
+  {
+    path: '/own-accounts',
+    name: 'own-accounts',
+    component: OwnAccountsView,
+    meta: { label: 'My accounts', icon: Landmark },
   },
   {
     path: '/overview',

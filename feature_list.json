@@ -2014,11 +2014,11 @@
         },
         {
           "descripcion": "(añadido) Antes de mandar nada, la ventana no deja guardar lo que el backend rechazaría y dice por qué.",
-          "comando": "grep -qF \"a text shorter than three characters once compared keeps Save off and says why\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"a text shorter than three characters once compared keeps Save off and says why\" && grep -qF \"a closing date before the opening date keeps Save off and says why\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"a closing date before the opening date keeps Save off and says why\" && grep -qF \"a form shorter than three characters keeps Save off\" src/features/own-accounts/__tests__/HolderNamesDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/HolderNamesDialog.spec.ts -t \"a form shorter than three characters keeps Save off\""
+          "comando": "grep -qF \"a text shorter than three characters once compared keeps Save off and says why\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"a text shorter than three characters once compared keeps Save off and says why\" && grep -qF \"a closing date before the opening date keeps Save off and says why\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"a closing date before the opening date keeps Save off and says why\" && grep -qF \"a form shorter than three characters keeps Save off\" src/features/own-accounts/__tests__/HolderNamesDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/HolderNamesDialog.spec.ts -t \"a form shorter than three characters keeps Save off\" && grep -qF \"blank name or bank or no type keep Save off\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"blank name or bank or no type keep Save off\""
         }
       ],
       "sdd": true,
-      "status": "in_progress"
+      "status": "done"
     }
   ]
 }

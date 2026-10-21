@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { LayoutDashboard, Link2, ReceiptEuro } from '@lucide/vue'
+import { Landmark, LayoutDashboard, Link2, ReceiptEuro } from '@lucide/vue'
 
 import MonthlyCostView from '@/features/monthly-cost/views/MonthlyCostView.vue'
 import OverviewView from '@/features/overview/views/OverviewView.vue'
+import OwnAccountsView from '@/features/own-accounts/views/OwnAccountsView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
 import TransfersView from '@/features/transfers/views/TransfersView.vue'
 import PlaceholderView from '@/shared/components/PlaceholderView.vue'
@@ -24,8 +25,9 @@ const newRouter = () => createRouter({ history: createMemoryHistory(), routes })
 
 describe('router', () => {
   // The list grew with /rules in feature 17 (right below Review) and with /transfers in
-  // feature 24 (right below Rules), and with /monthly-cost in feature 32 (right below Overview).
-  it('declares the eight navigable routes with English paths', () => {
+  // feature 24 (right below Rules), with /monthly-cost in feature 32 (right below Overview),
+  // and with /own-accounts in feature 36 (right below Transfers).
+  it('declares the nine navigable routes with English paths', () => {
     const paths = routes.filter((route) => route.name).map((route) => route.path)
 
     expect(paths).toEqual([
@@ -33,6 +35,7 @@ describe('router', () => {
       '/review',
       '/rules',
       '/transfers',
+      '/own-accounts',
       '/overview',
       '/monthly-cost',
       '/movements',
@@ -55,6 +58,7 @@ describe('router', () => {
     '/review',
     '/rules',
     '/transfers',
+    '/own-accounts',
     '/overview',
     '/monthly-cost',
     '/movements',
@@ -98,6 +102,19 @@ describe('router', () => {
     })
   })
 
+  it('lists My accounts in the menu right below Transfers', () => {
+    expect(newRouter().resolve('/own-accounts').matched[0]?.components?.default).toBe(
+      OwnAccountsView,
+    )
+    const names = navEntries.map((entry) => entry.name)
+    expect(names.indexOf('own-accounts')).toBe(names.indexOf('transfers') + 1)
+    expect(navEntries.find((entry) => entry.name === 'own-accounts')).toEqual({
+      name: 'own-accounts',
+      label: 'My accounts',
+      icon: Landmark,
+    })
+  })
+
   it('no longer resolves /import: importing lives in the topbar (feature 13)', async () => {
     const router = newRouter()
     await router.push('/import')
@@ -131,6 +148,7 @@ describe('router', () => {
       REVIEW_ROUTE_NAME,
       'rules',
       'transfers',
+      'own-accounts',
       'overview',
       'monthly-cost',
       'movements',
@@ -141,6 +159,7 @@ describe('router', () => {
       'Review',
       'Rules',
       'Transfers',
+      'My accounts',
       'Overview',
       'Monthly cost',
       'Movements',
