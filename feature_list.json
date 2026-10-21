@@ -1896,9 +1896,58 @@
         ]
       },
       "acceptance": [],
-      "checks": [],
+      "checks": [
+        {
+          "descripcion": "Veo la lista de dudosos con su concepto, importe, fecha y el motivo.",
+          "comando": "grep -qF \"shows the date, account, description, signed amount and reason of a doubtful movement\" src/features/transfers/__tests__/DoubtfulOwnershipRow.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/DoubtfulOwnershipRow.spec.ts -t \"shows the date, account, description, signed amount and reason of a doubtful movement\" && grep -qF \"lists the doubtful movements of own money above the doubtful transfers\" src/features/transfers/__tests__/TransfersView.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/TransfersView.spec.ts -t \"lists the doubtful movements of own money above the doubtful transfers\""
+        },
+        {
+          "descripcion": "Digo «es mío» y deja de contar en las sumas; digo «no es mío» y cuenta y deja de salir como dudoso. (lo que hace la pantalla: manda esa respuesta del movimiento y lo quita de la lista; que deje de contar lo hace el backend)",
+          "comando": "grep -qF \"answering it is mine sends mine for that movement and reloads the doubtful list\" src/features/transfers/__tests__/store.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/store.spec.ts -t \"answering it is mine sends mine for that movement and reloads the doubtful list\" && grep -qF \"answering not mine sends not_mine for that movement and reloads the doubtful list\" src/features/transfers/__tests__/store.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/store.spec.ts -t \"answering not mine sends not_mine for that movement and reloads the doubtful list\" && grep -qF \"answering it is mine sends one PATCH with mine and the movement leaves the list\" e2e/doubtful-own-money.spec.ts && pnpm test:e2e --project=chromium e2e/doubtful-own-money.spec.ts -g \"answering it is mine sends one PATCH with mine and the movement leaves the list\""
+        },
+        {
+          "descripcion": "Puedo deshacer lo que acabo de decidir.",
+          "comando": "grep -qF \"undo sends a null decision for the same movement and reloads\" src/features/transfers/__tests__/store.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/store.spec.ts -t \"undo sends a null decision for the same movement and reloads\" && grep -qF \"answering not mine and then undo puts the movement back in the list\" e2e/doubtful-own-money.spec.ts && pnpm test:e2e --project=chromium e2e/doubtful-own-money.spec.ts -g \"answering not mine and then undo puts the movement back in the list\""
+        },
+        {
+          "descripcion": "Si no hay ninguno, me lo dice.",
+          "comando": "grep -qF \"says there are no doubtful movements when the list is empty\" src/features/transfers/__tests__/TransfersView.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/TransfersView.spec.ts -t \"says there are no doubtful movements when the list is empty\""
+        },
+        {
+          "descripcion": "Me entero de que hay dudosos sin tener que buscarlos. (el número junto a Transfers y la línea del informe de la importación)",
+          "comando": "grep -qF \"shows the number of doubtful movements only when there are some\" src/features/transfers/__tests__/DoubtfulOwnershipCountBadge.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/DoubtfulOwnershipCountBadge.spec.ts -t \"shows the number of doubtful movements only when there are some\" && grep -qF \"puts the doubtful count next to Transfers and nowhere else\" src/shared/components/__tests__/AppShell.spec.ts && pnpm exec vitest run src/shared/components/__tests__/AppShell.spec.ts -t \"puts the doubtful count next to Transfers and nowhere else\" && grep -qF \"the number next to Transfers says how many doubtful movements there are\" e2e/doubtful-own-money.spec.ts && pnpm test:e2e --project=chromium e2e/doubtful-own-money.spec.ts -g \"the number next to Transfers says how many doubtful movements there are\" && grep -qF \"counts the doubtful movements that were not there before the import\" src/features/import/__tests__/store.spec.ts && pnpm exec vitest run src/features/import/__tests__/store.spec.ts -t \"counts the doubtful movements that were not there before the import\" && grep -qF \"says how many new doubtful movements the import brought\" src/features/import/__tests__/ImportDialog.spec.ts && pnpm exec vitest run src/features/import/__tests__/ImportDialog.spec.ts -t \"says how many new doubtful movements the import brought\""
+        },
+        {
+          "descripcion": "Si falla, me lo dice y no ha cambiado nada.",
+          "comando": "grep -qF \"a rejected answer says why and leaves the list as it was\" src/features/transfers/__tests__/store.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/store.spec.ts -t \"a rejected answer says why and leaves the list as it was\" && grep -qF \"a failed read of the doubtful movements offers Try again and leaves the other sections alone\" src/features/transfers/__tests__/TransfersView.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/TransfersView.spec.ts -t \"a failed read of the doubtful movements offers Try again and leaves the other sections alone\""
+        },
+        {
+          "descripcion": "No quiero resolver varios a la vez, ni que se resuelva ninguno sin que yo lo diga.",
+          "comando": "grep -qF \"a second answer while one is in flight sends nothing\" src/features/transfers/__tests__/store.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/store.spec.ts -t \"a second answer while one is in flight sends nothing\" && grep -qF \"loading and reloading the screen send no answer\" src/features/transfers/__tests__/store.spec.ts && pnpm exec vitest run src/features/transfers/__tests__/store.spec.ts -t \"loading and reloading the screen send no answer\""
+        },
+        {
+          "descripcion": "(añadido) De tu respuesta del 2026-10-21: en Movements, lo que no cuenta por ser dinero tuyo sale tachado y en gris, con un texto que dice que es entre tus cuentas.",
+          "comando": "grep -qF \"crosses out money between your accounts and says so next to the account\" src/features/statement/__tests__/StatementRow.spec.ts && pnpm exec vitest run src/features/statement/__tests__/StatementRow.spec.ts -t \"crosses out money between your accounts and says so next to the account\""
+        },
+        {
+          "descripcion": "(añadido) De tu respuesta del 2026-10-21: en Movements, un dudoso sale con Doubtful en ámbar, y su importe sin tachar porque cuenta.",
+          "comando": "grep -qF \"paints a doubtful movement of own money with Doubtful in amber and its amount not crossed out\" src/features/statement/__tests__/StatementRow.spec.ts && pnpm exec vitest run src/features/statement/__tests__/StatementRow.spec.ts -t \"paints a doubtful movement of own money with Doubtful in amber and its amount not crossed out\""
+        },
+        {
+          "descripcion": "(añadido) La casilla Hide what does not count esconde lo de entre tus cuentas y lo suma a Hiding, y no esconde un dudoso.",
+          "comando": "grep -qF \"the checkbox hides money between your accounts and keeps a doubtful one\" src/features/statement/__tests__/StatementView.spec.ts && pnpm exec vitest run src/features/statement/__tests__/StatementView.spec.ts -t \"the checkbox hides money between your accounts and keeps a doubtful one\" && grep -qF \"counts the hidden movements between your accounts in Hiding\" src/features/statement/__tests__/StatementView.spec.ts && pnpm exec vitest run src/features/statement/__tests__/StatementView.spec.ts -t \"counts the hidden movements between your accounts in Hiding\""
+        },
+        {
+          "descripcion": "(añadido) Si el backend dejara de mandar si un movimiento es dinero tuyo, la pantalla da error en vez de pintarlo como si contara.",
+          "comando": "grep -qF \"reads the ownership of every movement and rejects a missing one\" src/shared/__tests__/movements.spec.ts && pnpm exec vitest run src/shared/__tests__/movements.spec.ts -t \"reads the ownership of every movement and rejects a missing one\""
+        },
+        {
+          "descripcion": "(añadido) Al cambiar la categoría de un movimiento entre tus cuentas en Movements, sigue saliendo tachado.",
+          "comando": "grep -qF \"keeps the ownership of a line after changing its category\" src/features/statement/__tests__/store.spec.ts && pnpm exec vitest run src/features/statement/__tests__/store.spec.ts -t \"keeps the ownership of a line after changing its category\""
+        }
+      ],
       "sdd": true,
-      "status": "pending"
+      "status": "spec_ready"
     },
     {
       "id": 36,
@@ -1928,9 +1977,46 @@
         ]
       },
       "acceptance": [],
-      "checks": [],
+      "checks": [
+        {
+          "descripcion": "Veo las 12 filas de la tabla con todos sus datos.",
+          "comando": "grep -qF \"paints one row per account with every field\" src/features/own-accounts/__tests__/OwnAccountsView.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountsView.spec.ts -t \"paints one row per account with every field\" && grep -qF \"paints a dash for an empty number or date and No texts for a row with none\" src/features/own-accounts/__tests__/OwnAccountsView.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountsView.spec.ts -t \"paints a dash for an empty number or date and No texts for a row with none\" && grep -qF \"maps every field of an own account\" src/features/own-accounts/__tests__/service.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/service.spec.ts -t \"maps every field of an own account\" && grep -qF \"reaches My accounts from the menu and sees every row with its data\" e2e/own-accounts-table.spec.ts && pnpm test:e2e --project=chromium e2e/own-accounts-table.spec.ts -g \"reaches My accounts from the menu and sees every row with its data\""
+        },
+        {
+          "descripcion": "Doy de alta una cuenta nueva y aparece.",
+          "comando": "grep -qF \"creating an account sends only the filled fields and reads the table again\" src/features/own-accounts/__tests__/store.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/store.spec.ts -t \"creating an account sends only the filled fields and reads the table again\" && grep -qF \"adding an account sends it and the new row appears\" e2e/own-accounts-table.spec.ts && pnpm test:e2e --project=chromium e2e/own-accounts-table.spec.ts -g \"adding an account sends it and the new row appears\""
+        },
+        {
+          "descripcion": "Cambio los textos de una cuenta y se guardan.",
+          "comando": "grep -qF \"changing only the texts sends only the texts and reads the table again\" src/features/own-accounts/__tests__/store.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/store.spec.ts -t \"changing only the texts sends only the texts and reads the table again\" && grep -qF \"adds and removes text fields and drops the blank ones on save\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"adds and removes text fields and drops the blank ones on save\" && grep -qF \"editing the texts of a row sends the whole list and the row shows them\" e2e/own-accounts-table.spec.ts && pnpm test:e2e --project=chromium e2e/own-accounts-table.spec.ts -g \"editing the texts of a row sends the whole list and the row shows them\""
+        },
+        {
+          "descripcion": "Cierro una cuenta poniéndole fecha de cierre.",
+          "comando": "grep -qF \"setting the closing date sends only closedAt\" src/features/own-accounts/__tests__/store.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/store.spec.ts -t \"setting the closing date sends only closedAt\" && grep -qF \"closing an account sends its closing date and the row shows it\" e2e/own-accounts-table.spec.ts && pnpm test:e2e --project=chromium e2e/own-accounts-table.spec.ts -g \"closing an account sends its closing date and the row shows it\""
+        },
+        {
+          "descripcion": "Veo y cambio las formas de mi nombre.",
+          "comando": "grep -qF \"shows the forms of your name above the table\" src/features/own-accounts/__tests__/OwnAccountsView.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountsView.spec.ts -t \"shows the forms of your name above the table\" && grep -qF \"saving the forms of your name sends the whole list and shows what came back\" src/features/own-accounts/__tests__/store.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/store.spec.ts -t \"saving the forms of your name sends the whole list and shows what came back\" && grep -qF \"changing the forms of your name sends them and shows the saved list\" e2e/own-accounts-table.spec.ts && pnpm test:e2e --project=chromium e2e/own-accounts-table.spec.ts -g \"changing the forms of your name sends them and shows the saved list\""
+        },
+        {
+          "descripcion": "Si algo falla, me lo dice y no ha cambiado nada. (al cargar y al guardar, en la tabla y en las formas de mi nombre)",
+          "comando": "grep -qF \"a failed load says so and offers Try again\" src/features/own-accounts/__tests__/OwnAccountsView.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountsView.spec.ts -t \"a failed load says so and offers Try again\" && grep -qF \"a failed load of the forms of your name leaves the table alone\" src/features/own-accounts/__tests__/OwnAccountsView.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountsView.spec.ts -t \"a failed load of the forms of your name leaves the table alone\" && grep -qF \"a rejected save keeps the dialog open with a sentence and the table as it was\" src/features/own-accounts/__tests__/store.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/store.spec.ts -t \"a rejected save keeps the dialog open with a sentence and the table as it was\" && grep -qF \"a failure that may have written reads the table again\" src/features/own-accounts/__tests__/store.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/store.spec.ts -t \"a failure that may have written reads the table again\" && grep -qF \"a rejected save of the forms of your name keeps the list as it was\" src/features/own-accounts/__tests__/store.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/store.spec.ts -t \"a rejected save of the forms of your name keeps the list as it was\" && grep -qF \"keeps what was typed and shows the message after a failed save\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"keeps what was typed and shows the message after a failed save\" && grep -qF \"a rejected save says so and the table stays as it was\" e2e/own-accounts-table.spec.ts && pnpm test:e2e --project=chromium e2e/own-accounts-table.spec.ts -g \"a rejected save says so and the table stays as it was\""
+        },
+        {
+          "descripcion": "No quiero borrar filas (el backend no lo admite: una fila que no sirve se deja sin textos).",
+          "comando": "grep -qF \"offers no way to delete a row\" src/features/own-accounts/__tests__/OwnAccountsView.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountsView.spec.ts -t \"offers no way to delete a row\" && grep -qF \"sends no DELETE to own accounts\" src/features/own-accounts/__tests__/service.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/service.spec.ts -t \"sends no DELETE to own accounts\""
+        },
+        {
+          "descripcion": "(añadido) Respuesta del 2026-10-21: la tabla vive en una entrada nueva del menú, My accounts, justo debajo de Transfers.",
+          "comando": "grep -qF \"lists My accounts in the menu right below Transfers\" src/router/__tests__/router.spec.ts && pnpm exec vitest run src/router/__tests__/router.spec.ts -t \"lists My accounts in the menu right below Transfers\""
+        },
+        {
+          "descripcion": "(añadido) Antes de mandar nada, la ventana no deja guardar lo que el backend rechazaría y dice por qué.",
+          "comando": "grep -qF \"a text shorter than three characters once compared keeps Save off and says why\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"a text shorter than three characters once compared keeps Save off and says why\" && grep -qF \"a closing date before the opening date keeps Save off and says why\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"a closing date before the opening date keeps Save off and says why\" && grep -qF \"a form shorter than three characters keeps Save off\" src/features/own-accounts/__tests__/HolderNamesDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/HolderNamesDialog.spec.ts -t \"a form shorter than three characters keeps Save off\""
+        }
+      ],
       "sdd": true,
-      "status": "pending"
+      "status": "spec_ready"
     }
   ]
 }
