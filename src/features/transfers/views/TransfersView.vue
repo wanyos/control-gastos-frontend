@@ -15,6 +15,60 @@
       />
     </StickyBelowTopBar>
 
+    <!-- Feature 35: the doubtful movements of own money, above everything else. A
+         region and not a <section>: same meaning for a screen reader, and the order of
+         the two sections of the feature 24 stays as it was. -->
+    <div
+      class="flex flex-col gap-3"
+      role="region"
+      aria-labelledby="ownership-heading"
+      data-test="ownership-section"
+    >
+      <h2 id="ownership-heading" class="font-display text-base font-bold text-ink-strong">
+        {{ OWNERSHIP_HEADING }}
+      </h2>
+      <p class="text-sm text-ink-muted" data-test="ownership-intro">{{ OWNERSHIP_INTRO }}</p>
+
+      <p
+        v-if="store.ownershipStatus === 'loading'"
+        class="text-sm text-ink-muted"
+        data-test="ownership-loading"
+      >
+        {{ OWNERSHIP_LOADING }}
+      </p>
+
+      <BaseCard v-else-if="store.ownershipStatus === 'error'" data-test="ownership-error">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm text-ink-body" data-test="ownership-error-message">
+            {{ OWNERSHIP_LOAD_ERROR }}
+          </p>
+          <BaseButton
+            variant="secondary"
+            size="sm"
+            data-test="ownership-retry"
+            @click="store.retryOwnership()"
+          >
+            Try again
+          </BaseButton>
+        </div>
+      </BaseCard>
+
+      <p
+        v-else-if="store.ownership.length === 0"
+        class="text-sm text-ink-muted"
+        data-test="ownership-empty"
+      >
+        {{ NO_DOUBTFUL_OWNERSHIP_SENTENCE }}
+      </p>
+
+      <DoubtfulOwnershipList
+        v-else
+        :movements="store.ownership"
+        :busy="store.busy"
+        @answer="(id, decision) => store.answerOwnership(id, decision)"
+      />
+    </div>
+
     <!-- Doubtful first: it is the only part that asks for action (decisions.md 🔴 4). -->
     <section class="flex flex-col gap-3" data-test="doubtful-section">
       <h2 class="font-display text-base font-bold text-ink-strong">Doubtful transfers</h2>
@@ -118,8 +172,10 @@
 
 <script setup lang="ts">
 // The transfers screen (feature 24): the doubtful groups to pair by hand, and every
-// linked pair with the way to unlink it. It is the one screen that writes `transferId`,
-// and it writes nothing else. Each section loads, fails and retries on its own (R14).
+// linked pair with the way to unlink it. It is the one screen that writes `transferId`.
+// Each section loads, fails and retries on its own (R14).
+// Feature 35 puts on top the doubtful movements of own money, answered one by one; the
+// answer is the only other thing this screen writes.
 import { computed, onMounted } from 'vue'
 
 import BaseButton from '@/shared/components/BaseButton.vue'
@@ -127,13 +183,19 @@ import BaseCard from '@/shared/components/BaseCard.vue'
 import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
 
 import AmbiguousGroupList from '../components/AmbiguousGroupList.vue'
+import DoubtfulOwnershipList from '../components/DoubtfulOwnershipList.vue'
 import TransferPairList from '../components/TransferPairList.vue'
 import TransfersActionNotice from '../components/TransfersActionNotice.vue'
 import UnlinkConfirmDialog from '../components/UnlinkConfirmDialog.vue'
 import {
   DOUBTFUL_LOAD_ERROR,
+  NO_DOUBTFUL_OWNERSHIP_SENTENCE,
   NO_DOUBTFUL_SENTENCE,
   NO_PAIRS_SENTENCE,
+  OWNERSHIP_HEADING,
+  OWNERSHIP_INTRO,
+  OWNERSHIP_LOADING,
+  OWNERSHIP_LOAD_ERROR,
   PAIRS_LOAD_ERROR,
 } from '../pairs'
 import { useTransfersStore } from '../store'

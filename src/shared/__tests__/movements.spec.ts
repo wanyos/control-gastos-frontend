@@ -72,6 +72,8 @@ describe('buildMovementsQuery: the two scopes of the noise switch (R1, R2)', () 
 
 // Feature 31: `deposit` travels only in `GET /api/movements`, and there it is mandatory.
 // Invented figures; the four objects are the four shapes of the contract's example.
+// Feature 35: `ownership` travels with it, only in the GET: a raw movement given a
+// `deposit` is a GET one and carries `ownership: null`; without it, a PATCH one.
 const rawMovement = (id: number, deposit?: unknown): Record<string, unknown> => {
   const raw: Record<string, unknown> = {
     id,
@@ -102,7 +104,10 @@ const rawMovement = (id: number, deposit?: unknown): Record<string, unknown> => 
     createdAt: '2026-10-08T09:00:00.000Z',
     updatedAt: '2026-10-08T09:00:00.000Z',
   }
-  if (deposit !== undefined) raw.deposit = deposit
+  if (deposit !== undefined) {
+    raw.deposit = deposit
+    raw.ownership = null
+  }
   return raw
 }
 
@@ -229,5 +234,68 @@ describe('categorySource: who set the category (feature 34, R15)', () => {
     expect(() => parseUpdatedMovement({ ...rawMovement(2), categorySource: 3 })).toThrow(
       'response.categorySource',
     )
+  })
+})
+
+// Feature 35: whether a movement is money between your accounts (contract, backend
+// feature 62). Mandatory in `GET /api/movements`, like `deposit`. Invented names.
+describe('ownership: money between your accounts (feature 35, R1)', () => {
+  const withOwnership = (id: number, ownership?: unknown): Record<string, unknown> => {
+    const raw = rawMovement(id, null)
+    if (ownership === undefined) delete raw.ownership
+    else raw.ownership = ownership
+    return raw
+  }
+  // The two examples of the contract, with invented names.
+  const BY_NAME = {
+    status: 'own',
+    ownAccountId: null,
+    ownAccountName: null,
+    matchedText: 'Titular Inventado',
+  }
+  const DOUBTFUL_OWN = {
+    status: 'doubtful',
+    ownAccountId: 4,
+    ownAccountName: 'Cartera inventada',
+    matchedText: 'Banco Ficticio Norte',
+  }
+
+  it('reads the ownership of every movement and rejects a missing one', () => {
+    const page = parseMovementPage(
+      pageOf(withOwnership(1, null), withOwnership(2, BY_NAME), withOwnership(3, DOUBTFUL_OWN)),
+    )
+    expect(page.movements.map((movement) => movement.ownership)).toEqual([
+      null,
+      BY_NAME,
+      DOUBTFUL_OWN,
+    ])
+
+    // A missing key is not «not own money»: it is the contract drifting.
+    expect(() => parseMovementPage(pageOf(withOwnership(1)))).toThrow(ValidationError)
+    expect(() => parseMovementPage(pageOf(withOwnership(1)))).toThrow(
+      'GET /api/movements: movements[0].ownership',
+    )
+    expect(() =>
+      parseMovementPage(pageOf(withOwnership(1, { ...DOUBTFUL_OWN, status: 'maybe' }))),
+    ).toThrow('movements[0].ownership.status')
+    expect(() =>
+      parseMovementPage(pageOf(withOwnership(1, { ...DOUBTFUL_OWN, ownAccountId: '4' }))),
+    ).toThrow('movements[0].ownership.ownAccountId')
+    expect(() => parseMovementPage(pageOf(withOwnership(1, 'own')))).toThrow(ValidationError)
+
+    // A PATCH answer never carries it, and is read without error and without the key.
+    const updated = parseUpdatedMovement(rawMovement(7))
+    expect(updated.id).toBe(7)
+    expect('ownership' in updated).toBe(false)
+    const bulk = parseBulkResult({ updated: 1, movements: [rawMovement(8)] })
+    expect('ownership' in (bulk.movements[0] ?? {})).toBe(false)
+  })
+
+  it('asks only the doubtful movements when the ownership filter is set', () => {
+    expect(buildMovementsQuery({ ownership: 'doubtful', page: 1, pageSize: 200 })).toBe(
+      'ownership=doubtful&page=1&pageSize=200',
+    )
+    const plain = buildMovementsQuery({ from: '2026-07-01', to: '2026-07-31', page: 1 })
+    expect(plain).not.toContain('ownership')
   })
 })

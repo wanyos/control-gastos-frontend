@@ -7,6 +7,7 @@ import {
   finalPassesLine,
   importActionLabel,
   newAccountCount,
+  newDoubtfulLine,
   pendingCountLabel,
   phaseAnnouncement,
   reviewSentence,
@@ -128,5 +129,20 @@ describe('phaseAnnouncement (R15)', () => {
 
   it.each(cases)('%s', (_name, flow, text) => {
     expect(phaseAnnouncement(flow)).toBe(text)
+  })
+})
+
+// Feature 35: the line of new doubtful movements of own money (R13).
+describe('newDoubtfulLine', () => {
+  it('writes the line of new doubtful movements in singular and plural', () => {
+    expect(newDoubtfulLine(1)).toBe(
+      '1 new doubtful movement: say in Transfers whether it is yours.',
+    )
+    expect(newDoubtfulLine(2)).toBe(
+      '2 new doubtful movements: say in Transfers whether they are yours.',
+    )
+    expect(newDoubtfulLine(14)).toBe(
+      '14 new doubtful movements: say in Transfers whether they are yours.',
+    )
   })
 })

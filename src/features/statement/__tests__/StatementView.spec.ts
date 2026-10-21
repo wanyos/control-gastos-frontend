@@ -25,6 +25,7 @@ import {
   GROCERIES,
   MONTH_PAGE,
   NEUTRAL,
+  OWN_MONTH_PAGE,
   OTHER_MONTH_PAGE,
   PREVIEW_CAFETERIA,
   TOTALS,
@@ -1414,6 +1415,62 @@ describe('StatementView', () => {
         expect(card).not.toContain(formatMoney(made))
       }
       expect(wrapper.get('[data-test="statement-totals-count"]').text()).toBe('4 movements')
+    })
+  })
+
+  // ─── Money between your accounts (feature 35) ─────────────────────────────
+  // The backend has no filter for it either: with the checkbox on, the `own` and `mine`
+  // movements still come in the answer and are taken off the list here (R16).
+  describe('money between your accounts (feature 35)', () => {
+    const november = (page: Record<string, unknown>, total: number): Answers => ({
+      movements: (query) =>
+        query.get('pageSize') === '1'
+          ? json({
+              ...EMPTY_MONTH_PAGE,
+              pagination: { page: 1, pageSize: 1, total, totalPages: total },
+            })()
+          : json(page)(),
+    })
+
+    const rowIds = (wrapper: Awaited<ReturnType<typeof mountView>>['wrapper']) =>
+      wrapper
+        .findAll('[data-test="statement-row"]')
+        .map((row) => row.attributes('data-movement-id'))
+
+    it('the checkbox hides money between your accounts and keeps a doubtful one', async () => {
+      const off = await mountView('/movements?month=2026-11', november(OWN_MONTH_PAGE, 5))
+      expect(rowIds(off.wrapper)).toEqual(['64', '63', '62', '61', '60'])
+      expect(off.wrapper.text()).toContain('Between your accounts')
+      off.wrapper.unmount()
+
+      const on = await mountView('/movements?month=2026-11&hide=true', november(OWN_MONTH_PAGE, 5))
+
+      // `own` (60) and `mine` (61) go, and the deposit opening (64) goes by its own rule.
+      // The doubtful one (62) and the `not_mine` one (63) count, so they stay.
+      expect(rowIds(on.wrapper)).toEqual(['63', '62'])
+      expect(on.wrapper.text()).not.toContain('Between your accounts')
+      expect(on.wrapper.get('[data-test="statement-row-ownership"]').text()).toMatch(/^Doubtful/)
+      // Nothing new is asked: the same two reads as before the feature.
+      expect(on.api.queries()).toEqual([
+        'from=2026-11-01&to=2026-11-30&excluded=none&transfer=none&page=1&pageSize=200',
+        'from=2026-11-01&to=2026-11-30&page=1&pageSize=1',
+      ])
+    })
+
+    it('counts the hidden movements between your accounts in Hiding', async () => {
+      // 250 movements in November for the backend, 5 of them loaded; without hiding there
+      // is one more, marked as not counted, that the backend left out itself.
+      const page = {
+        ...OWN_MONTH_PAGE,
+        pagination: { page: 1, pageSize: 200, total: 250, totalPages: 2 },
+      }
+      const { wrapper } = await mountView('/movements?month=2026-11&hide=true', november(page, 251))
+
+      // 1 left out by the backend + the deposit opening + `own` + `mine` taken off here.
+      expect(wrapper.get('[data-test="statement-hidden-count"]').text()).toBe('Hiding 4 movements')
+      // The count of the month and `Showing` leave the three out too.
+      expect(wrapper.get('[data-test="statement-totals-count"]').text()).toBe('247 movements')
+      expect(wrapper.get('[data-test="statement-showing"]').text()).toBe('Showing 2 of 247')
     })
   })
 

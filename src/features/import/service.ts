@@ -8,6 +8,7 @@
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
 import { ApiError } from '@/shared/errors'
+import { getMovements } from '@/shared/movements'
 import { createValidators } from '@/shared/validation'
 import type { RawObject, Validators } from '@/shared/validation'
 
@@ -311,4 +312,21 @@ export async function runImport(client: HttpClient = http): Promise<ImportReport
 /** True when the backend said it could not talk to Google Drive. */
 export function isDriveError(error: unknown): boolean {
   return error instanceof ApiError && error.apiCode === DRIVE_CONNECTION_ERROR
+}
+
+/** How many doubtful movements of own money are read around an import (feature 35). */
+const DOUBTFUL_READ_SIZE = 200
+
+/**
+ * The ids of the doubtful movements of own money right now:
+ * `GET /api/movements?ownership=doubtful&page=1&pageSize=200`. Read only. The report of
+ * `POST /api/import` says nothing about them, so the store reads them before and after
+ * (feature 35, design §7).
+ */
+export async function readDoubtfulIds(client: HttpClient = http): Promise<number[]> {
+  const page = await getMovements(
+    { ownership: 'doubtful', page: 1, pageSize: DOUBTFUL_READ_SIZE },
+    client,
+  )
+  return page.movements.map((movement) => movement.id)
 }

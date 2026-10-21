@@ -7,6 +7,22 @@ import type { Page, Request } from '@playwright/test'
 // foresee, so nothing ever reaches the real backend on :3000 and no write can leak out.
 // Every test ends asserting that the only method of the whole session was GET.
 
+/**
+ * Feature 35: the sidebar asks on every screen how many doubtful movements of own money
+ * there are (`GET /api/movements?ownership=doubtful`). Here there are none. Registered
+ * after every route of `/api/movements`, so it wins; and kept out of the reads the tests
+ * of this file watch.
+ */
+const isDoubtfulRead = (url: URL): boolean =>
+  url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+const NO_DOUBTFUL_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
+const routeNoDoubtful = (page: Page): Promise<void> =>
+  page.route(isDoubtfulRead, (route) => route.fulfill({ json: NO_DOUBTFUL_PAGE }))
+
 /** The first words of the sentence always in sight under the figures (feature 29). */
 const NOTE_START = 'These figures leave out the movements labelled'
 
@@ -37,6 +53,7 @@ const movement = (id: number, day: string, extra: Record<string, unknown> = {}) 
   status: 'confirmed',
   excludedFromTotals: false,
   deposit: null,
+  ownership: null,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-09-12T18:30:00.000Z',
@@ -149,7 +166,8 @@ async function prepare(page: Page, ambiguousCount = 2) {
   })
   page.on('pageerror', (error) => watch.pageErrors.push(error))
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname.startsWith('/api/')) watch.requests.push(request)
+    const url = new URL(request.url())
+    if (url.pathname.startsWith('/api/') && !isDoubtfulRead(url)) watch.requests.push(request)
   })
 
   // Safety net first (later routes win): any other API call is aborted, never proxied.
@@ -204,6 +222,7 @@ async function prepare(page: Page, ambiguousCount = 2) {
     }
     return route.fulfill({ json: monthAnswer })
   })
+  await routeNoDoubtful(page)
 
   return watch
 }
@@ -315,6 +334,7 @@ test('an empty month with the checkbox on says it has no movements', async ({ pa
       },
     })
   })
+  await routeNoDoubtful(page)
 
   await page.goto(`/movements?month=${currentMonth()}&hide=true`)
 

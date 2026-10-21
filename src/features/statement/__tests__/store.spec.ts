@@ -17,6 +17,7 @@ import {
   DEPOSIT_MONTH_PAGE,
   EXPENSE,
   EXPENSE_SAME_DAY,
+  FOOD,
   SALARY,
   asPatchAnswer,
   INCOME,
@@ -26,6 +27,8 @@ import {
   movement as rawMovement,
   GROCERIES,
   NOT_FOUND_BODY,
+  OWN_BY_NAME,
+  OWN_MONTH_PAGE,
   PENDING_EXPENSE,
   changed,
   BIG_MONTH_PAGE_ONE,
@@ -1581,6 +1584,37 @@ describe('useStatementStore', () => {
     const undone = store.shownMovements.find((row) => row.id === 52)
     expect(api.patches()).toHaveLength(2)
     expect(undone?.deposit?.countedAmount).toBe('37.07')
+  })
+
+  // Feature 35: nor `ownership`, so the row keeps the one of the last read; without it a
+  // movement between your accounts would be painted as counting (R2).
+  it('keeps the ownership of a line after changing its category', async () => {
+    const answer = asPatchAnswer(changed(OWN_BY_NAME, { categoryId: 1, category: FOOD }))
+    expect('ownership' in answer).toBe(false)
+    const api = mockApi({ movements: json(OWN_MONTH_PAGE), patch: json(answer) })
+    const store = useStatementStore()
+    await store.show('2026-11')
+    const before = store.shownMovements.find((row) => row.id === 60)?.ownership
+
+    await store.categorize(60, 1)
+
+    const after = store.shownMovements.find((row) => row.id === 60)
+    expect(api.patches()).toHaveLength(1)
+    expect(after?.categoryId).toBe(1)
+    expect(after?.ownership).toEqual(before)
+    expect(after?.ownership).toEqual({
+      status: 'own',
+      ownAccountId: null,
+      ownAccountName: null,
+      matchedText: 'Titular Inventado',
+    })
+
+    // And again after its Undo, which is another PATCH without it.
+    await store.undoLast()
+
+    const undone = store.shownMovements.find((row) => row.id === 60)
+    expect(api.patches()).toHaveLength(2)
+    expect(undone?.ownership?.status).toBe('own')
   })
 
   // ─── After a rule is created or changed (feature 33, R14) ──────────────────

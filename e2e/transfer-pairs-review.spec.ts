@@ -6,6 +6,22 @@ import type { Page, Request, Route } from '@playwright/test'
 // proxies /api to a real backend on :3000, so the safety net matters: it aborts
 // anything not foreseen, and no POST or DELETE of this suite ever touches a real pair.
 
+/**
+ * Feature 35: the sidebar asks on every screen how many doubtful movements of own money
+ * there are (`GET /api/movements?ownership=doubtful`). Here there are none. Registered
+ * after every route of `/api/movements`, so it wins; and kept out of the reads the tests
+ * of this file watch.
+ */
+const isDoubtfulRead = (url: URL): boolean =>
+  url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+const NO_DOUBTFUL_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
+const routeNoDoubtful = (page: Page): Promise<void> =>
+  page.route(isDoubtfulRead, (route) => route.fulfill({ json: NO_DOUBTFUL_PAGE }))
+
 type Raw = Record<string, unknown>
 
 const account = (id: number, bank: string, tail: string) => ({
@@ -178,7 +194,8 @@ async function prepare(page: Page, options: Options = {}) {
     return route.abort()
   }
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname.startsWith('/api/')) watch.requests.push(request)
+    const url = new URL(request.url())
+    if (url.pathname.startsWith('/api/') && !isDoubtfulRead(url)) watch.requests.push(request)
   })
 
   // Safety net first (later routes win): any other API call is aborted, never proxied.
@@ -191,6 +208,7 @@ async function prepare(page: Page, options: Options = {}) {
   await page.route('**/api/movements*', (route) =>
     route.request().method() === 'GET' ? route.fulfill({ json: COUNT_PAGE }) : stop(route),
   )
+  await routeNoDoubtful(page)
 
   await page.route('**/api/transfers**', (route) => {
     const request = route.request()

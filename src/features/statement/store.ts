@@ -9,6 +9,7 @@ import { hiddenWhenHiding, withKnownDeposit } from '@/shared/deposits'
 import { toAppError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
 import { MAX_IDS, getMovements, needsReload } from '@/shared/movements'
+import { isBetweenOwnAccounts, withKnownOwnership } from '@/shared/ownership'
 
 import {
   NOTHING_TO_CHANGE,
@@ -133,13 +134,20 @@ export const useStatementStore = defineStore('statement', () => {
   ])
 
   /**
-   * The loaded rows the list paints. With the checkbox on, the resolved deposit openings
-   * and cancellations are taken off HERE: the backend has no filter for them (feature 31,
-   * R11). Everything else the checkbox hides, the backend already left out.
+   * What the checkbox takes off in the browser, because the backend has no filter for
+   * it: the resolved deposit openings and cancellations (feature 31, R11) and the money
+   * between your accounts (feature 35, R16). A doubtful one counts, so it stays.
+   */
+  const hiddenBySwitch = (movement: Movement): boolean =>
+    hiddenWhenHiding(movement) || isBetweenOwnAccounts(movement)
+
+  /**
+   * The loaded rows the list paints. With the checkbox on, what `hiddenBySwitch` names is
+   * taken off HERE. Everything else the checkbox hides, the backend already left out.
    */
   const visibleMovements = computed<Movement[]>(() =>
     hideNoise.value
-      ? loadedMovements.value.filter((movement) => !hiddenWhenHiding(movement))
+      ? loadedMovements.value.filter((movement) => !hiddenBySwitch(movement))
       : loadedMovements.value,
   )
 
@@ -323,7 +331,10 @@ export const useStatementStore = defineStore('statement', () => {
   function adoptUpdated(answer: Movement): void {
     // The PATCH answers never carry `deposit`: the row keeps the one of the last read,
     // or a maturity would be painted as a whole income until the next load (feature 31, R2).
-    const updated = withKnownDeposit(answer, rowOf(answer.id)?.deposit)
+    // Nor `ownership`: the same, or money between your accounts would count again on
+    // screen (feature 35, R2).
+    const known = rowOf(answer.id)
+    const updated = withKnownOwnership(withKnownDeposit(answer, known?.deposit), known?.ownership)
     // Three ways of no longer belonging to what is on screen: the category filter of the
     // F21 and — since the F23 — the switch, when what was just marked is exactly what
     // the switch promises to hide, or (F31) a deposit opening or cancellation. The Undo
@@ -331,7 +342,7 @@ export const useStatementStore = defineStore('statement', () => {
     const gone =
       (hasCategoryFilter(filters.value) && !matchesCategoryFilter(updated, filters.value)) ||
       (hideNoise.value && (updated.excludedFromTotals || updated.transferId !== null)) ||
-      (hideNoise.value && hiddenWhenHiding(updated))
+      (hideNoise.value && hiddenBySwitch(updated))
     const rows = result.value?.movements
     const at = rows?.findIndex((row) => row.id === updated.id) ?? -1
     if (rows && at !== -1) {

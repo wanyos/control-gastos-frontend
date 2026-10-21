@@ -6,12 +6,14 @@ import { coherentNetWorth } from '@/features/net-worth/__tests__/fixtures'
 import { useNetWorthStore } from '@/features/net-worth/store'
 import { useOverviewStore } from '@/features/overview/store'
 import { useReviewStore } from '@/features/review/store'
+import { useTransfersStore } from '@/features/transfers/store'
 import { ApiError, ValidationError } from '@/shared/errors'
 
 import { useImportStore } from '../store'
 import {
   DRIVE_ERROR_BODY,
   FULL_REPORT,
+  GET_DOUBTFUL,
   GET_MOVEMENTS,
   GET_NET_WORTH,
   GET_PENDING,
@@ -20,6 +22,7 @@ import {
   PENDING_TWO,
   POST_IMPORT,
   deferred,
+  doubtfulIdsPage,
   json,
   jsonResponse,
   mockApi,
@@ -181,6 +184,8 @@ describe('useImportStore', () => {
       void store.start()
 
       expect(store.flow).toEqual({ step: 'importing', fileCount: 2 })
+      // The POST leaves after the read of doubtful movements before the import (F35).
+      await flushPromises()
       expect(api.count(POST_IMPORT)).toBe(1)
       post.resolve(jsonResponse(FULL_REPORT))
       await first
@@ -441,5 +446,148 @@ describe('what an import asks for again on the screen in front of the user (2026
 
     expect(api.count(GET_MOVEMENTS)).toBe(1)
     expect(useReviewStore().result).toBeNull()
+  })
+})
+
+// ─── Feature 35: the doubtful movements of own money around an import ────────
+describe('the doubtful movements of own money an import brings (feature 35)', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  /** Answers the list reads in turn and the sidebar count (pageSize=1) with `total`. */
+  const doubtfulReads = (lists: (number[] | 'down')[], total = 0) => {
+    let turn = 0
+    return (): Promise<Response> => {
+      const calls = vi.mocked(globalThis.fetch).mock.calls
+      const url = new URL(String(calls[calls.length - 1]?.[0]))
+      if (url.searchParams.get('pageSize') === '1') {
+        return json({
+          ...doubtfulIdsPage(),
+          pagination: { page: 1, pageSize: 1, total, totalPages: total },
+        })()
+      }
+      const list = lists[turn] ?? []
+      turn += 1
+      return list === 'down' ? networkDown() : json(doubtfulIdsPage(...list))()
+    }
+  }
+
+  it('counts the doubtful movements that were not there before the import', async () => {
+    // 7101 is resolved by the import itself; 7103 and 7104 are new.
+    const api = mockApi({
+      pending: json(PENDING_TWO),
+      import: json(FULL_REPORT),
+      doubtful: doubtfulReads([
+        [7101, 7102],
+        [7102, 7103, 7104],
+      ]),
+    })
+    const store = useImportStore()
+    await atConfirm(store)
+    expect(store.newDoubtfulCount).toBeNull()
+
+    await store.start()
+    await flushPromises()
+
+    expect(store.flow.step).toBe('finished')
+    expect(store.newDoubtfulCount).toBe(2)
+    // Before and after, 200 per page, then the sidebar count; only reads.
+    expect(api.doubtfulQueries).toEqual([
+      'ownership=doubtful&page=1&pageSize=200',
+      'ownership=doubtful&page=1&pageSize=200',
+      'ownership=doubtful&page=1&pageSize=1',
+    ])
+    expect(api.count(POST_IMPORT)).toBe(1)
+    // The before read left before the POST.
+    expect(api.calls.indexOf(GET_DOUBTFUL)).toBeLessThan(api.calls.indexOf(POST_IMPORT))
+
+    // Nothing new: 0, and the dialog paints no line.
+    vi.restoreAllMocks()
+    setActivePinia(createPinia())
+    mockApi({
+      pending: json(PENDING_TWO),
+      import: json(FULL_REPORT),
+      doubtful: doubtfulReads([[7102], [7102]]),
+    })
+    const again = useImportStore()
+    await atConfirm(again)
+    await again.start()
+    await flushPromises()
+    expect(again.newDoubtfulCount).toBe(0)
+
+    // Closing and opening the dialog forgets it.
+    store.close()
+    expect(store.newDoubtfulCount).toBeNull()
+  })
+
+  it('leaves no new doubtful count when a read of the doubtful movements fails', async () => {
+    for (const lists of [
+      ['down', [7103]],
+      [[7101], 'down'],
+    ] as (number[] | 'down')[][]) {
+      vi.restoreAllMocks()
+      setActivePinia(createPinia())
+      const api = mockApi({
+        pending: json(PENDING_TWO),
+        import: json(FULL_REPORT),
+        doubtful: doubtfulReads(lists),
+      })
+      const store = useImportStore()
+      await atConfirm(store)
+
+      await store.start()
+      await flushPromises()
+
+      // The import itself goes on, and the report is there.
+      expect(store.flow.step).toBe('finished')
+      expect(api.count(POST_IMPORT)).toBe(1)
+      expect(store.newDoubtfulCount).toBeNull()
+    }
+
+    // A failed import does not read the after list either.
+    vi.restoreAllMocks()
+    setActivePinia(createPinia())
+    const api = mockApi({
+      pending: json(PENDING_TWO),
+      import: json(DRIVE_ERROR_BODY, 503),
+      doubtful: doubtfulReads([[7101], [7101, 7102]]),
+    })
+    const store = useImportStore()
+    await atConfirm(store)
+    await store.start()
+    await flushPromises()
+    expect(store.flow.step).toBe('importFailed')
+    expect(store.newDoubtfulCount).toBeNull()
+    expect(api.doubtfulQueries).toEqual([
+      'ownership=doubtful&page=1&pageSize=200',
+      'ownership=doubtful&page=1&pageSize=1',
+    ])
+  })
+
+  it('refreshes the doubtful count after an import', async () => {
+    // After a report and after a failure alike, as the number of Review.
+    for (const answer of [json(FULL_REPORT), json(DRIVE_ERROR_BODY, 503)]) {
+      vi.restoreAllMocks()
+      setActivePinia(createPinia())
+      const api = mockApi({
+        pending: json(PENDING_TWO),
+        import: answer,
+        doubtful: doubtfulReads([[], []], 3),
+      })
+      const store = useImportStore()
+      await atConfirm(store)
+      expect(useTransfersStore().doubtfulCount).toBeNull()
+
+      await store.start()
+      await flushPromises()
+
+      expect(useTransfersStore().doubtfulCount).toBe(3)
+      expect(api.doubtfulQueries.at(-1)).toBe('ownership=doubtful&page=1&pageSize=1')
+    }
   })
 })

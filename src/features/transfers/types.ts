@@ -42,9 +42,18 @@ export interface LinkChoice {
 
 export type ListStatus = 'loading' | 'ready' | 'error'
 
+/**
+ * The answer about a doubtful movement of own money (contract, `ownershipDecision`):
+ * `mine`, `not_mine`, or `null` to undo it (feature 35).
+ */
+export type OwnershipDecision = 'mine' | 'not_mine' | null
+
 /** What the Undo of the notice would do: the inverse of the last write. */
 export type Undo =
-  { kind: 'relink'; expenseId: number; incomeId: number } | { kind: 'unlink'; transferId: string }
+  | { kind: 'relink'; expenseId: number; incomeId: number }
+  | { kind: 'unlink'; transferId: string }
+  /** Feature 35: send `null` as the answer of that movement. */
+  | { kind: 'ownership'; movementId: number }
 
 export interface Notice {
   summary: string | null
@@ -53,4 +62,4 @@ export interface Notice {
 }
 
 /** Which write failed, only to pick the sentence. */
-export type Gesture = 'unlink' | 'link' | 'relink' | 'undo-link'
+export type Gesture = 'unlink' | 'link' | 'relink' | 'undo-link' | 'ownership' | 'undo-ownership'

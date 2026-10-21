@@ -63,7 +63,7 @@ pantalla tiene datos. Cada una lo dice a su manera:
 | `Net Worth` | Una tarjeta `Couldn't load your net worth` con un texto técnico debajo que empieza por `HTTP`. No tiene botón para reintentar: hay que recargar la página. |
 | `Review` | `Something went wrong loading the list.` con un botón `Try again`. En el menú, `Review` sale sin número. |
 | `Rules` | `Something went wrong loading your rules.` con `Try again`. |
-| `Transfers` | `Couldn't load the doubtful transfers.` y `Couldn't load the linked pairs.`, cada una con su `Try again`. |
+| `Transfers` | `Couldn't load the doubtful transfers.` y `Couldn't load the linked pairs.`, cada una con su `Try again`. Desde la feature 35, también `Couldn't load the doubtful movements.` con su `Try again`, y en el menú `Transfers` sale sin número. |
 | `Overview` y `Movements` | `Something went wrong loading this month.` con `Try again`. |
 | `Monthly cost` (desde la feature 32) | `Something went wrong loading the monthly cost.` con `Try again`. |
 | Botón `Import` | No sale el aviso de archivos nuevos. Al pulsarlo: `Couldn't reach the server` y `Nothing has been imported.` |
@@ -76,13 +76,17 @@ En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
 
 - **El menú de la izquierda** tiene ocho entradas, en este orden: `Net Worth`,
   `Review`, `Rules`, `Transfers`, `Overview`, `Monthly cost`, `Movements`,
-  `Investments`. `Monthly cost` está desde la feature 32.
+  `Investments`. `Monthly cost` está desde la feature 32. Junto a `Review`
+  puede salir un número (sección 5) y, desde la feature 35, otro junto a
+  `Transfers` (sección 7).
 - **La barra de arriba** enseña el nombre de la pantalla y, a la derecha, el
   botón `Import`. Está en todas las pantallas.
 - **Importes, fechas y conceptos no se pueden editar desde ninguna pantalla.**
   Son lo que dijo el banco. Lo único que la aplicación escribe sobre un
   movimiento es: su categoría, si está pendiente o confirmado, si cuenta o no
-  en las sumas, y con qué otro movimiento está enlazado como traspaso.
+  en las sumas, y con qué otro movimiento está enlazado como traspaso. Desde la
+  feature 35, también tu respuesta a si un movimiento dudoso es dinero tuyo
+  (`It's mine` o `Not mine`, en `Transfers`).
 
 ---
 
@@ -97,8 +101,8 @@ En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
 | `Movements` | Todos tus movimientos mes a mes, con sus sumas | **Escribe**: la categoría de un movimiento, y si un movimiento cuenta o no en las sumas |
 | `Review` | La lista de lo importado que aún no has dado por bueno | **Escribe**: la categoría y el estado (pendiente o confirmado) |
 | `Rules` | Las reglas que ponen categoría solas según el texto del concepto, y las reglas que propone la aplicación | **Escribe**: crea, cambia y borra reglas; al crearlas, cambiarlas o aplicarlas, pone categoría a muchos movimientos de golpe |
-| `Transfers` | Los traspasos entre tus cuentas que la aplicación tiene enlazados de dos en dos | **Escribe**: enlaza y desenlaza dos movimientos |
-| Botón `Import` (barra superior) | Trae los archivos nuevos de Google Drive | **Escribe**: crea movimientos, y puede crear cuentas y productos. No se deshace desde la aplicación |
+| `Transfers` | Los traspasos entre tus cuentas que la aplicación tiene enlazados de dos en dos. Desde la feature 35, también los movimientos dudosos de dinero propio: los que solo nombran el banco de una de tus cuentas, para que digas si son tuyos | **Escribe**: enlaza y desenlaza dos movimientos, y guarda tu respuesta a un movimiento dudoso (`It's mine` o `Not mine`) |
+| Botón `Import` (barra superior) | Trae los archivos nuevos de Google Drive. Desde la feature 35, el informe dice además cuántos movimientos dudosos de dinero propio nuevos trajo | **Escribe**: crea movimientos, y puede crear cuentas y productos. No se deshace desde la aplicación |
 
 ---
 
@@ -491,6 +495,12 @@ nombre del mes. Pulsa `Previous`.
    sus intereses ni uno dudoso. El número de movimientos de la tarjeta baja con
    lo que se quita. Las tres cifras siguen sin moverse.
 
+   **Nuevo desde la feature 35, sin probar en tu primera revisión:** la
+   casilla quita también las líneas con `Between your accounts` junto a la
+   cuenta (dinero entre tus cuentas, que no cuenta), y las suma al número de
+   `Hiding`. **No quita** las que llevan `Doubtful` en ámbar: esas sí cuentan.
+   Las tres cifras siguen sin moverse.
+
 6. Con la casilla puesta, pulsa `Previous`. **Debe** seguir puesta en el mes
    anterior. Recarga la página: **debe** seguir puesta. Quítala: **vuelven**
    todas las líneas.
@@ -581,6 +591,30 @@ importación (`Close everything pending…` de `Review`). **Debes ver**, en gris
 y pequeño en la línea de la cuenta bajo el concepto,
 `Set when the import was closed`. En los que categorizaste tú o una regla no
 sale nada.
+
+**Nuevo desde la feature 35, sin probar en tu primera revisión: el dinero entre
+tus cuentas y los movimientos dudosos.** Desde su feature 62, el backend
+reconoce el dinero que se mueve entre tus cuentas y no lo cuenta en las sumas;
+cuando un movimiento solo nombra el banco de una de tus cuentas, lo deja como
+dudoso y lo sigue contando hasta que respondas en `Transfers`. La pantalla lo
+enseña así, con la casilla `Hide what does not count` quitada:
+
+- Busca una línea con `Between your accounts` en gris junto a la cuenta.
+  **Debes ver** el importe tachado y en gris y el concepto en gris, como lo
+  que no cuenta. Al dejar el ratón encima de `Between your accounts` sale
+  `Money between your accounts: not counted in this month's figures`. Si ese
+  movimiento además está enlazado como traspaso o marcado como que no cuenta,
+  salen las dos palabras (`Between your accounts` y `Transfer` o
+  `Not counted`). Sale igual si fuiste tú quien respondió que era tuyo.
+- Un movimiento dudoso lleva junto a la cuenta, en ámbar,
+  `Doubtful · names <texto> · counts until you answer in Transfers`, con el
+  importe **sin** tachar y con su color de siempre: cuenta. **El 2026-10-21 no
+  había ningún dudoso en tus datos**, así que esta línea no se puede ver
+  todavía; solo se ha probado con datos inventados.
+- En un movimiento de depósito no sale nada de esto: manda lo de la
+  feature 31.
+- Tras cambiar la categoría de una línea con `Between your accounts`, la línea
+  **sigue** tachada y con ese texto.
 
 ### Qué probar — corregir la categoría de un movimiento (escribe)
 
@@ -708,19 +742,27 @@ veces, una por mes.
   backend no envía ese importe.
 - **Con la casilla `Hide what does not count` quitada, el recuento y las
   cifras no cuadran a ojo**: el número de movimientos cuenta también los
-  `Transfer`, los `Not counted` y las aperturas y cancelaciones de depósito, y
-  las tres cifras no. Con la casilla puesta, cuadran salvo en dos casos que la
-  casilla deja a la vista a propósito: un vencimiento de depósito, que en la
+  `Transfer`, los `Not counted`, las aperturas y cancelaciones de depósito y,
+  desde la feature 35, los `Between your accounts`, y las tres cifras no.
+  Con la casilla puesta, cuadran salvo en dos casos que la casilla deja a la vista a propósito: un vencimiento de depósito, que en la
   lista enseña lo que dio el banco y en las cifras solo suma lo que dice
   `Counts …`, y uno dudoso, que no suma nada.
 - **Nada se marca solo.** Ni las reglas ni la importación marcan un movimiento
   como que no cuenta. Lo marcas siempre tú. Los movimientos de depósito son
   aparte: desde su feature 57, el backend los reconoce solo y cuenta cada uno
   por sus intereses, también los que entren en cada importación, así que ya no
-  hay que marcarlos.
+  hay que marcarlos. Desde la feature 35 (feature 62 del backend), lo de
+  entre tus cuentas también: el backend decide solo qué es dinero entre tus
+  cuentas y no lo cuenta (`Between your accounts`); lo que no tiene claro lo
+  deja como dudoso, y eso lo respondes tú en `Transfers`.
 - **Con más de 200 movimientos en un mes**, la casilla no resta las aperturas
   y cancelaciones de depósito de lo que aún no se ha cargado hasta pulsar
-  `Load more`: hasta entonces `Hiding` dice menos de lo que esconderá.
+  `Load more`: hasta entonces `Hiding` dice menos de lo que esconderá. Desde
+  la feature 35 pasa lo mismo con los `Between your accounts`.
+- **La nota gris bajo las cifras no habla del dinero entre tus cuentas**
+  (desde la feature 35): sigue diciendo que se dejan fuera los `Transfer`, los
+  `Not counted` y lo de los depósitos, aunque los `Between your accounts`
+  tampoco cuentan.
 - **La marca `Not counted` no cambia lo que suma un movimiento de depósito**
   (lo decide el backend desde su feature 57), pero la casilla sí esconde un
   vencimiento marcado o emparejado como traspaso, aunque cuente sus
@@ -932,6 +974,10 @@ cambia ninguno.
 - La barra de filtros no se queda fija arriba al bajar por 100 filas.
 - No hay la casilla `Hide what does not count`, ni se puede marcar un
   movimiento como que no cuenta: eso es solo de `Movements`.
+- **No enseña el dinero entre tus cuentas ni los dudosos** (desde la
+  feature 35): una fila así se ve como cualquier otra, sin
+  `Between your accounts` ni `Doubtful`. Eso solo sale en `Movements`, y los
+  dudosos se responden en `Transfers`.
 - Los movimientos de tipo neutro no admiten categoría: su desplegable está
   apagado y dice `Neutral movements can't be categorized`. Su botón
   `Create rule` también está apagado.
@@ -1251,12 +1297,23 @@ Esta pantalla enseña todas esas parejas y deja desenlazar la que no sea un
 traspaso tuyo. Arriba van los grupos que la importación no supo emparejar, para
 que los enlaces tú.
 
+**Desde la feature 35**, arriba del todo va además otra sección,
+`Doubtful: between your accounts?`, con los movimientos dudosos de dinero
+propio: movimientos sueltos que solo nombran el banco de una de tus cuentas, y
+en los que dices si son tuyos. No son lo mismo que los `Doubtful transfers`,
+que son grupos que la importación no supo emparejar.
+
 ### Qué probar — primero lo que solo mira
 
 1. Pulsa `Transfers`. **Debes ver** dos secciones: `Doubtful transfers` y
    `Linked pairs` con el número de parejas entre paréntesis. El 2026-10-02
    había 38 parejas y ningún grupo dudoso.
    -- ok
+
+   **Nuevo desde la feature 35, sin probar en tu primera revisión:** ahora
+   son **tres** secciones, en este orden: `Doubtful: between your accounts?`,
+   `Doubtful transfers` y `Linked pairs`. La primera se prueba en
+   «Qué probar — los movimientos dudosos de dinero propio», más abajo.
 
 2. Si no hay grupos dudosos, **debes ver** una frase que empieza por
    `No doubtful transfers.` y explica cuándo aparecerían.
@@ -1325,12 +1382,64 @@ con datos fabricados.
     `Linked as a transfer. These two movements no longer count in your
     totals.` con `Undo`, y la pareja nueva en `Linked pairs`.
 
+### Qué probar — los movimientos dudosos de dinero propio (nuevo desde la feature 35; responder escribe y mueve las sumas)
+
+> **El 2026-10-21 no había ningún movimiento dudoso en tus datos.** Hoy solo
+> puedes probar los pasos 13 y 14. Del 15 en adelante se han probado solo con
+> datos inventados; podrás hacerlos cuando llegue el primer dudoso (por
+> ejemplo, con una transferencia a una cuenta tuya cuyo único texto en el
+> concepto es el nombre de su banco).
+
+13. Mira el menú. Si hay algún movimiento dudoso, **debes ver** un número junto
+    a `Transfers`, con el mismo aspecto que el de `Review`: cuántos dudosos
+    hay. Con 0 **no sale** ningún número (lo esperado el 2026-10-21). Como el
+    de `Review`, en una ventana estrecha no se ve.
+
+14. Pulsa `Transfers`. **Debes ver**, arriba del todo, la sección
+    `Doubtful: between your accounts?` con la frase
+    `Each one only names the bank of one of your accounts. It counts in your totals until you answer.`
+    Si no hay ninguno, debajo sale
+    `No doubtful movements. When a movement only names the bank of one of your accounts, it shows up here so you can say whether it is yours.`
+
+15. Si hay alguno, **debes ver** una tarjeta por cada uno con: la fecha y la
+    cuenta en pequeño, el concepto, el motivo
+    (`Names "<texto>", the bank of your account "<cuenta>"`), el importe con su
+    signo y dos botones, `It's mine` y `Not mine`.
+
+16. Pulsa `It's mine` en uno que sepas que es tuyo. No pregunta. **Debes ver**
+    la línea verde de arriba
+    `Marked as yours. It no longer counts in your totals.` con `Undo`; que la
+    tarjeta desaparece de la lista; y que el número junto a `Transfers` baja
+    en uno. En `Movements`, recargando, ese movimiento sale con
+    `Between your accounts` y el importe tachado, y la cifra de su mes ha
+    bajado en su importe.
+
+17. Pulsa `Undo`. **Debes ver** `Answer undone.`, ya sin botón, y la tarjeta
+    de vuelta en la lista.
+
+18. Pulsa `Not mine` en uno que no sea tuyo. **Debes ver**
+    `Marked as not yours. It counts in your totals.` con `Undo`, y que la
+    tarjeta desaparece de la lista. Ese movimiento sigue contando, como antes
+    de responder, y en `Movements` deja de llevar `Doubtful`.
+
+19. Mientras se guarda una respuesta, los botones `It's mine` y `Not mine` de
+    todas las tarjetas están apagados: se responde de uno en uno. Abrir o
+    recargar la pantalla no responde nada: solo tu clic.
+
+20. Si el servidor rechaza una respuesta, **debes ver**
+    `Nothing changed. The server rejected that answer.`, sin `Undo`, y la
+    lista como estaba. Si se corta la red, sale
+    `Couldn't reach the server. Reloading, to be sure of what was written.` y
+    la lista se vuelve a pedir.
+
 ### Qué escribe y cómo se deshace
 
 | Acción | Qué cambia exactamente | Qué no cambia nunca | Cómo se deshace |
 |---|---|---|---|
 | `Unlink` | Quita el enlace entre los dos movimientos. Los dos vuelven a contar en las sumas de su mes. El backend recuerda que no debe volver a emparejarlos | Importe, fecha, concepto, categoría, estado y la marca de «no cuenta» | **Solo con `Undo`**, que los vuelve a enlazar |
 | `Link these two` | Enlaza los dos movimientos. Los dos dejan de contar en las sumas | Lo mismo | `Undo`. O más tarde, con `Unlink` sobre la pareja nueva |
+| `It's mine` (desde la feature 35) | Guarda que ese movimiento es dinero tuyo: deja de contar en las sumas de `Movements`, `Overview` y `Monthly cost`, y deja de salir como dudoso | Importe, fecha, concepto, categoría, estado, la marca de «no cuenta» y los traspasos | **Solo con `Undo`**, mientras sigas en la pantalla. Pasado el `Undo`, se corrige desde la API, en una sesión del backend |
+| `Not mine` (desde la feature 35) | Guarda que ese movimiento no es dinero tuyo: sigue contando y deja de salir como dudoso | Lo mismo | Lo mismo |
 
 El `Undo` deshace solo la última acción y desaparece con la siguiente o al
 salir de la pantalla.
@@ -1355,6 +1464,13 @@ al desenlazar **ese sigue sin contar**. La pregunta y el aviso lo dicen.
   pareja puede no ser un traspaso, pero no enlaza a esta pantalla.
 - Cada `Unlink` mueve tus sumas históricas. Desenlaza solo lo que sepas que no
   es un traspaso tuyo.
+- **Lo que ya respondiste en `Doubtful: between your accounts?` deja de verse
+  aquí** (desde la feature 35), y no hay una lista de lo ya respondido: el
+  `Undo` solo deshace la última respuesta y mientras sigas en la pantalla.
+- La sección de dudosos de dinero propio enseña como mucho 200; el número del
+  menú dice el total.
+- El número junto a `Transfers` cuenta solo los movimientos dudosos de dinero
+  propio, no los grupos de `Doubtful transfers`.
 
 > **Mis notas de esta prueba**
 > - Falla:
@@ -1405,6 +1521,13 @@ archivos nuevos, a su lado sale un aviso con cuántos son.
    `Already imported`, `Investment files updated` y `Files not imported`. Si
    entraron movimientos nuevos, una frase dice cuántos esperan tu revisión.
 
+   **Nuevo desde la feature 35, sin probar en tu primera revisión:** si tras
+   importar hay movimientos dudosos de dinero propio que no estaban antes, debajo
+   sale en ámbar una línea como
+   `2 new doubtful movements: say in Transfers whether they are yours.` (o
+   `1 new doubtful movement: say in Transfers whether it is yours.`). Si no
+   entró ninguno nuevo, o si la aplicación no pudo comprobarlo, no sale nada.
+
 8. Si algún archivo no entró, **debes ver** un bloque `Needs attention` con el
    motivo en inglés de cada uno. Bajo `Details` está el mensaje original del
    backend, en castellano.
@@ -1418,6 +1541,9 @@ archivos nuevos, a su lado sale un aviso con cuántos son.
     ha bajado o ha desaparecido; que el número junto a `Review` ha subido en
     los movimientos nuevos; y que `Net Worth`, si la habías abierto antes,
     enseña los saldos nuevos.
+
+    **Nuevo desde la feature 35, sin probar en tu primera revisión:** el número
+    junto a `Transfers` también se pone al día al terminar la importación.
 
 ### Qué escribe y cómo se deshace
 
@@ -1443,7 +1569,8 @@ probó con un archivo que ya estaba importado y dio 35 duplicados.
   o choques de reglas; el resto solo se cuenta (`and … more`).
 
 - **No se resuelve nada desde el informe.** Los traspasos se revisan después
-  en `Transfers`; los choques de reglas, a mano.
+  en `Transfers`; los choques de reglas, a mano. Los movimientos dudosos de
+  dinero propio (desde la feature 35), también en `Transfers`.
 
 - No hay progreso archivo a archivo: una fase «importando» y luego el
   resultado.
@@ -1505,8 +1632,9 @@ mano ese día, no un dato que la aplicación calcule.
    -- ok
 
 4. Busca los envíos a tus propias cuentas que todavía cuentan: los que llevan
-   el importe sin tachar y **no** tienen `Transfer` ni `Not counted` bajo el
-   concepto, junto a la cuenta. Solo tú sabes cuáles son.
+   el importe sin tachar y **no** tienen `Transfer`, `Not counted` ni (desde
+   la feature 35) `Between your accounts` bajo el concepto, junto a la
+   cuenta. Solo tú sabes cuáles son.
    
 
 5. Apunta las tres cifras del mes.
@@ -1534,6 +1662,13 @@ Desde ella, el backend los reconoce solo y cuenta cada uno por sus intereses
 (abrir o cancelar un depósito no cuenta nada), también los que entren en cada
 importación; su cambio quitó la marca a los que la tenían. Este trabajo queda
 solo para los traspasos a tus cuentas.
+
+**Desde la feature 35, parte de este trabajo lo hace el backend.** Desde su
+feature 62, el dinero que va a una de tus cuentas y que el backend reconoce
+sale con `Between your accounts` y ya no cuenta. Cuando solo nombra el banco
+de una de tus cuentas, sale como dudoso y lo respondes en `Transfers`
+(sección 7). Lo que quede sin ninguna de las dos cosas se sigue marcando como
+dicen los pasos de arriba.
 
 ## B. Poner categoría al gasto
 

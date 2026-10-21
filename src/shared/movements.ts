@@ -53,6 +53,21 @@ export interface MovementDeposit {
   candidateMovementIds: number[]
 }
 
+/**
+ * Whether a movement is money between your own accounts (contract, backend feature 62):
+ * `own` = yours by the table, `doubtful` = only names the bank of one of your accounts,
+ * `mine` / `not_mine` = what you answered. The backend decides it (feature 35).
+ */
+export type OwnershipStatus = 'own' | 'doubtful' | 'mine' | 'not_mine'
+
+/** Contract, `movements[].ownership`: the status and what matched to give it. */
+export interface MovementOwnership {
+  status: OwnershipStatus
+  ownAccountId: number | null
+  ownAccountName: string | null
+  matchedText: string | null
+}
+
 /** The account as it travels embedded in a movement (no `balance`). */
 export interface MovementAccount {
   id: number
@@ -110,6 +125,11 @@ export interface Movement {
    * `GET /api/movements` does, never the PATCHes nor `/api/transfers` (feature 31).
    */
   deposit?: MovementDeposit | null
+  /**
+   * Null = not money between your accounts. Absent = the answer does not carry it: only
+   * `GET /api/movements` does, never the PATCHes nor `/api/transfers` (feature 35).
+   */
+  ownership?: MovementOwnership | null
 }
 
 export interface Pagination {
@@ -156,6 +176,8 @@ export interface MovementQuery {
   transfer?: MovementScope
   /** Movements marked as not counted: keep only them, or none of them. */
   excluded?: MovementScope
+  /** Only the doubtful movements of own money (backend feature 62); absent filters nothing. */
+  ownership?: 'doubtful'
   page?: number
   pageSize?: number
 }
@@ -179,6 +201,7 @@ const DEPOSIT_REASONS: readonly DepositReason[] = [
   'several_principals',
   'opening_not_found',
 ]
+const OWNERSHIP_STATUSES: readonly OwnershipStatus[] = ['own', 'doubtful', 'mine', 'not_mine']
 
 const movementChecks = createValidators(`GET ${MOVEMENTS_PATH}`)
 
@@ -208,6 +231,7 @@ export function buildMovementsQuery(query: MovementQuery): string {
   // Absent unless asked for: without them the backend filters neither (feature 23).
   add('excluded', query.excluded)
   add('transfer', query.transfer)
+  add('ownership', query.ownership)
   add('page', query.page)
   add('pageSize', query.pageSize)
 
@@ -259,10 +283,33 @@ function parseDeposit(v: Validators, raw: unknown, path: string): MovementDeposi
   }
 }
 
+function parseOwnership(v: Validators, raw: unknown, path: string): MovementOwnership | null {
+  if (raw === null) {
+    return null
+  }
+  const ownership = v.asObject(raw, path)
+  return {
+    status: v.asMember(ownership.status, OWNERSHIP_STATUSES, `${path}.status`),
+    ownAccountId:
+      ownership.ownAccountId === null
+        ? null
+        : v.asInteger(ownership.ownAccountId, `${path}.ownAccountId`),
+    ownAccountName:
+      ownership.ownAccountName === null
+        ? null
+        : v.asString(ownership.ownAccountName, `${path}.ownAccountName`),
+    matchedText:
+      ownership.matchedText === null
+        ? null
+        : v.asString(ownership.matchedText, `${path}.matchedText`),
+  }
+}
+
 /**
  * The whole movement is parsed, not only the five painted fields: the F16 needs the rest.
- * `deposit` is `required` only for `GET /api/movements`, the one answer that carries it;
- * everywhere else it is left absent (feature 31, design §2).
+ * `depositField` names the two fields only `GET /api/movements` carries, `deposit` and
+ * `ownership`: `required` only there; everywhere else both are left absent (feature 31,
+ * design §2; feature 35, design §2).
  */
 export function parseMovement(
   v: Validators,
@@ -317,6 +364,10 @@ export function parseMovement(
     // paint a maturity as a whole income again without a word (feature 31, R1).
     if (!('deposit' in movement)) v.reject(`${path}.deposit`, 'null or a deposit object')
     parsed.deposit = parseDeposit(v, movement.deposit, `${path}.deposit`)
+    // Mandatory too: a missing key read as «not own money» would count a movement
+    // between your accounts without a word (feature 35, R1).
+    if (!('ownership' in movement)) v.reject(`${path}.ownership`, 'null or an ownership object')
+    parsed.ownership = parseOwnership(v, movement.ownership, `${path}.ownership`)
   }
   return parsed
 }

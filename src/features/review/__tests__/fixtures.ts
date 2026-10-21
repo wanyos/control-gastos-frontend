@@ -38,6 +38,8 @@ const base = {
   updatedAt: '2026-08-06T18:30:00.000Z',
   /** Since the backend's feature 57 `GET /api/movements` carries it; null = not a deposit. */
   deposit: null,
+  /** Since the backend's feature 62, only in `GET /api/movements`; null = not own money. */
+  ownership: null,
 }
 
 /** An expense with a category. */
@@ -190,10 +192,14 @@ export const DEPOSIT_PAGE = {
   totals: { income: '37.07', expense: '45.37', net: '-8.30' },
 }
 
-/** A movement as a PATCH answers it: everything but `deposit`, which only a GET carries. */
+/**
+ * A movement as a PATCH answers it: everything but `deposit` and `ownership`, which only
+ * a GET carries.
+ */
 export const asPatchAnswer = (raw: object): object => {
   const answer: Record<string, unknown> = { ...raw }
   delete answer.deposit
+  delete answer.ownership
   return answer
 }
 

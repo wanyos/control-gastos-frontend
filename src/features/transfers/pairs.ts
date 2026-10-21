@@ -5,6 +5,8 @@
 import { API_NETWORK, ApiError } from '@/shared/errors'
 import type { AppError } from '@/shared/errors'
 
+import type { Movement } from '@/shared/movements'
+
 import type { AmbiguousGroup, Gesture, LinkChoice, TransferPair } from './types'
 
 export const BIZUM_LABEL = 'Bizum'
@@ -28,6 +30,39 @@ export const NO_PAIRS_SENTENCE = 'No linked transfers yet.'
 
 export const PAIRS_LOAD_ERROR = "Couldn't load the linked pairs."
 export const DOUBTFUL_LOAD_ERROR = "Couldn't load the doubtful transfers."
+
+// ─── Doubtful movements of own money (feature 35) ─────────────────────────
+
+export const OWNERSHIP_HEADING = 'Doubtful: between your accounts?'
+export const OWNERSHIP_INTRO =
+  'Each one only names the bank of one of your accounts. It counts in your totals until you answer.'
+export const NO_DOUBTFUL_OWNERSHIP_SENTENCE =
+  'No doubtful movements. When a movement only names the bank of one of your accounts, it shows up here so you can say whether it is yours.'
+export const OWNERSHIP_LOADING = 'Loading the doubtful movements…'
+export const OWNERSHIP_LOAD_ERROR = "Couldn't load the doubtful movements."
+export const MINE_NOTICE = 'Marked as yours. It no longer counts in your totals.'
+export const NOT_MINE_NOTICE = 'Marked as not yours. It counts in your totals.'
+export const ANSWER_UNDONE_NOTICE = 'Answer undone.'
+
+/** Why a movement is doubtful: which text matched, and of which of your accounts. */
+export function ownershipReason(movement: Movement): string {
+  const matched = movement.ownership?.matchedText ?? null
+  const account = movement.ownership?.ownAccountName ?? null
+  if (matched === null) return 'Names the bank of one of your accounts'
+  if (account === null) return `Names "${matched}", the bank of one of your accounts`
+  return `Names "${matched}", the bank of your account "${account}"`
+}
+
+/** The English sentence of a failed answer or of its Undo (design §5). */
+export function ownershipWriteError(error: AppError): string {
+  if (error instanceof ApiError) {
+    if (error.code === API_NETWORK)
+      return "Couldn't reach the server. Reloading, to be sure of what was written."
+    if (error.status === 400) return 'Nothing changed. The server rejected that answer.'
+    if (error.status === 404) return 'That movement no longer exists. Nothing changed. Reloading.'
+  }
+  return 'Something went wrong. Reloading to show what really happened.'
+}
 
 const BIZUM = /bizum/i
 
@@ -94,6 +129,7 @@ export function unlinkConsequence(pair: TransferPair): string {
 
 /** The English sentence of a failed write; `gesture` only tells a DELETE from a POST. */
 export function transferWriteError(error: AppError, gesture: Gesture): string {
+  if (gesture === 'ownership' || gesture === 'undo-ownership') return ownershipWriteError(error)
   if (error instanceof ApiError) {
     if (error.code === API_NETWORK)
       return "Couldn't reach the server. Reloading, to be sure of what was written."

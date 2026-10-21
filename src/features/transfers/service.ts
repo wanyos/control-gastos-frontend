@@ -1,16 +1,27 @@
-// The four calls of the transfers screen (feature 24), and no other: two reads and
-// the only two writes — link and unlink. Each write exposes ONE function whose request
-// is written literally here, so nothing but two movement ids (or a transferId in the
-// path) can ever travel: no amount, no category, no status, no exclusion mark (C1).
+// The calls of the transfers screen (feature 24), and no other: two reads and the only
+// two writes — link and unlink. Each write exposes ONE function whose request is written
+// literally here, so nothing but two movement ids (or a transferId in the path) can ever
+// travel: no amount, no category, no status, no exclusion mark (C1).
+//
+// Feature 35 adds the doubtful movements of own money: two reads of `GET /api/movements`
+// with `ownership=doubtful` (the list and its count) and ONE more write, the answer about
+// one movement, whose body is `{ ownershipDecision }` and nothing else.
 
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
-import { parseMovement } from '@/shared/movements'
+import {
+  MOVEMENTS_PATH,
+  getMovements,
+  parseMovement,
+  parseUpdatedMovement,
+  patch,
+} from '@/shared/movements'
+import type { Movement } from '@/shared/movements'
 import { AMBIGUOUS_TRANSFERS_PATH, TRANSFERS_PATH } from '@/shared/transfers'
 import { createValidators } from '@/shared/validation'
 
 import { groupKey } from './pairs'
-import type { AmbiguousGroup, AmbiguousMovement, TransferPair } from './types'
+import type { AmbiguousGroup, AmbiguousMovement, OwnershipDecision, TransferPair } from './types'
 
 const pairChecks = createValidators(`GET ${TRANSFERS_PATH}`)
 const ambiguousChecks = createValidators(`GET ${AMBIGUOUS_TRANSFERS_PATH}`)
@@ -105,4 +116,41 @@ export async function unlinkPair(transferId: string, client: HttpClient = http):
   await client<unknown>(`${TRANSFERS_PATH}/${encodeURIComponent(transferId)}`, {
     method: 'DELETE',
   })
+}
+
+// ─── Doubtful movements of own money (feature 35) ─────────────────────────
+
+/** How many doubtful movements the list shows at most; the sidebar number says the total. */
+export const DOUBTFUL_PAGE_SIZE = 200
+
+/** `GET /api/movements?ownership=doubtful&page=1&pageSize=200`. Read only. */
+export async function getDoubtfulOwnership(
+  client: HttpClient = http,
+): Promise<{ movements: Movement[]; total: number }> {
+  const page = await getMovements(
+    { ownership: 'doubtful', page: 1, pageSize: DOUBTFUL_PAGE_SIZE },
+    client,
+  )
+  return { movements: page.movements, total: page.pagination.total }
+}
+
+/** `GET /api/movements?ownership=doubtful&page=1&pageSize=1` → `pagination.total`. Read only. */
+export async function countDoubtfulOwnership(client: HttpClient = http): Promise<number> {
+  const page = await getMovements({ ownership: 'doubtful', page: 1, pageSize: 1 }, client)
+  return page.pagination.total
+}
+
+/**
+ * Writes the answer about ONE movement: `PATCH /api/movements/:id` with the literal body
+ * `{ ownershipDecision }`. The answer is read, so a broken one is a ValidationError, and
+ * then dropped: it does not carry `ownership`, and the list is always asked for again.
+ */
+export async function setOwnershipDecision(
+  id: number,
+  decision: OwnershipDecision,
+  client: HttpClient = http,
+): Promise<void> {
+  parseUpdatedMovement(
+    await client<unknown>(`${MOVEMENTS_PATH}/${id}`, patch({ ownershipDecision: decision })),
+  )
 }

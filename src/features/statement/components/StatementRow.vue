@@ -41,6 +41,18 @@
         >
           {{ depositText }}
         </span>
+        <!-- Feature 35: money between your accounts in grey, a doubtful one in amber. A
+             deposit movement says nothing of it: its own rule decides what it counts. -->
+        <span
+          v-if="ownershipText !== null"
+          class="font-semibold"
+          :class="isDoubtfulOwn ? 'text-warning' : 'text-ink-muted'"
+          :title="isDoubtfulOwn ? undefined : OWN_MONEY_HINT"
+          :aria-label="isDoubtfulOwn ? undefined : OWN_MONEY_HINT"
+          data-test="statement-row-ownership"
+        >
+          {{ ownershipText }}
+        </span>
         <span
           v-if="!isDeposit && movement.transferId"
           class="font-semibold"
@@ -158,6 +170,12 @@ import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
 import { countedLine, depositCountsNothing, depositLine } from '@/shared/deposits'
 import { formatMoney } from '@/shared/money'
 import { closingSourceLine } from '@/shared/movements'
+import {
+  OWN_MONEY_HINT,
+  isBetweenOwnAccounts,
+  isDoubtfulOwnership,
+  ownershipLine,
+} from '@/shared/ownership'
 
 import RowCategoryEditor from './RowCategoryEditor.vue'
 import type { Category, Movement } from '../types'
@@ -203,15 +221,21 @@ const isDoubtful = computed(() => props.movement.deposit?.ambiguous === true)
 const depositText = computed(() => depositLine(props.movement))
 const counted = computed(() => countedLine(props.movement))
 const closingText = computed(() => closingSourceLine(props.movement))
+const ownershipText = computed(() => ownershipLine(props.movement))
+/** A doubtful one still counts: amber words, and its amount as always (feature 35, R15). */
+const isDoubtfulOwn = computed(() => isDoubtfulOwnership(props.movement))
 
 /**
- * Left out of the month's figures: marked by the user, or one of a paired transfer; a
- * deposit movement only when it counts nothing (feature 31, R3, R7).
+ * Left out of the month's figures: marked by the user, one of a paired transfer, or
+ * money between your accounts (feature 35, R14); a deposit movement only when it counts
+ * nothing (feature 31, R3, R7).
  */
 const isLeftOut = computed(() =>
   isDeposit.value
     ? depositCountsNothing(props.movement)
-    : props.movement.excludedFromTotals || props.movement.transferId !== null,
+    : props.movement.excludedFromTotals ||
+      props.movement.transferId !== null ||
+      isBetweenOwnAccounts(props.movement),
 )
 
 // No category is said with the shape, not with a colour: dashed edge and no fill, in

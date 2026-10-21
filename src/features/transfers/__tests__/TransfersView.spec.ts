@@ -3,12 +3,15 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 
 import StickyBelowTopBar from '@/shared/components/StickyBelowTopBar.vue'
+import { formatDate, formatMoney } from '@/shared/money'
 
 import TransfersView from '../views/TransfersView.vue'
 import {
   AMBIGUOUS,
   BACKEND_MESSAGES,
   CONFLICT_BODY,
+  DOUBTFUL_OWN_IN,
+  DOUBTFUL_OWN_OUT,
   FINE_100,
   FINE_100_ID,
   FOUR_PAIRS,
@@ -17,12 +20,17 @@ import {
   GOOD_3,
   GROUP_OF_3,
   GROUP_OF_4,
+  MOVEMENTS,
   NOT_FOUND_BODY,
   NO_AMBIGUOUS,
+  NO_DOUBTFUL_OWN,
   NO_PAIRS,
   SERVER_ERROR_BODY,
   TRANSFERS,
+  TWO_DOUBTFUL_OWN,
   ambiguous,
+  answeredMovement,
+  doubtfulPage,
   json,
   linked,
   mockApi,
@@ -292,7 +300,9 @@ describe('TransfersView', () => {
       expect(wrapper.getComponent(StickyBelowTopBar).props('keepClearOf')).toBeUndefined()
       // Still between the title and the first section.
       expect(block.element.previousElementSibling?.tagName).toBe('H1')
-      expect(block.element.nextElementSibling?.matches('[data-test="doubtful-section"]')).toBe(true)
+      expect(block.element.nextElementSibling?.matches('[data-test="ownership-section"]')).toBe(
+        true,
+      )
     })
 
     it('puts the sentence of a failed write inside the block (R5)', async () => {
@@ -307,6 +317,120 @@ describe('TransfersView', () => {
 
       expect(wrapper.get(BLOCK).find('[data-test="transfers-action-error"]').exists()).toBe(true)
       expect(wrapper.findAll('[data-test="transfers-action-error"]')).toHaveLength(1)
+    })
+  })
+
+  // ─── Feature 35: the doubtful movements of own money ─────────────────────
+
+  describe('the doubtful movements of own money (feature 35)', () => {
+    it('lists the doubtful movements of own money above the doubtful transfers', async () => {
+      const { api, wrapper } = await mountView({
+        pairs: json(FOUR_PAIRS),
+        ambiguous: json(ambiguous(GROUP_OF_3)),
+        doubtful: json(TWO_DOUBTFUL_OWN),
+      })
+
+      const section = wrapper.get('[data-test="ownership-section"]')
+      expect(section.get('h2').text()).toBe('Doubtful: between your accounts?')
+      expect(section.get('[data-test="ownership-intro"]').text()).toBe(
+        'Each one only names the bank of one of your accounts. It counts in your totals until you answer.',
+      )
+      const rows = section.findAll('[data-test="ownership-row"]')
+      expect(rows.map((row) => row.attributes('data-movement-id'))).toEqual(['9101', '9102'])
+      expect(rows[0]?.get('[data-test="ownership-description"]').text()).toBe(
+        'TRANSF /BANCO FICTICIO NORTE',
+      )
+      expect(rows[0]?.get('[data-test="ownership-amount"]').text()).toBe(formatMoney('-350.00'))
+      expect(rows[0]?.get('[data-test="ownership-date"]').text()).toBe(formatDate('2026-10-13'))
+      expect(rows[0]?.get('[data-test="ownership-reason"]').text()).toContain(
+        '"Banco Ficticio Norte"',
+      )
+
+      // Above `Doubtful transfers`, which stays above `Linked pairs`.
+      const order = [
+        '[data-test="ownership-section"]',
+        '[data-test="doubtful-section"]',
+        '[data-test="pairs-section"]',
+      ].map((selector) => wrapper.get(selector).element)
+      expect(order[0]!.compareDocumentPosition(order[1]!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+      expect(order[1]!.compareDocumentPosition(order[2]!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+      // One read of the list, with the filter and 200 per page; nothing written.
+      expect(api.calls.filter((call) => call.path === MOVEMENTS).map((call) => call.query)).toEqual(
+        ['ownership=doubtful&page=1&pageSize=200'],
+      )
+      expect(api.writes()).toEqual([])
+    })
+
+    it('says there are no doubtful movements when the list is empty', async () => {
+      const { wrapper } = await mountView({
+        pairs: json(FOUR_PAIRS),
+        doubtful: json(NO_DOUBTFUL_OWN),
+      })
+
+      expect(wrapper.get('[data-test="ownership-empty"]').text()).toBe(
+        'No doubtful movements. When a movement only names the bank of one of your accounts, it shows up here so you can say whether it is yours.',
+      )
+      expect(wrapper.find('[data-test="ownership-row"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="ownership-error"]').exists()).toBe(false)
+    })
+
+    it('a failed read of the doubtful movements offers Try again and leaves the other sections alone', async () => {
+      let attempt = 0
+      const { api, wrapper } = await mountView({
+        pairs: json(FOUR_PAIRS),
+        ambiguous: json(ambiguous(GROUP_OF_3)),
+        doubtful: () => {
+          attempt += 1
+          return attempt === 1 ? json(SERVER_ERROR_BODY, 500)() : json(TWO_DOUBTFUL_OWN)()
+        },
+      })
+
+      expect(wrapper.get('[data-test="ownership-error-message"]').text()).toBe(
+        "Couldn't load the doubtful movements.",
+      )
+      expect(wrapper.get('[data-test="ownership-retry"]').text()).toBe('Try again')
+      expect(wrapper.text()).not.toContain(SERVER_ERROR_BODY.message)
+      // The two sections of the feature 24, painted as always.
+      expect(wrapper.findAll('[data-test="doubtful-group"]')).toHaveLength(1)
+      expect(wrapper.findAll('[data-test="transfer-pair"]')).toHaveLength(4)
+      expect(wrapper.find('[data-test="doubtful-error"]').exists()).toBe(false)
+      expect(wrapper.find('[data-test="pairs-error"]').exists()).toBe(false)
+
+      await wrapper.get('[data-test="ownership-retry"]').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('[data-test="ownership-error"]').exists()).toBe(false)
+      expect(wrapper.findAll('[data-test="ownership-row"]')).toHaveLength(2)
+      // Only the list was asked again.
+      expect(api.calls.filter((call) => call.path === MOVEMENTS)).toHaveLength(2)
+      expect(api.reads(TRANSFERS)).toBe(1)
+      expect(api.reads(AMBIGUOUS)).toBe(1)
+    })
+
+    it('a click on an answer sends it, says it with Undo, and the movement leaves the list', async () => {
+      let answered = false
+      const { api, wrapper } = await mountView({
+        pairs: json(FOUR_PAIRS),
+        doubtful: () => json(answered ? doubtfulPage(DOUBTFUL_OWN_IN) : TWO_DOUBTFUL_OWN)(),
+        answer: () => {
+          answered = true
+          return json(answeredMovement(DOUBTFUL_OWN_OUT))()
+        },
+      })
+
+      await wrapper.findAll('[data-test="ownership-mine"]')[0]?.trigger('click')
+      await flushPromises()
+
+      expect(api.writes().map((call) => call.rawBody)).toEqual(['{"ownershipDecision":"mine"}'])
+      expect(wrapper.get('[data-test="transfers-action-summary"]').text()).toContain(
+        'Marked as yours. It no longer counts in your totals.',
+      )
+      expect(wrapper.find('[data-test="transfers-action-undo"]').exists()).toBe(true)
+      expect(
+        wrapper
+          .findAll('[data-test="ownership-row"]')
+          .map((row) => row.attributes('data-movement-id')),
+      ).toEqual(['9102'])
     })
   })
 })

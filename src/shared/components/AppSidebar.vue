@@ -44,6 +44,10 @@
               v-if="entry.name === REVIEW_ROUTE_NAME"
               class="hidden md:inline-flex"
             />
+            <DoubtfulOwnershipCountBadge
+              v-if="entry.name === TRANSFERS_ROUTE_NAME"
+              class="hidden md:inline-flex"
+            />
           </span>
         </a>
       </RouterLink>
@@ -56,7 +60,11 @@ import { RouterLink } from 'vue-router'
 
 // shared → feature, as AppShell already does with the import button (feature 13).
 import ReviewCountBadge from '@/features/review/components/ReviewCountBadge.vue'
+import DoubtfulOwnershipCountBadge from '@/features/transfers/components/DoubtfulOwnershipCountBadge.vue'
 import { REVIEW_ROUTE_NAME, navEntries } from '@/router'
+
+// Here and not in `src/router/index.ts`, which the feature 36 changes (feature 35, design §8).
+const TRANSFERS_ROUTE_NAME = 'transfers'
 </script>
 
 <style scoped>

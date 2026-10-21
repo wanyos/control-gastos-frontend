@@ -20,6 +20,11 @@ import {
   EXPENSE_SAME_DAY,
   INCOME,
   NEUTRAL,
+  OWN_ANSWERED_MINE,
+  OWN_ANSWERED_NOT_MINE,
+  OWN_BY_NAME,
+  OWN_DEPOSIT_OPENING,
+  OWN_DOUBTFUL,
   TRANSFER,
   excluded,
   movement,
@@ -594,5 +599,82 @@ describe('StatementRow: the source of the category (feature 34, R15)', () => {
     }
     // An answer without the field says nothing either.
     expect(mountRow(EXPENSE).find('[data-test="statement-row-closing"]').exists()).toBe(false)
+  })
+})
+
+// Feature 35: money between your accounts, from its `ownership` (R14, R15).
+describe('StatementRow: money between your accounts (feature 35)', () => {
+  const reads = createValidators('GET /api/movements')
+  const mountRead = (raw: Record<string, unknown>) =>
+    mount(StatementRow, { props: { movement: parseMovement(reads, raw, 'movement', 'required') } })
+  const AMOUNT = '[data-test="statement-row-amount"]'
+  const DESCRIPTION = '[data-test="statement-row-description"]'
+  const OWNERSHIP = '[data-test="statement-row-ownership"]'
+  const ACCOUNT = '[data-test="statement-row-account"]'
+
+  it('crosses out money between your accounts and says so next to the account', () => {
+    for (const raw of [OWN_BY_NAME, OWN_ANSWERED_MINE]) {
+      const row = mountRead(raw)
+      const amount = row.get(AMOUNT)
+      const line = row.get(OWNERSHIP)
+
+      expect(amount.classes()).toContain('line-through')
+      expect(amount.classes()).toContain('text-ink-faint')
+      expect(amount.classes()).not.toContain('text-positive')
+      expect(amount.classes()).not.toContain('text-ink-strong')
+      expect(row.get(DESCRIPTION).classes()).toContain('text-ink-muted')
+      expect(line.text()).toBe('Between your accounts')
+      expect(line.classes()).toContain('text-ink-muted')
+      expect(line.classes()).not.toContain('text-warning')
+      expect(line.attributes('aria-label')).toBe(
+        "Money between your accounts: not counted in this month's figures",
+      )
+      // Same line as the account, as a plain word and not a badge.
+      expect(line.element.tagName).toBe('SPAN')
+      expect(line.element.parentElement).toBe(row.get(ACCOUNT).element.parentElement)
+    }
+    // The amount keeps its sign.
+    expect(mountRead(OWN_BY_NAME).get(AMOUNT).text()).toBe(formatMoney('-400.00'))
+    expect(mountRead(OWN_ANSWERED_MINE).get(AMOUNT).text()).toBe(formatMoney('150.00'))
+  })
+
+  it('paints a doubtful movement of own money with Doubtful in amber and its amount not crossed out', () => {
+    const row = mountRead(OWN_DOUBTFUL)
+    const amount = row.get(AMOUNT)
+    const line = row.get(OWNERSHIP)
+
+    expect(line.text().startsWith('Doubtful')).toBe(true)
+    expect(line.text()).toBe(
+      'Doubtful · names Banco Ficticio Norte · counts until you answer in Transfers',
+    )
+    expect(line.classes()).toContain('text-warning')
+    expect(line.classes()).toContain('font-semibold')
+    expect(amount.classes()).not.toContain('line-through')
+    expect(amount.classes()).not.toContain('text-ink-faint')
+    // An expense that counts, painted as always.
+    expect(amount.classes()).toContain('text-ink-strong')
+    expect(amount.text()).toBe(formatMoney('-350.00'))
+    expect(row.get(DESCRIPTION).classes()).toContain('text-ink-strong')
+
+    // A doubtful income keeps its green.
+    const income = mountRead({ ...OWN_DOUBTFUL, type: 'income' })
+    expect(income.get(AMOUNT).classes()).toContain('text-positive')
+  })
+
+  it('leaves a deposit movement and a not mine movement painted as before', () => {
+    // The deposit rule wins: painted as in the feature 31, nothing about ownership.
+    const deposit = mountRead(OWN_DEPOSIT_OPENING)
+    expect(deposit.find(OWNERSHIP).exists()).toBe(false)
+    expect(deposit.get('[data-test="statement-row-deposit"]').text()).toBe('Deposit opening')
+    expect(deposit.get(AMOUNT).classes()).toContain('line-through')
+    const plainOpening = mountRead({ ...OWN_DEPOSIT_OPENING, ownership: null })
+    expect(deposit.html()).toBe(plainOpening.html())
+
+    // `not_mine` counts like any other movement: same row as without ownership.
+    const notMine = mountRead(OWN_ANSWERED_NOT_MINE)
+    expect(notMine.find(OWNERSHIP).exists()).toBe(false)
+    expect(notMine.get(AMOUNT).classes()).toContain('text-ink-strong')
+    expect(notMine.get(AMOUNT).classes()).not.toContain('line-through')
+    expect(notMine.html()).toBe(mountRead({ ...OWN_ANSWERED_NOT_MINE, ownership: null }).html())
   })
 })

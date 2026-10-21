@@ -5,6 +5,22 @@ import type { Page, Request } from '@playwright/test'
 // is answered with page.route. POST /api/import is NEVER let through to a real
 // server: it moves files in Drive and rewrites the database.
 
+/**
+ * Feature 35: the sidebar asks on every screen how many doubtful movements of own money
+ * there are (`GET /api/movements?ownership=doubtful`). Here there are none. Registered
+ * after every route of `/api/movements`, so it wins; and kept out of the reads the tests
+ * of this file watch.
+ */
+const isDoubtfulRead = (url: URL): boolean =>
+  url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+const NO_DOUBTFUL_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
+const routeNoDoubtful = (page: Page): Promise<void> =>
+  page.route(isDoubtfulRead, (route) => route.fulfill({ json: NO_DOUBTFUL_PAGE }))
+
 const NET_WORTH_SAMPLE = {
   asOf: '2026-09-15',
   lastDataDate: '2026-09-15',
@@ -121,6 +137,7 @@ async function prepare(page: Page, answerImport: Parameters<Page['route']>[1]): 
       },
     }),
   )
+  await routeNoDoubtful(page)
   await page.route('**/api/import', answerImport)
   return watch
 }

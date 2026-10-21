@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
 import type { Router } from 'vue-router'
@@ -116,5 +116,44 @@ describe('AppShell', () => {
     const wordmark = wrapper.get('[data-test="wordmark"]').text()
     expect(wordmark).toContain('accounts')
     expect(wordmark).not.toContain('cuentas')
+  })
+
+  // Feature 35: the number of doubtful movements of own money, next to `Transfers` only.
+  it('puts the doubtful count next to Transfers and nowhere else', async () => {
+    vi.restoreAllMocks()
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = new URL(String(input))
+      if (url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              movements: [],
+              pagination: { page: 1, pageSize: 1, total: 3, totalPages: 3 },
+              totals: { income: '0.00', expense: '0.00', net: '0.00' },
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+        )
+      }
+      // Everything else stays pending, as in the other tests of the shell.
+      return new Promise<Response>(() => {})
+    })
+    const { wrapper } = await mountShell('/net-worth')
+    await flushPromises()
+
+    const badges = wrapper.findAll('[data-test="transfers-doubtful-count"]')
+    expect(badges).toHaveLength(1)
+    expect(badges[0]?.text()).toBe('3')
+    const transfers = wrapper
+      .findAll('nav a')
+      .find((link) => link.attributes('href') === '/transfers')
+    expect(transfers?.element.contains(badges[0]!.element)).toBe(true)
+    // Same place and same breakpoints as the number of Review.
+    expect(badges[0]?.classes()).toEqual(expect.arrayContaining(['hidden', 'md:inline-flex']))
+    // The order, labels and icons of the entries do not change.
+    expect(wrapper.findAll('nav a').map((link) => link.attributes('aria-label'))).toEqual(
+      navEntries.map((entry) => entry.label),
+    )
+    expect(wrapper.findAll('nav a svg')).toHaveLength(navEntries.length)
   })
 })

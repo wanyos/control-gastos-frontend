@@ -7,6 +7,22 @@ import type { Page, Request, Route } from '@playwright/test'
 // every pending movement at once and cannot be undone — can never reach a real
 // backend. Nothing in this file talks to :3000.
 
+/**
+ * Feature 35: the sidebar asks on every screen how many doubtful movements of own money
+ * there are (`GET /api/movements?ownership=doubtful`). Here there are none. Registered
+ * after every route of `/api/movements`, so it wins; and kept out of the reads the tests
+ * of this file watch.
+ */
+const isDoubtfulRead = (url: URL): boolean =>
+  url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+const NO_DOUBTFUL_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
+const routeNoDoubtful = (page: Page): Promise<void> =>
+  page.route(isDoubtfulRead, (route) => route.fulfill({ json: NO_DOUBTFUL_PAGE }))
+
 const ACCOUNT = {
   id: 1,
   iban: 'ES9820385778983000760236',
@@ -51,6 +67,7 @@ const movement = (id: number, description: string, extra: Movement = {}): Moveme
   // Since the backend's feature 49 every movement carries it, born false (feature 22).
   excludedFromTotals: false,
   deposit: null,
+  ownership: null,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-08-06T18:30:00.000Z',
@@ -254,6 +271,7 @@ async function prepare(page: Page, options: Options = {}) {
       ? answerMovements(route, new URL(route.request().url()).searchParams)
       : route.abort(),
   )
+  await routeNoDoubtful(page)
 
   await page.route('**/api/category-rules', (route) => {
     const request = route.request()
@@ -494,7 +512,7 @@ test('the dialog says how many movements a text would match, and writes nothing'
   const reads: string[] = []
   page.on('request', (request) => {
     const url = new URL(request.url())
-    if (url.pathname === '/api/movements') reads.push(url.search)
+    if (url.pathname === '/api/movements' && !isDoubtfulRead(url)) reads.push(url.search)
   })
 
   await page.goto('/review')
@@ -1020,7 +1038,9 @@ test('a create from a suggestion that fails leaves the list as it was and says w
   const sent: string[] = []
   page.on('request', (request) => {
     const url = new URL(request.url())
-    if (url.pathname.startsWith('/api/')) sent.push(`${request.method()} ${url.pathname}`)
+    if (url.pathname.startsWith('/api/') && !isDoubtfulRead(url)) {
+      sent.push(`${request.method()} ${url.pathname}`)
+    }
   })
 
   const academy = page.getByTestId('suggested-rule').first()

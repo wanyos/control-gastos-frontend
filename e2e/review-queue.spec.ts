@@ -5,6 +5,22 @@ import type { Page, Request } from '@playwright/test'
 // call is answered with page.route. This screen only reads, and the safety net below
 // aborts anything that is not one of its two GETs, so no write can ever leak out.
 
+/**
+ * Feature 35: the sidebar asks on every screen how many doubtful movements of own money
+ * there are (`GET /api/movements?ownership=doubtful`). Here there are none. Registered
+ * after every route of `/api/movements`, so it wins; and kept out of the reads the tests
+ * of this file watch.
+ */
+const isDoubtfulRead = (url: URL): boolean =>
+  url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+const NO_DOUBTFUL_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
+const routeNoDoubtful = (page: Page): Promise<void> =>
+  page.route(isDoubtfulRead, (route) => route.fulfill({ json: NO_DOUBTFUL_PAGE }))
+
 const ACCOUNT = {
   id: 1,
   iban: 'ES9820385778983000760236',
@@ -33,6 +49,7 @@ const movement = (id: number, description: string, extra: Record<string, unknown
   // Since the backend's feature 49 every movement carries it, born false (feature 22).
   excludedFromTotals: false,
   deposit: null,
+  ownership: null,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-08-06T18:30:00.000Z',
@@ -110,7 +127,10 @@ async function prepare(page: Page) {
   })
   page.on('pageerror', (error) => watch.pageErrors.push(error))
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname === '/api/movements') watch.movementRequests.push(request)
+    const url = new URL(request.url())
+    if (url.pathname === '/api/movements' && !isDoubtfulRead(url)) {
+      watch.movementRequests.push(request)
+    }
   })
 
   // Safety net first (later routes win): any other API call is aborted, never proxied.
@@ -126,6 +146,7 @@ async function prepare(page: Page) {
     if (query.get('uncategorized') === 'true') return route.fulfill({ json: UNCATEGORIZED_PAGE })
     return route.fulfill({ json: query.get('page') === '2' ? PAGE_TWO : PAGE_ONE })
   })
+  await routeNoDoubtful(page)
 
   return watch
 }

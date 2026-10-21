@@ -39,6 +39,8 @@ const base = {
   updatedAt: '2026-09-12T18:30:00.000Z',
   // Since the backend's feature 57 `GET /api/movements` carries it; null = not a deposit.
   deposit: null,
+  // Since the backend's feature 62, only in the GET too; null = not own money.
+  ownership: null,
 }
 
 /** A raw movement of the month, as the API sends it. */
@@ -601,11 +603,101 @@ export const DEPOSIT_MONTH_PAGE = {
   totals: DEPOSIT_TOTALS,
 }
 
-/** A movement as a PATCH answers it: everything but `deposit`, which only a GET carries. */
+/**
+ * A movement as a PATCH answers it: everything but `deposit` and `ownership`, which only
+ * a GET carries.
+ */
 export const asPatchAnswer = (raw: Record<string, unknown>): Record<string, unknown> => {
   const answer = { ...raw }
   delete answer.deposit
+  delete answer.ownership
   return answer
+}
+
+// ─── Feature 35: money between your own accounts ──────────────────────────
+// Invented, shaped like the contract (`movements[].ownership`, backend feature 62), all
+// in November 2026 on the Bankinter account. No real names, shops nor account numbers.
+
+/** The `ownership` object of a movement. */
+const ownershipOf = (
+  status: 'own' | 'doubtful' | 'mine' | 'not_mine',
+  ownAccountId: number | null,
+  ownAccountName: string | null,
+  matchedText: string | null,
+): Record<string, unknown> => ({ status, ownAccountId, ownAccountName, matchedText })
+
+const november = (day: string): Record<string, unknown> => ({
+  bookingDate: `2026-11-${day}`,
+  valueDate: `2026-11-${day}`,
+})
+
+/** Yours by a form of your name: `ownAccountId` null, as the contract says. Counts 0. */
+export const OWN_BY_NAME = movement({
+  ...november('03'),
+  id: 60,
+  type: 'expense',
+  amount: '400.00',
+  description: 'TRANSF /TITULAR INVENTADO',
+  ownership: ownershipOf('own', null, null, 'Titular Inventado'),
+})
+
+/** Answered as yours: counts 0. */
+export const OWN_ANSWERED_MINE = movement({
+  ...november('06'),
+  id: 61,
+  type: 'income',
+  amount: '150.00',
+  description: 'TRANSF /BANCO FICTICIO SUR',
+  ownership: ownershipOf('mine', 7, 'Ahorro inventado', 'Banco Ficticio Sur'),
+})
+
+/** Doubtful: only names the bank of one of your accounts. Still counts. */
+export const OWN_DOUBTFUL = movement({
+  ...november('10'),
+  id: 62,
+  type: 'expense',
+  amount: '350.00',
+  description: 'TRANSF /BANCO FICTICIO NORTE',
+  ownership: ownershipOf('doubtful', 4, 'Cartera inventada', 'Banco Ficticio Norte'),
+})
+
+/** Answered as not yours: counts like any other movement. */
+export const OWN_ANSWERED_NOT_MINE = movement({
+  ...november('14'),
+  id: 63,
+  type: 'expense',
+  amount: '80.00',
+  description: 'TRANSF /BANCO FICTICIO NORTE PAGO',
+  ownership: ownershipOf('not_mine', 4, 'Cartera inventada', 'Banco Ficticio Norte'),
+})
+
+/** A deposit opening whose concept also matches your table: the deposit rule wins. */
+export const OWN_DEPOSIT_OPENING = movement({
+  ...november('18'),
+  id: 64,
+  type: 'expense',
+  accountId: 2,
+  account: MYINVESTOR,
+  amount: '5000.00',
+  description: 'APERTURA DEP. 000006',
+  deposit: resolvedDeposit('opening', '5000.00'),
+  ownership: ownershipOf('own', 7, 'Ahorro inventado', 'Ahorro inventado'),
+})
+
+/** The five of them, newest first, as the API sends a month. */
+export const OWN_ROWS = [
+  OWN_DEPOSIT_OPENING,
+  OWN_ANSWERED_NOT_MINE,
+  OWN_DOUBTFUL,
+  OWN_ANSWERED_MINE,
+  OWN_BY_NAME,
+]
+
+/** November 2026: the five in one page, with the backend's figures. */
+export const OWN_MONTH_PAGE = {
+  movements: OWN_ROWS,
+  pagination: { page: 1, pageSize: 200, total: 5, totalPages: 1 },
+  totals: { income: '0.00', expense: '430.00', net: '-430.00' },
 }
 
 // ─── Feature 34: where the category came from, and the preview of a rule ─────

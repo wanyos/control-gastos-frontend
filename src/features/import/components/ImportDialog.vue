@@ -63,6 +63,14 @@
       data-test="import-step-finished"
     >
       <ImportSummary :report="flow.report" />
+      <!-- Feature 35: only when the import brought doubtful movements of own money. -->
+      <p
+        v-if="newDoubtfulCount !== null && newDoubtfulCount > 0"
+        class="text-sm text-warning"
+        data-test="import-new-doubtful"
+      >
+        {{ newDoubtfulLine(newDoubtfulCount) }}
+      </p>
       <FileIssueList :files="issueFiles(flow.report)" />
       <ImportDetails :report="flow.report" />
     </div>
@@ -154,6 +162,7 @@ import {
   foundText,
   importActionLabel,
   importingText,
+  newDoubtfulLine,
   phaseAnnouncement,
 } from '../summary'
 import FileIssueList from './FileIssueList.vue'
@@ -168,7 +177,7 @@ const MAY_HAVE_IMPORTED =
   'Some files may already have been imported. Trying again is safe: nothing is imported twice.'
 
 const store = useImportStore()
-const { flow } = storeToRefs(store)
+const { flow, newDoubtfulCount } = storeToRefs(store)
 
 const dialogRef = ref<InstanceType<typeof BaseDialog> | null>(null)
 

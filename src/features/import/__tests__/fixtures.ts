@@ -419,14 +419,26 @@ export function mockApi(answers: {
   netWorth?: Answer
   /** The review queue count, asked after every import (feature 15). */
   movements?: Answer
+  /**
+   * Feature 35: `GET /api/movements?ownership=doubtful`, read before and after every
+   * import and for the sidebar number. Recorded as GET_DOUBTFUL, apart from
+   * GET_MOVEMENTS, so the reads the other tests count stay the same.
+   */
+  doubtful?: Answer
 }) {
   const calls: string[] = []
+  /** The querystring of every doubtful read, in order. */
+  const doubtfulQueries: string[] = []
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
-    const path = new URL(String(input)).pathname
+    const url = new URL(String(input))
+    const path = url.pathname
     const method = init?.method ?? 'GET'
-    calls.push(`${method} ${path}`)
-    const answer =
-      path === '/api/ingestion/pending'
+    const doubtful = path === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+    calls.push(doubtful ? GET_DOUBTFUL : `${method} ${path}`)
+    if (doubtful) doubtfulQueries.push(url.search.replace(/^\?/, ''))
+    const answer = doubtful
+      ? answers.doubtful
+      : path === '/api/ingestion/pending'
         ? answers.pending
         : path === '/api/import'
           ? answers.import
@@ -436,7 +448,7 @@ export function mockApi(answers: {
     return answer ? answer() : Promise.reject(new TypeError(`unexpected ${method} ${path}`))
   })
   const count = (call: string) => calls.filter((c) => c === call).length
-  return { calls, spy, count }
+  return { calls, spy, count, doubtfulQueries }
 }
 
 export const json =
@@ -458,6 +470,50 @@ export const GET_PENDING = 'GET /api/ingestion/pending'
 export const POST_IMPORT = 'POST /api/import'
 export const GET_NET_WORTH = 'GET /api/net-worth'
 export const GET_MOVEMENTS = 'GET /api/movements'
+export const GET_DOUBTFUL = 'GET /api/movements?ownership=doubtful'
+
+/** A page of `GET /api/movements?ownership=doubtful` with these ids (feature 35). */
+export const doubtfulIdsPage = (...ids: number[]) => ({
+  movements: ids.map((id) => ({
+    id,
+    type: 'expense',
+    bookingDate: '2026-10-13',
+    valueDate: '2026-10-13',
+    amount: '350.00',
+    description: 'TRANSF /BANCO FICTICIO NORTE',
+    balanceAfter: null,
+    currency: 'EUR',
+    note: null,
+    accountId: 1,
+    account: {
+      id: 1,
+      iban: 'ES0000000000000000000001',
+      bank: 'bankinter',
+      alias: 'bankinter ···0001',
+      type: 'checking',
+    },
+    categoryId: null,
+    categorySource: null,
+    category: null,
+    paymentMethod: null,
+    origin: 'imported',
+    status: 'pending_review',
+    excludedFromTotals: false,
+    transferId: null,
+    daySequence: 1,
+    createdAt: '2026-10-14T08:00:00.000Z',
+    updatedAt: '2026-10-14T08:00:00.000Z',
+    deposit: null,
+    ownership: {
+      status: 'doubtful',
+      ownAccountId: 4,
+      ownAccountName: 'Cartera inventada',
+      matchedText: 'Banco Ficticio Norte',
+    },
+  })),
+  pagination: { page: 1, pageSize: 200, total: ids.length, totalPages: ids.length > 0 ? 1 : 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+})
 
 /** What the review count query answers: only `pagination.total` is read (feature 15). */
 export const PENDING_COUNT_PAGE = {

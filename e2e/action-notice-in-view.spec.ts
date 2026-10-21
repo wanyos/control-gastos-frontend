@@ -19,6 +19,22 @@ import type { Locator, Page, Route } from '@playwright/test'
 // The page needs somewhere to scroll to: the lists are long (64 rows in Review, 66 lines
 // in Movements, 24 pairs in Transfers) and the window is the 1280×720 of the project.
 
+/**
+ * Feature 35: the sidebar asks on every screen how many doubtful movements of own money
+ * there are (`GET /api/movements?ownership=doubtful`). Here there are none. Registered
+ * after every route of `/api/movements`, so it wins; and kept out of the reads the tests
+ * of this file watch.
+ */
+const isDoubtfulRead = (url: URL): boolean =>
+  url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+const NO_DOUBTFUL_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
+const routeNoDoubtful = (page: Page): Promise<void> =>
+  page.route(isDoubtfulRead, (route) => route.fulfill({ json: NO_DOUBTFUL_PAGE }))
+
 type Raw = Record<string, unknown>
 
 const CHECKING = {
@@ -91,6 +107,7 @@ const movement = (id: number, day: string, index: number, extra: Raw = {}): Raw 
   status: 'pending_review',
   excludedFromTotals: false,
   deposit: null,
+  ownership: null,
   transferId: null,
   daySequence: 1,
   createdAt: '2026-09-12T18:30:00.000Z',
@@ -341,6 +358,7 @@ async function routeReview(
     if (request.method() !== 'GET') return stop(route)
     return answerGet(route, new URL(request.url()).searchParams)
   })
+  await routeNoDoubtful(page)
   await page.route('**/api/movements/*', (route) =>
     route.request().method() === 'PATCH' ? answerPatch(route) : stop(route),
   )
@@ -480,6 +498,7 @@ async function routeMovements(page: Page, watch: Watch, options: { reject?: bool
       },
     })
   })
+  await routeNoDoubtful(page)
 
   // Feature 34: every line here already has a category, so the preview moves nothing.
   await page.route('**/api/category-rules/preview*', (route) =>
@@ -548,6 +567,7 @@ async function routeTransfers(page: Page, watch: Watch, options: { reject?: bool
         })
       : stop(route),
   )
+  await routeNoDoubtful(page)
   await page.route('**/api/transfers**', (route) => {
     const request = route.request()
     const method = request.method()
@@ -961,7 +981,7 @@ test('at the top of the page the notice sits between the same blocks as before',
   await pairs.first().getByTestId('pair-unlink').click()
   await page.getByTestId('unlink-continue').click()
   await expect(page.getByTestId('transfers-action-summary')).toContainText('Pair unlinked.')
-  await expectBetween(page, 'h1', '[data-test="doubtful-section"]')
+  await expectBetween(page, 'h1', '[data-test="ownership-section"]')
   await expectInView(page, page.getByTestId('transfers-action-summary'))
 
   expectNothingUnforeseen(watch)

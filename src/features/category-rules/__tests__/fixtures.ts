@@ -424,6 +424,7 @@ export const movement = (
   createdAt: '2026-08-06T18:30:00.000Z',
   updatedAt: '2026-08-06T18:30:00.000Z',
   deposit: null,
+  ownership: null,
   ...overrides,
 })
 

@@ -11,6 +11,22 @@ import type { Locator, Page, Route } from '@playwright/test'
 // checks to be empty at the end. The dev server proxies /api to a real backend on :3000,
 // so without that first route the PATCH or the POST of this file would really be sent.
 
+/**
+ * Feature 35: the sidebar asks on every screen how many doubtful movements of own money
+ * there are (`GET /api/movements?ownership=doubtful`). Here there are none. Registered
+ * after every route of `/api/movements`, so it wins; and kept out of the reads the tests
+ * of this file watch.
+ */
+const isDoubtfulRead = (url: URL): boolean =>
+  url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+const NO_DOUBTFUL_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
+const routeNoDoubtful = (page: Page): Promise<void> =>
+  page.route(isDoubtfulRead, (route) => route.fulfill({ json: NO_DOUBTFUL_PAGE }))
+
 type Raw = Record<string, unknown>
 
 const CHECKING = {
@@ -80,6 +96,7 @@ const monthRows = (month: string): Raw[] => {
     status: 'pending_review',
     excludedFromTotals: false,
     deposit: null,
+    ownership: null,
     transferId: null,
     daySequence: 1,
     createdAt: '2026-09-12T18:30:00.000Z',
@@ -228,6 +245,7 @@ async function prepare(page: Page): Promise<Watch> {
       },
     })
   })
+  await routeNoDoubtful(page)
 
   await page.route('**/api/category-rules/preview*', (route) => {
     const request = route.request()

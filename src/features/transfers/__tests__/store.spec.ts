@@ -8,17 +8,23 @@ import {
   AMBIGUOUS,
   BACKEND_MESSAGES,
   CONFLICT_BODY,
+  DOUBTFUL_OWN_IN,
+  DOUBTFUL_OWN_OUT,
   FINE_100,
   FINE_100_ID,
   FOUR_PAIRS,
   GROUP_OF_3,
   GROUP_OF_4,
   GOOD_1,
+  MOVEMENTS,
   NOT_FOUND_BODY,
   SERVER_ERROR_BODY,
   TRANSFERS,
+  TWO_DOUBTFUL_OWN,
   VALIDATION_BODY,
   ambiguous,
+  answeredMovement,
+  doubtfulPage,
   deferred,
   json,
   linked,
@@ -28,7 +34,9 @@ import {
   noContent,
 } from './fixtures'
 
-const BOTH_READS = [`GET ${TRANSFERS}`, `GET ${AMBIGUOUS}`]
+// Since feature 35 the screen reads three lists: the pairs, the doubtful groups and the
+// doubtful movements of own money (`GET /api/movements?ownership=doubtful`).
+const SCREEN_READS = [`GET ${TRANSFERS}`, `GET ${AMBIGUOUS}`, `GET ${MOVEMENTS}`]
 
 async function loaded(answers: Parameters<typeof mockApi>[0]) {
   const api = mockApi({ pairs: json(FOUR_PAIRS), ...answers })
@@ -56,7 +64,7 @@ describe('transfers store', () => {
     it('asks for each list once and keeps the backend order', async () => {
       const { api, store } = await loaded({ ambiguous: json(ambiguous(GROUP_OF_3)) })
 
-      expect([...api.log()].sort()).toEqual([...BOTH_READS].sort())
+      expect([...api.log()].sort()).toEqual([...SCREEN_READS].sort())
       expect(store.pairsStatus).toBe('ready')
       expect(store.groupsStatus).toBe('ready')
       expect(store.pairs.map((pair) => pair.transferId)).toEqual(
@@ -315,7 +323,8 @@ describe('transfers store', () => {
       await store.link('no-such-group')
 
       expect(api.writes()).toEqual([])
-      expect(api.log()).toHaveLength(2)
+      // The three reads of the load (feature 35 added the third), and nothing else.
+      expect(api.log()).toHaveLength(3)
       expect(store.notice).toEqual({ summary: null, error: null, undo: null })
     })
 
@@ -441,8 +450,9 @@ describe('transfers store', () => {
         'POST',
       ])
       const of = (method: string) => api.calls.filter((call) => call.method === method)
+      // Since feature 35 the load also reads the doubtful movements of own money.
       expect([...new Set(of('GET').map((call) => call.path))].sort()).toEqual(
-        [TRANSFERS_PATH, AMBIGUOUS_TRANSFERS_PATH].sort(),
+        [TRANSFERS_PATH, AMBIGUOUS_TRANSFERS_PATH, MOVEMENTS].sort(),
       )
       expect(of('POST').map((call) => call.path)).toEqual([TRANSFERS_PATH, TRANSFERS_PATH])
       expect(
@@ -458,6 +468,217 @@ describe('transfers store', () => {
       for (const field of ['amount', 'categoryId', 'status', 'excludedFromTotals', 'note']) {
         expect(bodies).not.toContain(field)
       }
+    })
+  })
+
+  // ─── Feature 35: the doubtful movements of own money ─────────────────────
+  describe('the doubtful movements of own money (feature 35)', () => {
+    const doubtfulReads = (api: ReturnType<typeof mockApi>) =>
+      api.calls.filter((call) => call.method === 'GET' && call.path === MOVEMENTS)
+    const answers = (api: ReturnType<typeof mockApi>) =>
+      api.writes().map((call) => `${call.method} ${call.path} ${call.rawBody ?? ''}`)
+
+    /** The list answers two doubtful ones until something is answered, then one. */
+    const shrinking = () => {
+      let answered = false
+      return {
+        doubtful: () => json(answered ? doubtfulPage(DOUBTFUL_OWN_IN) : TWO_DOUBTFUL_OWN)(),
+        answer: () => {
+          answered = true
+          return json(answeredMovement(DOUBTFUL_OWN_OUT))()
+        },
+      }
+    }
+
+    it('answering it is mine sends mine for that movement and reloads the doubtful list', async () => {
+      const { api, store } = await loaded(shrinking())
+      expect(store.ownership.map((one) => one.id)).toEqual([9101, 9102])
+
+      await store.answerOwnership(9101, 'mine')
+
+      expect(answers(api)).toEqual(['PATCH /api/movements/9101 {"ownershipDecision":"mine"}'])
+      expect(store.notice).toEqual({
+        summary: 'Marked as yours. It no longer counts in your totals.',
+        error: null,
+        undo: { kind: 'ownership', movementId: 9101 },
+      })
+      expect(doubtfulReads(api)).toHaveLength(2)
+      expect(store.ownership.map((one) => one.id)).toEqual([9102])
+      expect(store.doubtfulCount).toBe(1)
+    })
+
+    it('answering not mine sends not_mine for that movement and reloads the doubtful list', async () => {
+      const { api, store } = await loaded(shrinking())
+
+      await store.answerOwnership(9101, 'not_mine')
+
+      expect(answers(api)).toEqual(['PATCH /api/movements/9101 {"ownershipDecision":"not_mine"}'])
+      expect(store.notice).toEqual({
+        summary: 'Marked as not yours. It counts in your totals.',
+        error: null,
+        undo: { kind: 'ownership', movementId: 9101 },
+      })
+      expect(doubtfulReads(api)).toHaveLength(2)
+      expect(store.ownership.map((one) => one.id)).toEqual([9102])
+    })
+
+    it('undo sends a null decision for the same movement and reloads', async () => {
+      let answered = false
+      const { api, store } = await loaded({
+        doubtful: () => json(answered ? doubtfulPage(DOUBTFUL_OWN_IN) : TWO_DOUBTFUL_OWN)(),
+        answer: () => {
+          answered = !answered
+          return json(answeredMovement(DOUBTFUL_OWN_OUT))()
+        },
+      })
+      await store.answerOwnership(9101, 'not_mine')
+      expect(store.ownership.map((one) => one.id)).toEqual([9102])
+
+      await store.undo()
+
+      expect(answers(api)).toEqual([
+        'PATCH /api/movements/9101 {"ownershipDecision":"not_mine"}',
+        'PATCH /api/movements/9101 {"ownershipDecision":null}',
+      ])
+      expect(store.notice).toEqual({ summary: 'Answer undone.', error: null, undo: null })
+      expect(doubtfulReads(api)).toHaveLength(3)
+      expect(store.ownership.map((one) => one.id)).toEqual([9101, 9102])
+      // Nothing to undo after the Undo.
+      await store.undo()
+      expect(api.writes()).toHaveLength(2)
+    })
+
+    it('a rejected answer says why and leaves the list as it was', async () => {
+      const { api, store } = await loaded({
+        doubtful: json(TWO_DOUBTFUL_OWN),
+        answer: json(VALIDATION_BODY, 400),
+      })
+
+      await store.answerOwnership(9101, 'mine')
+
+      expect(store.notice).toEqual({
+        summary: null,
+        error: 'Nothing changed. The server rejected that answer.',
+        undo: null,
+      })
+      // A 400 proves nothing was written: nothing is read again.
+      expect(doubtfulReads(api)).toHaveLength(1)
+      expect(api.reads(TRANSFERS)).toBe(1)
+      expect(store.ownership.map((one) => one.id)).toEqual([9101, 9102])
+      expect(store.notice.error).not.toContain(VALIDATION_BODY.message)
+    })
+
+    it('a network failure on an answer says so and reloads', async () => {
+      const { api, store } = await loaded({ doubtful: json(TWO_DOUBTFUL_OWN), answer: networkDown })
+
+      await store.answerOwnership(9102, 'not_mine')
+
+      expect(store.notice).toEqual({
+        summary: null,
+        error: "Couldn't reach the server. Reloading, to be sure of what was written.",
+        undo: null,
+      })
+      expect(doubtfulReads(api)).toHaveLength(2)
+      expect(api.reads(TRANSFERS)).toBe(2)
+
+      // A 404 and a 500 reload too, each with its sentence.
+      for (const [body, status, sentence] of [
+        [NOT_FOUND_BODY, 404, 'That movement no longer exists. Nothing changed. Reloading.'],
+        [SERVER_ERROR_BODY, 500, 'Something went wrong. Reloading to show what really happened.'],
+      ] as const) {
+        vi.restoreAllMocks()
+        setActivePinia(createPinia())
+        const again = await loaded({ doubtful: json(TWO_DOUBTFUL_OWN), answer: json(body, status) })
+        await again.store.answerOwnership(9101, 'mine')
+        expect(again.store.notice.error).toBe(sentence)
+        expect(doubtfulReads(again.api)).toHaveLength(2)
+      }
+    })
+
+    it('a second answer while one is in flight sends nothing', async () => {
+      const slow = deferred()
+      const { api, store } = await loaded({
+        doubtful: json(TWO_DOUBTFUL_OWN),
+        answer: slow.answer,
+        unlink: noContent,
+      })
+
+      const first = store.answerOwnership(9101, 'mine')
+      expect(store.busy).toBe(true)
+
+      // The other row, the same row again, the other answer and an unlink, all while busy.
+      await store.answerOwnership(9102, 'mine')
+      await store.answerOwnership(9101, 'not_mine')
+      store.requestUnlink(fineOf(store))
+      await store.confirmUnlink()
+      await store.undo()
+
+      expect(api.writes()).toHaveLength(1)
+
+      slow.resolve(
+        new Response(JSON.stringify(answeredMovement(DOUBTFUL_OWN_OUT)), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      )
+      await first
+
+      expect(store.busy).toBe(false)
+      expect(answers(api)).toEqual(['PATCH /api/movements/9101 {"ownershipDecision":"mine"}'])
+    })
+
+    it('loading and reloading the screen send no answer', async () => {
+      const { api, store } = await loaded({ doubtful: json(TWO_DOUBTFUL_OWN) })
+
+      await store.reloadLists()
+      await store.reloadIfLoaded()
+      await store.retryOwnership()
+      await store.refreshDoubtfulCount()
+      await store.load()
+
+      expect(api.writes()).toEqual([])
+      expect([...new Set(api.calls.map((call) => call.method))]).toEqual(['GET'])
+      expect(store.ownership).toHaveLength(2)
+    })
+
+    it('the doubtful count follows the last read of the list', async () => {
+      const seven = {
+        ...TWO_DOUBTFUL_OWN,
+        pagination: { page: 1, pageSize: 200, total: 7, totalPages: 1 },
+      }
+      let page: unknown = seven
+      const api = mockApi({ pairs: json(FOUR_PAIRS), doubtful: () => json(page)() })
+      const store = useTransfersStore()
+
+      await store.refreshDoubtfulCount()
+      expect(store.doubtfulCount).toBe(7)
+      expect(doubtfulReads(api).map((call) => call.query)).toEqual([
+        'ownership=doubtful&page=1&pageSize=1',
+      ])
+
+      page = doubtfulPage(DOUBTFUL_OWN_IN)
+      await store.load()
+      expect(store.doubtfulCount).toBe(1)
+      expect(doubtfulReads(api)[1]?.query).toBe('ownership=doubtful&page=1&pageSize=200')
+
+      // A failed read of the list leaves the number as it was.
+      page = { broken: true }
+      await store.retryOwnership()
+      expect(store.ownershipStatus).toBe('error')
+      expect(store.doubtfulCount).toBe(1)
+    })
+
+    it('a failed count leaves the number unknown', async () => {
+      mockApi({ doubtful: json(TWO_DOUBTFUL_OWN) })
+      const store = useTransfersStore()
+      await store.refreshDoubtfulCount()
+      expect(store.doubtfulCount).toBe(2)
+
+      vi.restoreAllMocks()
+      mockApi({ doubtful: networkDown })
+      await expect(store.refreshDoubtfulCount()).resolves.toBeUndefined()
+
+      expect(store.doubtfulCount).toBeNull()
     })
   })
 })

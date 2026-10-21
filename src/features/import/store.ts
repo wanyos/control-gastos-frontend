@@ -9,7 +9,7 @@ import { useTransfersStore } from '@/features/transfers/store'
 import type { HttpClient } from '@/services/http'
 import { ValidationError, toAppError } from '@/shared/errors'
 
-import { getPendingFiles, isDriveError, runImport } from './service'
+import { getPendingFiles, isDriveError, readDoubtfulIds, runImport } from './service'
 import type { FailureKind, ImportFlow, PendingFiles } from './types'
 
 /**
@@ -22,6 +22,12 @@ export const useImportStore = defineStore('import', () => {
   const pending = ref<PendingFiles | null>(null)
   const flow = ref<ImportFlow>({ step: 'closed' })
   const isImporting = computed(() => flow.value.step === 'importing')
+  /**
+   * How many doubtful movements of own money the last import brought (feature 35, R13):
+   * the ones there after it that were not there before. Null when unknown: no import yet,
+   * or one of the two reads failed.
+   */
+  const newDoubtfulCount = ref<number | null>(null)
 
   // Only the latest check may move `flow`: one that answers after Cancel or a
   // reopen is stale. `pending` is still updated, it is true whoever asked.
@@ -59,6 +65,7 @@ export const useImportStore = defineStore('import', () => {
 
   async function open(client?: HttpClient): Promise<void> {
     if (flow.value.step !== 'closed') return
+    newDoubtfulCount.value = null
     await check(client)
   }
 
@@ -67,8 +74,18 @@ export const useImportStore = defineStore('import', () => {
     if (current.step !== 'confirm') return
     // Set synchronously, before the first await: a second call sees `importing` and leaves.
     flow.value = { step: 'importing', fileCount: current.pending.totalPending }
+    newDoubtfulCount.value = null
+    // Feature 35: which doubtful movements there were just before; null if it failed.
+    const before = await readDoubtfulIds(client).catch(() => null)
     try {
       flow.value = { step: 'finished', report: await runImport(client) }
+      if (before !== null) {
+        // Ids and not two totals: one import can bring new ones and resolve others.
+        const after = await readDoubtfulIds(client).catch(() => null)
+        if (after !== null) {
+          newDoubtfulCount.value = after.filter((id) => !before.includes(id)).length
+        }
+      }
     } catch (rejection) {
       const error = toAppError(rejection)
       flow.value =
@@ -101,7 +118,10 @@ export const useImportStore = defineStore('import', () => {
       }
       // A new account created by the import must reach the `Account` selector.
       void statementStore.reloadAccounts(client)
-      void useTransfersStore().reloadIfLoaded()
+      const transfersStore = useTransfersStore()
+      void transfersStore.reloadIfLoaded()
+      // The number next to `Transfers` in the sidebar (feature 35, R12).
+      void transfersStore.refreshDoubtfulCount(client)
     }
   }
 
@@ -109,6 +129,7 @@ export const useImportStore = defineStore('import', () => {
     if (flow.value.step === 'importing') return
     checkRun++
     flow.value = { step: 'closed' }
+    newDoubtfulCount.value = null
   }
 
   async function retry(client?: HttpClient): Promise<void> {
@@ -117,5 +138,15 @@ export const useImportStore = defineStore('import', () => {
     await check(client)
   }
 
-  return { pending, flow, isImporting, refreshPending, open, start, close, retry }
+  return {
+    pending,
+    flow,
+    isImporting,
+    newDoubtfulCount,
+    refreshPending,
+    open,
+    start,
+    close,
+    retry,
+  }
 })

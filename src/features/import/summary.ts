@@ -109,3 +109,10 @@ export function phaseAnnouncement(flow: ImportFlow): string {
       return REPORT_UNREADABLE_TEXT
   }
 }
+
+/** The line of new doubtful movements of own money under the summary (feature 35, R13). */
+export function newDoubtfulLine(count: number): string {
+  return count === 1
+    ? '1 new doubtful movement: say in Transfers whether it is yours.'
+    : `${count} new doubtful movements: say in Transfers whether they are yours.`
+}

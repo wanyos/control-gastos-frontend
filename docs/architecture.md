@@ -66,9 +66,13 @@ src/
       components/         # ImportButton, ImportDialog, ImportPhases, PendingList, ImportSummary, FileIssueList (#13);
                           # ImportDetails, ReportSection, FinalPassAlerts, BalanceMismatchList, UnreadLineList,
                           # AmbiguousTransferList, CategoryConflictList, ImportedFileList, FileHeadingLine (#14)
-      store.ts            # useImportStore: pendientes + máquina de estados del modal
-      service.ts          # GET /api/ingestion/pending, POST /api/import (informe completo)
-      outcome.ts, summary.ts, fileMessages.ts   # textos y titular, funciones puras (#13)
+      store.ts            # useImportStore: pendientes + máquina de estados del modal;
+                          # `newDoubtfulCount`: cuántos movimientos dudosos de dinero propio
+                          # hay justo después de importar que no estaban justo antes (#35)
+      service.ts          # GET /api/ingestion/pending, POST /api/import (informe completo);
+                          # `readDoubtfulIds`: GET /api/movements?ownership=doubtful (#35)
+      outcome.ts, summary.ts, fileMessages.ts   # textos y titular, funciones puras (#13);
+                          # `newDoubtfulLine` en summary.ts (#35)
       details.ts          # agrupa y recorta el detalle del informe, funciones puras (#14)
     review/               # feature #15: la cola de pendientes; feature #16: categorizar y confirmar
       components/         # MovementList, MovementRow, ReviewFilterBar, CategorySelect,
@@ -148,7 +152,10 @@ src/
                           # esconder nada, tomado de la lectura que ya hacía `hiddenCount` (#29);
                           # `visibleMovements`, `hiddenInBrowser` y `visibleTotal`: con la
                           # casilla puesta, quita de lo cargado las aperturas y cancelaciones
-                          # de depósito y las cuenta; `hiddenCount` pasa a computed (#31)
+                          # de depósito y las cuenta; `hiddenCount` pasa a computed (#31);
+                          # desde la #35 quita y cuenta también lo de entre tus cuentas
+                          # (`isBetweenOwnAccounts` de shared/ownership.ts), y tras un PATCH
+                          # vuelve a poner en la línea el `ownership` de la última lectura
       months.ts           # todo lo puro del mes: rango, salto, URL, agrupación por día y textos
       filters.ts          # los cuatro filtros ↔ querystring de la API y de la URL (#20);
                           # el interruptor `hideNoise` (`hide=true` en la URL, `excluded=none`
@@ -164,15 +171,30 @@ src/
     transfers/            # feature #24: revisar las parejas de traspaso; la ÚNICA pantalla
                           # que escribe `transferId`
       components/         # TransferPairList, TransferPairRow, AmbiguousGroupList,
-                          # AmbiguousGroupCard, UnlinkConfirmDialog, TransfersActionNotice
-      views/              # TransfersView (ruta /transfers, justo debajo de Rules)
-      store.ts            # useTransfersStore: las dos listas (cada una con su estado),
-                          # la elección de cada grupo, el diálogo, el aviso y el deshacer
+                          # AmbiguousGroupCard, UnlinkConfirmDialog, TransfersActionNotice;
+                          # DoubtfulOwnershipList y DoubtfulOwnershipRow (la sección de los
+                          # movimientos dudosos de dinero propio, una tarjeta por movimiento
+                          # con `It's mine` y `Not mine`) y DoubtfulOwnershipCountBadge (el
+                          # número de esos dudosos junto a `Transfers` en el menú, que monta
+                          # AppSidebar) (#35)
+      views/              # TransfersView (ruta /transfers, justo debajo de Rules); desde la
+                          # #35 la sección de dudosos de dinero propio va arriba del todo
+      store.ts            # useTransfersStore: las listas (cada una con su estado),
+                          # la elección de cada grupo, el diálogo, el aviso y el deshacer;
+                          # desde la #35 una tercera lista (los dudosos de dinero propio),
+                          # `doubtfulCount` y `refreshDoubtfulCount` (el número del menú),
+                          # `answerOwnership` y su deshacer
       service.ts          # GET /api/transfers, GET /api/transfers/ambiguous,
-                          # POST /api/transfers (solo `movementIds`), DELETE /:transferId
+                          # POST /api/transfers (solo `movementIds`), DELETE /:transferId;
+                          # desde la #35, `getDoubtfulOwnership` y `countDoubtfulOwnership`
+                          # (GET /api/movements?ownership=doubtful, con pageSize 200 y 1) y
+                          # `setOwnershipDecision` (PATCH /api/movements/:id con solo
+                          # `ownershipDecision`)
       pairs.ts            # lo puro: la señal Bizum, la validación previa a enlazar y
-                          # todos los textos, incluidos los de error
-      types.ts            # TransferPair, AmbiguousGroup, LinkChoice, Notice, Undo
+                          # todos los textos, incluidos los de error (también los de los
+                          # dudosos de dinero propio desde la #35)
+      types.ts            # TransferPair, AmbiguousGroup, LinkChoice, Notice, Undo;
+                          # OwnershipDecision y Gesture (#35)
     overview/             # feature #25: el mes de un vistazo (ruta /overview); SOLO LECTURA.
                           # Feature #26: debajo del mes, 24 meses, uno por fila
       components/         # MonthSentence, MonthFiguresGrid, UsualLine, UncategorizedLine (#25);
@@ -242,10 +264,18 @@ src/
                           # ausente en las respuestas de los PATCH); desde la #34 lee
                           # `categorySource` (`manual`, `rule`, `closing` o `null`; ausente
                           # se lee como `null`) y `closingSourceLine` da el texto
-                          # `Set when the import was closed` solo cuando es `closing`
+                          # `Set when the import was closed` solo cuando es `closing`;
+                          # desde la #35 lee `ownership` (obligatorio en GET /api/movements,
+                          # ausente en las respuestas de los PATCH) y el parámetro
+                          # `ownership=doubtful`
     deposits.ts           # lo puro de los movimientos de depósito (#31): qué esconde la
                           # casilla, si cuentan 0, sus textos y `withKnownDeposit`. Vive en
                           # shared/ porque lo usan `statement` y `review`, que no se importan
+    ownership.ts          # lo puro del dinero entre tus cuentas (#35): qué es de entre tus
+                          # cuentas y qué es dudoso (un movimiento de depósito no es ninguna
+                          # de las dos), el texto junto a la cuenta en `Movements` y
+                          # `withKnownOwnership`. Lo usa `statement`; vive en shared/ como
+                          # deposits.ts
     transfers.ts          # las dos rutas de la API de traspasos (feature #24): las leen
                           # el extracto (recuento de dudosos, #23) y la pantalla Transfers
   services/
@@ -357,13 +387,17 @@ src/
 > el router la monta.
 >
 > **La pantalla que escribe `transferId` (feature #24).** `features/transfers/` es el
-> único sitio de la app que enlaza y desenlaza parejas de traspaso, y **no escribe nada
-> más**: `POST /api/transfers` con un cuerpo cuyo único campo es `movementIds`
-> (`linkMovements` recibe dos números y escribe el literal) y
+> único sitio de la app que enlaza y desenlaza parejas de traspaso, y hasta la feature
+> #35 **no escribía nada más**: `POST /api/transfers` con un cuerpo cuyo único campo es
+> `movementIds` (`linkMovements` recibe dos números y escribe el literal) y
 > `DELETE /api/transfers/:transferId`. Ningún `PATCH`: ni importes, ni categorías, ni
-> `status`, ni `excludedFromTotals`. Tras cada escritura se vuelven a pedir las dos
-> listas en vez de parchearlas, porque los grupos dudosos los calcula el backend en cada
-> petición. No importa de ninguna otra feature ni ninguna importa de ella: el aviso con
+> `status`, ni `excludedFromTotals`. Tras cada escritura se vuelven a pedir las listas
+> en vez de parchearlas, porque los grupos dudosos los calcula el backend en cada
+> petición. **Desde la feature #35** escribe además una cosa: la respuesta del humano a
+> un movimiento dudoso de dinero propio, con `PATCH /api/movements/:id` y un cuerpo cuyo
+> único campo es `ownershipDecision` (`mine`, `not_mine` o `null` para deshacer), escrito
+> literal en `setOwnershipDecision` y nunca en bloque. Las escrituras vuelven a pedir las
+> tres listas (los grupos dudosos, las parejas y los dudosos de dinero propio). No importa de ninguna otra feature ni ninguna importa de ella: el aviso con
 > `Undo` y el diálogo de confirmación están **copiados** del extracto, y lo único
 > compartido son las dos rutas de `shared/transfers.ts`, que `statement/service.ts`
 > re-exporta con el nombre que ya tenía. (Desde la feature #27 el aviso sigue copiado,
@@ -388,6 +422,13 @@ src/
 > número de movimientos, la lista vacía y `Showing x of y`. Las tres cifras siguen siendo
 > las del backend tal cual. Límite: con más de 200 movimientos en un mes, lo de las
 > páginas aún no cargadas no se resta hasta `Load more`.
+>
+> **Lo de entre tus cuentas (feature #35).** El backend tampoco tiene filtro para los
+> movimientos entre tus cuentas (`ownership.status` `own` o `mine`), así que la casilla
+> los quita también **en el navegador**, con la misma cuenta y el mismo límite que los
+> depósitos: `isBetweenOwnAccounts` de `shared/ownership.ts` se suma a
+> `hiddenWhenHiding` en el store. Un movimiento de depósito no entra (manda lo de la #31)
+> y un dudoso tampoco, porque cuenta.
 >
 > **Lo que el extracto escribe, y nada más.** Nació de solo lectura (feature #19). Desde
 > la #21 manda `PATCH /api/movements/:id` con **solo** `categoryId`, y desde la #22
@@ -418,7 +459,13 @@ src/
 > **Dependencias nuevas de la feature #15.** `AppSidebar.vue` (shared) monta
 > `ReviewCountBadge` de `features/review`, igual que `AppShell` monta `ImportButton`.
 > Y `import/store.ts` refresca el recuento de pendientes tras cada importación
-> (`import` → `review`, un solo sentido; `review` no conoce `import`).
+> (`import` → `review`, un solo sentido; `review` no conoce `import`). **La feature #35
+> repite las dos con `transfers`:** `AppSidebar.vue` pinta un segundo número, el de los
+> movimientos dudosos de dinero propio, montando `DoubtfulOwnershipCountBadge` de
+> `features/transfers` junto a la entrada `Transfers` (con `TRANSFERS_ROUTE_NAME` local
+> en `AppSidebar.vue`), y `import/store.ts`, que ya volvía a pedir las listas de
+> `Transfers` tras importar, refresca también ese número (`import` → `transfers`, un solo
+> sentido; `transfers` no conoce `import`).
 
 > **La pantalla ya escribe (feature #16).** `features/review/` dejó de ser de solo
 > lectura: `service.ts` manda `PATCH /api/movements/:id` y `PATCH /api/movements` con
@@ -442,7 +489,8 @@ src/
 > **solo lectura** (tipos, `buildMovementsQuery`, `parseMovementPage`, `getMovements` y
 > `SEARCH_DEBOUNCE_MS`) se mueve a `shared/movements.ts` y `review/{types,service,filters}.ts`
 > la re-exportan con el mismo nombre; los dos `PATCH` que escriben se quedan en
-> `review/service.ts`, que es la única pantalla que escribe movimientos. El frontend no
+> `review/service.ts`, que entonces era la única pantalla que escribe movimientos (después
+> los escriben también `Movements`, desde la #21, y `Transfers`, desde la #35). El frontend no
 > escribe nada sobre ningún movimiento al crear una regla, pero **desde la feature #33**
 > (feature 60 del backend) el `POST` y el `PATCH` de una regla hacen que el backend pase las
 > reglas y la respuesta trae `categorization`, con la misma forma que la de aplicar: el

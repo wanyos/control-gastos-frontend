@@ -3,14 +3,20 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { ValidationError } from '@/shared/errors'
 
 import {
+  countDoubtfulOwnership,
   getAmbiguousGroups,
+  getDoubtfulOwnership,
   getTransferPairs,
   linkMovements,
   parseAmbiguousGroups,
   parseTransferPairs,
+  setOwnershipDecision,
   unlinkPair,
 } from '../service'
 import {
+  DOUBTFUL_OWN_OUT,
+  TWO_DOUBTFUL_OWN,
+  answeredMovement,
   FINE_100,
   FINE_100_ID,
   FOUR_PAIRS,
@@ -136,5 +142,66 @@ describe('transfers service', () => {
     expect(() => parseAmbiguousGroups(ambiguous({ amount: '1.00', movements: [neutral] }))).toThrow(
       ValidationError,
     )
+  })
+
+  // ─── Feature 35: doubtful movements of own money ─────────────────────────
+
+  it('asks the doubtful movements with the ownership filter and 200 per page', async () => {
+    const api = mockApi({ doubtful: json(TWO_DOUBTFUL_OWN) })
+
+    const doubtful = await getDoubtfulOwnership()
+    const count = await countDoubtfulOwnership()
+
+    expect(api.calls).toEqual([
+      {
+        method: 'GET',
+        path: '/api/movements',
+        query: 'ownership=doubtful&page=1&pageSize=200',
+        rawBody: undefined,
+      },
+      {
+        method: 'GET',
+        path: '/api/movements',
+        query: 'ownership=doubtful&page=1&pageSize=1',
+        rawBody: undefined,
+      },
+    ])
+    expect(doubtful.total).toBe(2)
+    expect(doubtful.movements.map((one) => one.id)).toEqual([9101, 9102])
+    expect(doubtful.movements[0]?.ownership).toEqual({
+      status: 'doubtful',
+      ownAccountId: 4,
+      ownAccountName: 'Cartera inventada',
+      matchedText: 'Banco Ficticio Norte',
+    })
+    expect(count).toBe(2)
+    // A page without `ownership` breaks the contract.
+    vi.restoreAllMocks()
+    mockApi({
+      doubtful: json({ ...TWO_DOUBTFUL_OWN, movements: [answeredMovement(DOUBTFUL_OWN_OUT)] }),
+    })
+    await expect(getDoubtfulOwnership()).rejects.toBeInstanceOf(ValidationError)
+  })
+
+  it('sends only the ownership decision of one movement', async () => {
+    const api = mockApi({ answer: json(answeredMovement(DOUBTFUL_OWN_OUT)) })
+
+    await expect(setOwnershipDecision(9101, 'mine')).resolves.toBeUndefined()
+    await setOwnershipDecision(9101, 'not_mine')
+    await setOwnershipDecision(9101, null)
+
+    expect(api.calls).toEqual([
+      { method: 'PATCH', path: '/api/movements/9101', rawBody: '{"ownershipDecision":"mine"}' },
+      {
+        method: 'PATCH',
+        path: '/api/movements/9101',
+        rawBody: '{"ownershipDecision":"not_mine"}',
+      },
+      { method: 'PATCH', path: '/api/movements/9101', rawBody: '{"ownershipDecision":null}' },
+    ])
+    // A broken answer is a contract drift.
+    vi.restoreAllMocks()
+    mockApi({ answer: json({ id: 'x' }) })
+    await expect(setOwnershipDecision(9101, 'mine')).rejects.toBeInstanceOf(ValidationError)
   })
 })

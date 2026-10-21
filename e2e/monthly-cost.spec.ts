@@ -6,6 +6,22 @@ import type { Page, Request, Route } from '@playwright/test'
 // real backend on :3000, so the safety net below aborts anything not foreseen and writes
 // it down: the list must end empty, and every method of the session must be GET.
 
+/**
+ * Feature 35: the sidebar asks on every screen how many doubtful movements of own money
+ * there are (`GET /api/movements?ownership=doubtful`). Here there are none. Registered
+ * after every route of `/api/movements`, so it wins; and kept out of the reads the tests
+ * of this file watch.
+ */
+const isDoubtfulRead = (url: URL): boolean =>
+  url.pathname === '/api/movements' && url.searchParams.get('ownership') === 'doubtful'
+const NO_DOUBTFUL_PAGE = {
+  movements: [],
+  pagination: { page: 1, pageSize: 1, total: 0, totalPages: 0 },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+}
+const routeNoDoubtful = (page: Page): Promise<void> =>
+  page.route(isDoubtfulRead, (route) => route.fulfill({ json: NO_DOUBTFUL_PAGE }))
+
 const MONTHS = [
   '2025-10',
   '2025-11',
@@ -122,7 +138,8 @@ async function prepare(page: Page) {
   })
   page.on('pageerror', (error) => watch.pageErrors.push(error))
   page.on('request', (request) => {
-    if (new URL(request.url()).pathname.startsWith('/api/')) watch.requests.push(request)
+    const url = new URL(request.url())
+    if (url.pathname.startsWith('/api/') && !isDoubtfulRead(url)) watch.requests.push(request)
   })
 
   /** Stops a call nobody foresaw, and writes it down so the test fails because of it. */
@@ -153,6 +170,7 @@ async function prepare(page: Page) {
       },
     })
   })
+  await routeNoDoubtful(page)
   await page.route('**/api/recurring-expenses*', (route) =>
     route.request().method() === 'GET' ? route.fulfill({ json: RECURRING }) : stop(route),
   )

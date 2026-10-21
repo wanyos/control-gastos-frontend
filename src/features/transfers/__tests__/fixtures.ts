@@ -216,6 +216,73 @@ export const ambiguous = (...groups: Raw[]): Raw => ({
 })
 export const NO_AMBIGUOUS = ambiguous()
 
+// ─── Feature 35: doubtful movements of own money ──────────────────────────
+// Invented, shaped like the contract (`GET /api/movements`, `ownership`, backend feature
+// 62): no real names, shops nor account numbers.
+
+const doubtfulOwn = (
+  id: number,
+  type: 'expense' | 'income',
+  account: typeof BANKINTER,
+  bookingDate: string,
+  amount: string,
+  description: string,
+  ownAccountName: string,
+  matchedText: string,
+): Raw => ({
+  ...leg(id, type, account, bookingDate, amount, description, '', { transferId: null }),
+  categorySource: null,
+  status: 'confirmed',
+  deposit: null,
+  ownership: { status: 'doubtful', ownAccountId: 4, ownAccountName, matchedText },
+})
+
+/** An expense that only names the bank of one of your accounts. */
+export const DOUBTFUL_OWN_OUT = doubtfulOwn(
+  9101,
+  'expense',
+  BANKINTER,
+  '2026-10-13',
+  '350.00',
+  'TRANSF /BANCO FICTICIO NORTE',
+  'Cartera inventada',
+  'Banco Ficticio Norte',
+)
+
+/** An income that does the same, in another account. */
+export const DOUBTFUL_OWN_IN = doubtfulOwn(
+  9102,
+  'income',
+  N26,
+  '2026-10-08',
+  '120.50',
+  'ABONO BANCO FICTICIO NORTE',
+  'Cartera inventada',
+  'Banco Ficticio Norte',
+)
+
+/** A page of `GET /api/movements?ownership=doubtful`, newest first. */
+export const doubtfulPage = (...movements: Raw[]): Raw => ({
+  movements,
+  pagination: {
+    page: 1,
+    pageSize: 200,
+    total: movements.length,
+    totalPages: movements.length === 0 ? 0 : 1,
+  },
+  totals: { income: '0.00', expense: '0.00', net: '0.00' },
+})
+export const NO_DOUBTFUL_OWN = doubtfulPage()
+export const TWO_DOUBTFUL_OWN = doubtfulPage(DOUBTFUL_OWN_OUT, DOUBTFUL_OWN_IN)
+
+/** What `PATCH /api/movements/:id` answers: the movement, without `deposit` nor `ownership`. */
+export const answeredMovement = (raw: Raw): Raw => {
+  const answer = { ...raw }
+  delete answer.deposit
+  delete answer.ownership
+  return answer
+}
+
 /** The 201 of `POST /api/transfers`. */
 export const linked = (transferId: string): Raw => ({ transferId, movements: [] })
 
@@ -277,29 +344,51 @@ export function deferred() {
 export interface ApiCall {
   method: string
   path: string
+  /** The querystring, only when there is one (feature 35: `GET /api/movements`). */
+  query?: string
   /** The body exactly as it travelled, so a test can read it letter by letter. */
   rawBody?: string
 }
 
 export const TRANSFERS = '/api/transfers'
 export const AMBIGUOUS = '/api/transfers/ambiguous'
+export const MOVEMENTS = '/api/movements'
 
 /**
- * Mocks the HTTP boundary and records every call. Anything that is not one of the four
- * calls of the feature is rejected, so nothing can leave towards a real backend.
+ * Mocks the HTTP boundary and records every call. Anything that is not one of the calls
+ * of the screen is rejected, so nothing can leave towards a real backend. Since feature
+ * 35: `GET /api/movements?ownership=doubtful` (both page sizes; empty by default) and
+ * `PATCH /api/movements/:id`.
  */
 export function mockApi(answers: {
   pairs?: Answer
   ambiguous?: Answer
   link?: Answer
   unlink?: Answer
+  doubtful?: Answer
+  answer?: Answer
 }) {
   const calls: ApiCall[] = []
   vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
     const url = new URL(String(input))
     const method = init?.method ?? 'GET'
     const rawBody = typeof init?.body === 'string' ? init.body : undefined
-    calls.push({ method, path: url.pathname, rawBody })
+    const query = url.search.replace(/^\?/, '')
+    calls.push(
+      query === ''
+        ? { method, path: url.pathname, rawBody }
+        : { method, path: url.pathname, query, rawBody },
+    )
+    if (
+      method === 'GET' &&
+      url.pathname === MOVEMENTS &&
+      url.searchParams.get('ownership') === 'doubtful'
+    ) {
+      return (answers.doubtful ?? json(NO_DOUBTFUL_OWN))()
+    }
+    if (method === 'PATCH' && url.pathname.startsWith(`${MOVEMENTS}/`) && answers.answer) {
+      return answers.answer()
+    }
     if (method === 'GET' && url.pathname === TRANSFERS) return (answers.pairs ?? json(NO_PAIRS))()
     if (method === 'GET' && url.pathname === AMBIGUOUS) {
       return (answers.ambiguous ?? json(NO_AMBIGUOUS))()

@@ -14,6 +14,7 @@ import {
   PENDING_TWO,
   POST_IMPORT,
   deferred,
+  doubtfulIdsPage,
   json,
   jsonResponse,
   mockApi,
@@ -277,6 +278,45 @@ describe('ImportDialog', () => {
       )
       expect(document.activeElement).toBe($('[data-test="import-close"]'))
       expectEnglishOnly()
+    })
+
+    it('says how many new doubtful movements the import brought', async () => {
+      // Before: 7101. After: 7101, 7103 and 7104. The sidebar count answers 3.
+      const lists = [[7101], [7101, 7103, 7104]]
+      mockApi({
+        pending: json(PENDING_TWO),
+        import: json(FULL_REPORT),
+        doubtful: () => json(doubtfulIdsPage(...(lists.shift() ?? [7101, 7103, 7104])))(),
+      })
+      await mountTopbar()
+      await clickImport()
+
+      await click('[data-test="import-confirm"]')
+
+      const line = $('[data-test="import-new-doubtful"]')
+      expect(text('[data-test="import-new-doubtful"]')).toBe(
+        '2 new doubtful movements: say in Transfers whether they are yours.',
+      )
+      expect(line?.classList.contains('text-warning')).toBe(true)
+      // Right under the summary.
+      const summary = $('[data-test="import-step-finished"]')?.firstElementChild
+      expect(summary?.nextElementSibling).toBe(line)
+      expectEnglishOnly()
+    })
+
+    it('paints no line of new doubtful movements when the import brought none', async () => {
+      mockApi({
+        pending: json(PENDING_TWO),
+        import: json(FULL_REPORT),
+        doubtful: json(doubtfulIdsPage(7101)),
+      })
+      await mountTopbar()
+      await clickImport()
+
+      await click('[data-test="import-confirm"]')
+
+      expect($('[data-test="import-step-finished"]')).not.toBeNull()
+      expect($('[data-test="import-new-doubtful"]')).toBeNull()
     })
 
     it('paints the report detail after the files that need attention (feature 14, R1)', async () => {
