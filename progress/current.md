@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** F35 `doubtful-own-money` (SDD), y después F36 `own-accounts-table` (SDD). Parte 2 de `../docs/handoff-cuentas-propias.md`. Intenciones aprobadas por el humano el 2026-10-21; `spec-author` de la F35 lanzado.
+- **Feature en curso:** F35 `doubtful-own-money` (SDD), spec aprobado el 2026-10-21, en curso. Después F36 `own-accounts-table`, spec también aprobado el 2026-10-21 (sigue `spec_ready` hasta que acabe la F35, porque las dos tocan el menú).
 - **Nivel de consumo:** medio (todos los subagentes en `opus`).
 
 Lo que sigue vivo está en `docs/roadmap.md` (tabla «Cabos sueltos con dueño») y, para las

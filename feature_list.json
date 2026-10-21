@@ -1892,7 +1892,8 @@
         "respuestas_del_humano": [
           "Del 2026-10-21: los dudosos viven en la pantalla `Transfers`.",
           "Del 2026-10-21: se avisan con un número junto a la entrada del menú (como el de `Review`, solo si hay alguno) y con una línea en el informe de la importación si han entrado dudosos nuevos.",
-          "Del 2026-10-21: en `Movements`, un movimiento que no cuenta por ser dinero suyo sale como lo que no cuenta desde la feature 29 (tachado y en gris), con un texto que diga que es entre sus cuentas; los dudosos, con `Doubtful` en ámbar, como los depósitos dudosos."
+          "Del 2026-10-21: en `Movements`, un movimiento que no cuenta por ser dinero suyo sale como lo que no cuenta desde la feature 29 (tachado y en gris), con un texto que diga que es entre sus cuentas; los dudosos, con `Doubtful` en ámbar, como los depósitos dudosos.",
+          "Del 2026-10-21: aprobó la hoja de decisiones."
         ]
       },
       "acceptance": [],
@@ -1947,7 +1948,7 @@
         }
       ],
       "sdd": true,
-      "status": "spec_ready"
+      "status": "in_progress"
     },
     {
       "id": 36,
@@ -1973,7 +1974,8 @@
         ],
         "respuestas_del_humano": [
           "Del 2026-10-21: la tabla vive en una entrada nueva del menú.",
-          "Del 2026-10-21: ver qué movimientos cambian al cambiar la tabla queda fuera de momento (el backend no lo devuelve al guardar)."
+          "Del 2026-10-21: ver qué movimientos cambian al cambiar la tabla queda fuera de momento (el backend no lo devuelve al guardar).",
+          "Del 2026-10-21: aprobó la hoja de decisiones."
         ]
       },
       "acceptance": [],
