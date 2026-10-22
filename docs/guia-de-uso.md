@@ -1484,11 +1484,11 @@ al desenlazar **ese sigue sin contar**. La pregunta y el aviso lo dicen.
 
 ## 7b. `My accounts` — mira y escribe
 
-> **Sección nueva desde la feature 36, sin probar en tu primera revisión.** Sale
-> de leer el código y de las pruebas hechas al cerrar la feature, con datos
-> inventados. Nadie ha abierto todavía esta pantalla en el navegador contra tus
-> datos. Que tu tabla tiene 12 filas lo dijiste tú al pedir la feature
-> (2026-10-21); no se ha comprobado pidiéndolo al backend.
+> **Sección nueva desde la feature 36, sin probar en tu primera revisión.** El
+> 2026-10-22 el leader recorrió con tus datos reales todos los pasos menos el 8
+> (dar de alta una cuenta, que no se puede deshacer) y deshizo lo que escribió:
+> todo salió como se describe aquí. Las 12 filas están comprobadas contra el
+> backend.
 
 **Para qué sirve.** Enseña la tabla de tus cuentas y productos, de cualquier
 banco, con los textos con los que aparece cada una en los conceptos, y encima
