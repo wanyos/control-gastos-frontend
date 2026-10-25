@@ -216,27 +216,30 @@ src/
                           # backend, la escala de las barras, las filas y TODOS sus textos
       types.ts            # MonthFigures, Uncategorized, MonthState, Verdict, Comparison,
                           # LoadState (#25); PeriodTotals, NetSign, MonthRow (#26)
-    monthly-cost/         # feature #32: lo que cuesta un mes (ruta /monthly-cost, justo debajo
-                          # de Overview en el menú); SOLO LECTURA, una petición
-      components/         # BillRow (una fila de recibo y, abierta, sus cargos), BillList (los
-                          # recibos con cargos y el `<details>` de los que no tienen cargos en
-                          # el periodo), GroupRow (una fila con nombre, cifra al mes y
-                          # `Show charges`: el grupo de lo enviado a personas y cada categoría
-                          # del gasto variable), ChargeList (la lista de cargos con su
-                          # encabezado), BlockHeading (título del bloque y su subtotal)
-      views/              # MonthlyCostView (qué filas están abiertas es estado de la vista:
-                          # un `Set` con `bill:<key>`, `people` y `variable:<i>`)
-      store.ts            # useMonthlyCostStore: `data`, `loadState`, `error` y `load()`, que
-                          # nunca lanza y descarta la respuesta de una carga que ya no es la
-                          # última; se llama al montar la vista y desde `Try again`
-      service.ts          # GET /api/recurring-expenses (sin método ni cuerpo):
-                          # `RECURRING_EXPENSES_PATH`, `parseRecurringExpenses` (valida, mapea y
-                          # comprueba que los `monthlyCost` sumen `monthlyTotal`) y
-                          # `getRecurringExpenses`
-      texts.ts            # todo lo puro: todos los textos, el nombre de cada periodicidad, el
-                          # cambio de un recibo en palabras, el reparto de los recibos con y sin
-                          # cargos, los subtotales de cada bloque y si no hay nada que contar
-      types.ts            # Charge, Bill, ChargeGroup, VariableEntry, MonthlyCost, LoadState
+    expenses-by-category/ # feature #37: lo gastado por categoría en un mes o un año, fijo y
+                          # variable, frente al periodo anterior (ruta /expenses-by-category,
+                          # justo debajo de Overview en el menú, con el icono ChartBar);
+                          # SOLO LECTURA. Sustituye a `monthly-cost/` (#32), borrada en la #37
+      components/         # PeriodPicker (`Month`/`Year`, `Compare with`, y `MonthNav` de
+                          # statement o las flechas del año), CategoryGroup (un bloque,
+                          # `Fixed` o `Variable`, con su suma y sus líneas), CategoryLine (una
+                          # línea: nombre, `New`/`Gone`, barra, cifras y `Show movements`),
+                          # LineMovements (los movimientos de una línea abierta)
+      views/              # ExpensesByCategoryView (la URL es la única que escribe el periodo:
+                          # el selector reescribe la query y un `watch` la convierte en lectura)
+      store.ts            # useExpensesByCategoryStore: `data`, `loadState`, `error`, `load()`,
+                          # que nunca lanza y descarta la respuesta de una carga que ya no es
+                          # la última, y `retry()` (`Try again`, el mismo periodo)
+      service.ts          # GET /api/expenses-by-category (sin método ni cuerpo):
+                          # `EXPENSES_BY_CATEGORY_PATH`, `expensesQueryString`,
+                          # `parseExpensesByCategory` (valida, mapea y comprueba las sumas) y
+                          # `getExpensesByCategory`
+      reading.ts          # todo lo puro: el periodo en la dirección, el cambio de mes a año,
+                          # el nombre de un periodo, la frase, la línea de lo que no tiene
+                          # categoría, la diferencia con signo, la parte de cada barra, el
+                          # mensaje de error y TODOS los textos
+      types.ts            # PeriodQuery, DateRange, ExpenseLine, ExpenseGroup,
+                          # ExpensesByCategory, LoadState
     own-accounts/         # feature #36: la tabla de tus cuentas propias y las formas de tu
                           # nombre (ruta /own-accounts, entrada `My accounts` justo debajo de
                           # Transfers en el menú); da de alta y cambia filas, nunca borra
@@ -387,24 +390,27 @@ src/
 > una importación si el bloque se había leído. `reading.ts`, los cuatro componentes de la
 > #25, `features/statement/` y `features/import/` no cambian.
 >
-> **Lo que cuesta un mes solo lee, y solo suma los subtotales de cada bloque (feature
-> #32).** `features/monthly-cost/` hace una sola petición, `GET /api/recurring-expenses`,
-> cada vez que se entra en la pantalla y al pulsar `Try again`; `getRecurringExpenses` no
-> acepta método ni cuerpo, así que no hay forma de escribir desde ella. Todas las cifras
-> son del backend: la de arriba (`monthlyTotal`), lo que cuesta al mes cada recibo, el
-> grupo de lo enviado a personas y cada categoría del gasto variable, y el cambio de cada
-> recibo. La única aritmética del cliente son los subtotales de los tres bloques
-> (`blockSubtotals` en `texts.ts`), sumas en céntimos con `sumAmounts` de cifras que el
-> backend ya mandó redondeadas. Para que esas sumas no puedan contradecir la cifra de
-> arriba, `parseRecurringExpenses` rechaza con `ValidationError` una respuesta cuyos
-> `monthlyCost` no sumen `monthlyTotal`, y la pantalla lo dice en vez de enseñarla. Los
-> recibos se pintan en el orden en que llegan (el backend ya los ordena de más caro a más
-> barato al mes); no se reordena en el cliente. No pinta la cuenta de cada cargo (haría
-> falta una segunda petición) ni recarga tras una importación: se vuelve a leer al entrar.
-> No importa código de ninguna otra feature salvo `features/statement/months.ts`
-> (`formatMonthLabel`, y el tipo `MonthKey`); de `features/net-worth/types.ts` toma solo
-> los tipos `DecimalString` y `DateOnly`, como las demás. Ninguna feature importa de ella;
-> el router la monta.
+> **El gasto por categoría solo lee, y solo comprueba sumas (feature #37).**
+> `features/expenses-by-category/` hace una sola petición, `GET /api/expenses-by-category`,
+> por periodo: al entrar, al cambiar de mes, de año o de comparación, y al pulsar
+> `Try again`; `getExpensesByCategory` no acepta método ni cuerpo, así que no hay forma de
+> escribir desde ella. Todas las cifras son del backend (el total, el de cada bloque y el
+> de cada línea, lo comparado, la diferencia y la media mensual de un año), y se enseñan
+> tal como llegan, en el orden en que llegan. La única aritmética del cliente es
+> comprobar sumas y la parte de cada barra: `parseExpensesByCategory` rechaza con
+> `ValidationError` una respuesta cuyo total no sea la suma de `fixed` y `variable`, o
+> cuyo bloque no sea la suma de sus líneas (en céntimos), y la pantalla lo dice en vez de
+> enseñarla; la barra de cada línea es la parte que su importe es del total del periodo
+> (`sharePermille`). El periodo vive en la dirección (`?month=YYYY-MM&compare=…` o
+> `?year=YYYY`). No pinta la cuenta de cada movimiento ni el nombre de la categoría madre
+> (harían falta otras peticiones) ni recarga tras una importación. De otras features
+> importa `MonthNav` y `features/statement/months.ts` (`currentMonth`,
+> `formatMonthLabel`, el tipo `MonthKey`), y de `features/net-worth/types.ts` solo los
+> tipos `DecimalString` y `DateOnly`, como las demás; de shared, entre otros, `ShareBar`,
+> `BaseBadge` y `StatCard`. Ninguna feature importa de ella; el router la monta.
+> Sustituye a `features/monthly-cost/` (#32), que se borró entera con su ruta en esta
+> feature: su dirección se trata como cualquier dirección que no existe y lleva a
+> `Net Worth`.
 >
 > **La tabla de tus cuentas propias escribe solo en su tabla (feature #36).**
 > `features/own-accounts/` manda tres escrituras y ninguna más: `POST /api/own-accounts`
@@ -417,8 +423,8 @@ src/
 > entera** en vez de insertar la respuesta, para que salga en el orden del backend y con
 > los textos como él los guardó; tras un fallo que pudo haber escrito (todo salvo el 400)
 > también. **No avisa a ninguna otra pantalla**: cambiar la tabla o las formas del nombre
-> cambia qué movimientos cuentan en `Movements`, `Review`, `Overview`, `Monthly cost` y
-> `Transfers`, y todas ellas vuelven a pedir sus datos cada vez que se entra. No importa
+> cambia qué movimientos cuentan en `Movements`, `Review`, `Overview`,
+> `Expenses by category` y `Transfers`, y todas ellas vuelven a pedir sus datos cada vez que se entra. No importa
 > código de ninguna otra feature (de `features/net-worth/types.ts` toma solo `DateOnly`,
 > como las demás) ni ninguna importa de ella; el router la monta.
 >

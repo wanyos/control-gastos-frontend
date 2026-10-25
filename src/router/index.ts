@@ -2,12 +2,12 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import {
   ArrowLeftRight,
+  ChartBar,
   ChartLine,
   Landmark,
   LayoutDashboard,
   Link2,
   ListChecks,
-  ReceiptEuro,
   Wallet,
   WandSparkles,
 } from '@lucide/vue'
@@ -15,7 +15,7 @@ import type { LucideIcon } from '@lucide/vue'
 
 import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
 import RulesView from '@/features/category-rules/views/RulesView.vue'
-import MonthlyCostView from '@/features/monthly-cost/views/MonthlyCostView.vue'
+import ExpensesByCategoryView from '@/features/expenses-by-category/views/ExpensesByCategoryView.vue'
 import OverviewView from '@/features/overview/views/OverviewView.vue'
 import OwnAccountsView from '@/features/own-accounts/views/OwnAccountsView.vue'
 import ReviewView from '@/features/review/views/ReviewView.vue'
@@ -46,8 +46,10 @@ export const REVIEW_ROUTE_NAME = 'review'
  * placeholder: the shell is navigable end to end before the views exist. `/movements`
  * is the statement since feature 19 — the whole history month by month, a different
  * screen from `/review`, which is the queue of what is still pending. `/overview` is the
- * month at a glance since feature 25; the home is still the net worth. `/monthly-cost`
- * (feature 32), right below it, is what a month costs: the other screen of figures to look at.
+ * month at a glance since feature 25; the home is still the net worth.
+ * `/expenses-by-category` (feature 37), right below it, is what the spending of a month or
+ * a year went on; it took the place of `/monthly-cost` (feature 32), which feature 37
+ * removed: that old address is now treated like any unknown one and goes home.
  * `/own-accounts` (feature 36), right below `Transfers`, is the table of your own accounts.
  */
 export const routes: RouteRecordRaw[] = [
@@ -89,10 +91,10 @@ export const routes: RouteRecordRaw[] = [
     meta: { label: 'Overview', icon: LayoutDashboard },
   },
   {
-    path: '/monthly-cost',
-    name: 'monthly-cost',
-    component: MonthlyCostView,
-    meta: { label: 'Monthly cost', icon: ReceiptEuro },
+    path: '/expenses-by-category',
+    name: 'expenses-by-category',
+    component: ExpensesByCategoryView,
+    meta: { label: 'Expenses by category', icon: ChartBar },
   },
   {
     path: '/movements',

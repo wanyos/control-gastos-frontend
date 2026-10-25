@@ -1640,66 +1640,10 @@
         ]
       },
       "acceptance": [],
-      "checks": [
-        {
-          "descripcion": "Veo arriba lo que me cuesta un mes, y el periodo del que sale.",
-          "comando": "grep -qF \"shows the monthly total and the period it comes from at the top\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"shows the monthly total and the period it comes from at the top\""
-        },
-        {
-          "descripcion": "Veo cada recibo con su nombre, lo que cuesta al mes, cada cuánto se cobra, cuándo fue el último cargo, y si ha subido, cuánto.",
-          "comando": "grep -qF \"shows a bill with its name, monthly cost, periodicity, last charge and increase\" src/features/monthly-cost/__tests__/BillRow.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/BillRow.spec.ts -t \"shows a bill with its name, monthly cost, periodicity, last charge and increase\""
-        },
-        {
-          "descripcion": "Distingo de un vistazo los recibos que han subido.",
-          "comando": "grep -qF \"marks a bill that went up apart from one that went down or stayed the same\" src/features/monthly-cost/__tests__/BillRow.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/BillRow.spec.ts -t \"marks a bill that went up apart from one that went down or stayed the same\""
-        },
-        {
-          "descripcion": "Un recibo anual se lee como anual, no como uno mensual al que le faltan meses.",
-          "comando": "grep -qF \"shows an annual bill as yearly with its usual amount each time\" src/features/monthly-cost/__tests__/BillRow.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/BillRow.spec.ts -t \"shows an annual bill as yearly with its usual amount each time\""
-        },
-        {
-          "descripcion": "Puedo abrir un recibo y ver sus cargos, con su fecha y su importe.",
-          "comando": "grep -qF \"opens a bill and lists its charges with date and amount\" src/features/monthly-cost/__tests__/BillRow.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/BillRow.spec.ts -t \"opens a bill and lists its charges with date and amount\""
-        },
-        {
-          "descripcion": "Veo lo que envío a personas como un grupo aparte, con lo que cuesta al mes.",
-          "comando": "grep -qF \"shows what is sent to people as a group apart with its monthly cost\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"shows what is sent to people as a group apart with its monthly cost\""
-        },
-        {
-          "descripcion": "Veo el gasto variable por categoría, con lo que cuesta al mes cada una.",
-          "comando": "grep -qF \"shows the variable spending by category with the monthly cost of each\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"shows the variable spending by category with the monthly cost of each\""
-        },
-        {
-          "descripcion": "La suma de lo que veo da la cifra de arriba. (lo que enseña la pantalla: los subtotales de los tres bloques y la cifra de arriba)",
-          "comando": "grep -qF \"shows block subtotals that add up to the figure at the top\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"shows block subtotals that add up to the figure at the top\""
-        },
-        {
-          "descripcion": "La suma de lo que veo da la cifra de arriba. (si lo que manda el backend no cuadra, la pantalla no lo enseña)",
-          "comando": "grep -qF \"rejects a response whose monthly costs do not add up to the monthly total\" src/features/monthly-cost/__tests__/service.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/service.spec.ts -t \"rejects a response whose monthly costs do not add up to the monthly total\""
-        },
-        {
-          "descripcion": "Si el backend falla, me lo dice y puedo volver a intentarlo.",
-          "comando": "grep -qF \"says the backend failed and asks again on Try again\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"says the backend failed and asks again on Try again\""
-        },
-        {
-          "descripcion": "(añadido) De tu respuesta del 2026-10-17: va en una entrada nueva del menú, `Monthly cost`.",
-          "comando": "grep -qF \"lists Monthly cost in the menu right below Overview\" src/router/__tests__/router.spec.ts && pnpm exec vitest run src/router/__tests__/router.spec.ts -t \"lists Monthly cost in the menu right below Overview\""
-        },
-        {
-          "descripcion": "(añadido) De tu respuesta del 2026-10-17: los recibos, de más caro a más barato al mes.",
-          "comando": "grep -qF \"keeps the bills from most to least expensive a month\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"keeps the bills from most to least expensive a month\""
-        },
-        {
-          "descripcion": "(añadido) De tu respuesta del 2026-10-17: los recibos sin cargos en el periodo, al final y plegados.",
-          "comando": "grep -qF \"puts the bills with no charges in the period at the end and folded\" src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/MonthlyCostView.spec.ts -t \"puts the bills with no charges in the period at the end and folded\""
-        },
-        {
-          "descripcion": "(añadido) De «No quiero que la pantalla escriba nada»: la pantalla solo pide una lectura, sin método ni cuerpo.",
-          "comando": "grep -qF \"asks the recurring expenses path with no method and no body\" src/features/monthly-cost/__tests__/service.spec.ts && pnpm exec vitest run src/features/monthly-cost/__tests__/service.spec.ts -t \"asks the recurring expenses path with no method and no body\""
-        }
-      ],
+      "checks": [],
       "sdd": true,
-      "status": "done"
+      "status": "done",
+      "checks_retirados": "2026-10-25: sus 14 checks comprobaban tests de src/features/monthly-cost/ y e2e/monthly-cost.spec.ts, que la F37 borró al sustituir la pantalla por Expenses by category."
     },
     {
       "id": 33,
@@ -2015,6 +1959,105 @@
         {
           "descripcion": "(añadido) Antes de mandar nada, la ventana no deja guardar lo que el backend rechazaría y dice por qué.",
           "comando": "grep -qF \"a text shorter than three characters once compared keeps Save off and says why\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"a text shorter than three characters once compared keeps Save off and says why\" && grep -qF \"a closing date before the opening date keeps Save off and says why\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"a closing date before the opening date keeps Save off and says why\" && grep -qF \"a form shorter than three characters keeps Save off\" src/features/own-accounts/__tests__/HolderNamesDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/HolderNamesDialog.spec.ts -t \"a form shorter than three characters keeps Save off\" && grep -qF \"blank name or bank or no type keep Save off\" src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts && pnpm exec vitest run src/features/own-accounts/__tests__/OwnAccountDialog.spec.ts -t \"blank name or bank or no type keep Save off\""
+        }
+      ],
+      "sdd": true,
+      "status": "done"
+    },
+    {
+      "id": 37,
+      "name": "expenses-by-category",
+      "title": "Lo gastado por categoría en un mes o un año, fijo y variable, en lugar de Monthly cost",
+      "intent": {
+        "que_quiero": "Una pantalla nueva que me enseñe lo gastado en cada categoría, en un mes o en un año natural, los dos en la misma pantalla, separado en gasto fijo y gasto variable, comparado con el periodo anterior, y con los movimientos de cada categoría desplegables debajo de su línea. Esta pantalla sustituye a Monthly cost: su entrada del menú se quita ya en esta feature.",
+        "por_que": "El backend ya calcula todo esto (GET /api/expenses-by-category) y las categorías fijas ya están marcadas allí; lo que falta es verlo. Es la vista de «en qué se fue» y «fijo frente a variable» del documento de ideas (../docs/ideas.md, 5ª vista). [Redactado por el leader a partir de las respuestas del humano del 2026-10-23; aprobado el 2026-10-25]",
+        "como_se_que_esta_bien": [
+          "Cuando abro la pantalla, veo lo gastado en un mes por categoría, en fijo y variable, con el total y la diferencia frente al mes anterior.",
+          "Cuando cambio a un año, veo lo mismo para el año y, además, la media mensual de cada categoría. [añadido por el leader: el backend lo da solo en año]",
+          "Cuando despliego una categoría, veo sus movimientos del periodo.",
+          "Una categoría nueva o que ya no está se distingue de las demás. [añadido por el leader: el backend lo manda como new/gone]",
+          "Los gastos sin categoría salen en su propia línea y la pantalla dice cuánto pesan sobre el total. [añadido por el leader: principio de honestidad del dato de ../docs/ideas.md]",
+          "El total del mes coincide con el gasto de Overview de ese mes. [añadido por el leader: lo garantiza el contrato]",
+          "Monthly cost ya no está en el menú ni se puede abrir por su dirección.",
+          "Textos en inglés, en oscuro, y pnpm type-check, lint, test:unit, build e ./init.sh en verde. [añadido por el leader: estándar del proyecto]"
+        ],
+        "que_no_quiero": [
+          "No marcar categorías como fijas desde aquí: ya están en el backend (a 2026-10-25, cinco: Vivienda, Suministros, Telefonía e internet, Suscripciones, Impuestos y administración).",
+          "No tocar el backend.",
+          "El resto no lo tengo claro y lo delego."
+        ],
+        "delego_en_agente": [
+          "Qué no debe tocar la feature: el leader propone no meter librerías de gráficos nuevas y no tocar Overview, y lo enseña en la hoja de decisiones para que yo lo apruebe allí.",
+          "Cómo elegir mes o año y con qué se compara (mes anterior / mismo mes del año pasado), y qué periodo sale por defecto.",
+          "Cómo se ven fijo y variable y las barras por categoría (barras horizontales, como está decidido en ../docs/ideas.md).",
+          "Qué hacer con el código de Monthly cost (F32) al quitarla: borrarlo o no."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-10-23: mes y año en la misma pantalla.",
+          "Del 2026-10-23: las categorías fijas ya están establecidas desde el backend; no hace falta ninguna selección.",
+          "Del 2026-10-23: quitar Monthly cost del menú ya, en esta feature.",
+          "Del 2026-10-23: ver los movimientos de cada categoría desplegados.",
+          "Del 2026-10-25: aprobó este bloque intent tal como lo redactó el leader con sus respuestas.",
+          "Del 2026-10-25: aprobó la hoja de decisiones (specs/37-expenses-by-category/decisions.md) sin cambios."
+        ]
+      },
+      "acceptance": [],
+      "checks": [
+        {
+          "descripcion": "Cuando abro la pantalla, veo lo gastado en un mes por categoría, en fijo y variable, con el total y la diferencia frente al mes anterior.",
+          "comando": "grep -qF \"opens on the current month with fixed and variable, the total and the difference with the previous month\" src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts -t \"opens on the current month with fixed and variable, the total and the difference with the previous month\" && grep -qF \"reaches Expenses by category from the menu, sees the month and opens a category\" e2e/expenses-by-category.spec.ts && pnpm test:e2e --project=chromium e2e/expenses-by-category.spec.ts -g \"reaches Expenses by category from the menu, sees the month and opens a category\""
+        },
+        {
+          "descripcion": "Cuando cambio a un año, veo lo mismo para el año y, además, la media mensual de cada categoría.",
+          "comando": "grep -qF \"switching to a year shows the year and the monthly average of each category\" src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts -t \"switching to a year shows the year and the monthly average of each category\" && grep -qF \"shows the monthly average only in a year\" src/features/expenses-by-category/__tests__/CategoryLine.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/CategoryLine.spec.ts -t \"shows the monthly average only in a year\" && grep -qF \"switches to a year and sees the monthly average of each category\" e2e/expenses-by-category.spec.ts && pnpm test:e2e --project=chromium e2e/expenses-by-category.spec.ts -g \"switches to a year and sees the monthly average of each category\""
+        },
+        {
+          "descripcion": "Cuando despliego una categoría, veo sus movimientos del periodo.",
+          "comando": "grep -qF \"expanding a category lists its movements of the period\" src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts -t \"expanding a category lists its movements of the period\" && grep -qF \"opens a category and lists its movements with date, description and amount\" src/features/expenses-by-category/__tests__/CategoryLine.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/CategoryLine.spec.ts -t \"opens a category and lists its movements with date, description and amount\" && grep -qF \"a gone category has no movements to open\" src/features/expenses-by-category/__tests__/CategoryLine.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/CategoryLine.spec.ts -t \"a gone category has no movements to open\""
+        },
+        {
+          "descripcion": "Una categoría nueva o que ya no está se distingue de las demás.",
+          "comando": "grep -qF \"marks a new category and one that is gone apart from the rest\" src/features/expenses-by-category/__tests__/CategoryLine.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/CategoryLine.spec.ts -t \"marks a new category and one that is gone apart from the rest\""
+        },
+        {
+          "descripcion": "Los gastos sin categoría salen en su propia línea y la pantalla dice cuánto pesan sobre el total.",
+          "comando": "grep -qF \"says how many movements have no category and how much of the spending they are\" src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts -t \"says how many movements have no category and how much of the spending they are\""
+        },
+        {
+          "descripcion": "El total del mes coincide con el gasto de Overview de ese mes. (la pantalla enseña el total del backend sin tocarlo, y no enseña una respuesta que no cuadra)",
+          "comando": "grep -qF \"shows the total exactly as the backend sent it\" src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts -t \"shows the total exactly as the backend sent it\" && grep -qF \"rejects a response whose groups do not add up to the total\" src/features/expenses-by-category/__tests__/service.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/service.spec.ts -t \"rejects a response whose groups do not add up to the total\""
+        },
+        {
+          "descripcion": "Monthly cost ya no está en el menú ni se puede abrir por su dirección.",
+          "comando": "grep -qF \"no longer lists Monthly cost and sends its old address to the net worth home\" src/router/__tests__/router.spec.ts && pnpm exec vitest run src/router/__tests__/router.spec.ts -t \"no longer lists Monthly cost and sends its old address to the net worth home\" && grep -qF \"the old Monthly cost address opens the net worth\" e2e/expenses-by-category.spec.ts && pnpm test:e2e --project=chromium e2e/expenses-by-category.spec.ts -g \"the old Monthly cost address opens the net worth\""
+        },
+        {
+          "descripcion": "Textos en inglés, en oscuro, y pnpm type-check, lint, test:unit, build e ./init.sh en verde.",
+          "comando": "pnpm type-check && pnpm lint:oxlint:check && pnpm format:check && pnpm test:unit && pnpm build-only && ./init.sh"
+        },
+        {
+          "descripcion": "(añadido) La entrada nueva del menú se llama Expenses by category y está justo debajo de Overview.",
+          "comando": "grep -qF \"lists Expenses by category in the menu right below Overview\" src/router/__tests__/router.spec.ts && pnpm exec vitest run src/router/__tests__/router.spec.ts -t \"lists Expenses by category in the menu right below Overview\""
+        },
+        {
+          "descripcion": "(añadido) Lo primero que se lee es una frase, antes de cualquier cifra (../docs/ideas.md).",
+          "comando": "grep -qF \"shows the sentence before any figure\" src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts -t \"shows the sentence before any figure\""
+        },
+        {
+          "descripcion": "(añadido) Se puede comparar un mes con el mismo mes del año pasado.",
+          "comando": "grep -qF \"asks the same month last year when that comparison is chosen\" src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts -t \"asks the same month last year when that comparison is chosen\""
+        },
+        {
+          "descripcion": "(añadido) La pantalla solo lee: pide un mes con su comparación o un año sin ella, sin método ni cuerpo.",
+          "comando": "grep -qF \"asks a month with its comparison and a year without one, with no method and no body\" src/features/expenses-by-category/__tests__/service.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/service.spec.ts -t \"asks a month with its comparison and a year without one, with no method and no body\""
+        },
+        {
+          "descripcion": "(añadido) Si el backend falla, lo dice y se puede volver a intentar.",
+          "comando": "grep -qF \"says the backend failed and asks again on Try again\" src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts && pnpm exec vitest run src/features/expenses-by-category/__tests__/ExpensesByCategoryView.spec.ts -t \"says the backend failed and asks again on Try again\""
+        },
+        {
+          "descripcion": "(añadido) El código de Monthly cost se borra entero.",
+          "comando": "! test -e src/features/monthly-cost && ! test -e e2e/monthly-cost.spec.ts"
         }
       ],
       "sdd": true,

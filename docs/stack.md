@@ -333,6 +333,8 @@ feature #8; ver *Iconos (Lucide)*.
   de `BaseButton`), porque con la flecha curva se leyó como un botón de recargar. Ningún
   archivo de `src/` importa ya `Undo2`.
 - **Feature #32:** `ReceiptEuro`, la entrada `Monthly cost` del menú.
+- **Feature #37:** `ChartBar`, la entrada `Expenses by category` del menú; sale
+  `ReceiptEuro`, que ningún archivo de `src/` importa ya.
 - **Tipo para pasar iconos como dato:** `LucideIcon` (`import type`). Se usa en
   `RouteMeta.icon` (`src/router/index.ts`).
 - **Tamaño y color:** prop `:size` en px; el color lo hereda por `currentColor`,

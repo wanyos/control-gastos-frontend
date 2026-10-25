@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { Landmark, LayoutDashboard, Link2, ReceiptEuro } from '@lucide/vue'
+import { ChartBar, Landmark, LayoutDashboard, Link2 } from '@lucide/vue'
 
-import MonthlyCostView from '@/features/monthly-cost/views/MonthlyCostView.vue'
+import ExpensesByCategoryView from '@/features/expenses-by-category/views/ExpensesByCategoryView.vue'
 import OverviewView from '@/features/overview/views/OverviewView.vue'
 import OwnAccountsView from '@/features/own-accounts/views/OwnAccountsView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
@@ -26,7 +26,8 @@ const newRouter = () => createRouter({ history: createMemoryHistory(), routes })
 describe('router', () => {
   // The list grew with /rules in feature 17 (right below Review) and with /transfers in
   // feature 24 (right below Rules), with /monthly-cost in feature 32 (right below Overview),
-  // and with /own-accounts in feature 36 (right below Transfers).
+  // and with /own-accounts in feature 36 (right below Transfers). Feature 37 put
+  // /expenses-by-category in the place of /monthly-cost, which it removed.
   it('declares the nine navigable routes with English paths', () => {
     const paths = routes.filter((route) => route.name).map((route) => route.path)
 
@@ -37,7 +38,7 @@ describe('router', () => {
       '/transfers',
       '/own-accounts',
       '/overview',
-      '/monthly-cost',
+      '/expenses-by-category',
       '/movements',
       '/investments',
     ])
@@ -60,7 +61,7 @@ describe('router', () => {
     '/transfers',
     '/own-accounts',
     '/overview',
-    '/monthly-cost',
+    '/expenses-by-category',
     '/movements',
     '/investments',
   ])('resolves %s to a component', (path) => {
@@ -89,17 +90,31 @@ describe('router', () => {
     expect(HOME_ROUTE_NAME).toBe('net-worth')
   })
 
-  it('lists Monthly cost in the menu right below Overview', () => {
-    expect(newRouter().resolve('/monthly-cost').matched[0]?.components?.default).toBe(
-      MonthlyCostView,
+  it('lists Expenses by category in the menu right below Overview', () => {
+    expect(newRouter().resolve('/expenses-by-category').matched[0]?.components?.default).toBe(
+      ExpensesByCategoryView,
     )
     const names = navEntries.map((entry) => entry.name)
-    expect(names.indexOf('monthly-cost')).toBe(names.indexOf('overview') + 1)
-    expect(navEntries.find((entry) => entry.name === 'monthly-cost')).toEqual({
-      name: 'monthly-cost',
-      label: 'Monthly cost',
-      icon: ReceiptEuro,
+    expect(names.indexOf('expenses-by-category')).toBe(names.indexOf('overview') + 1)
+    expect(navEntries.find((entry) => entry.name === 'expenses-by-category')).toEqual({
+      name: 'expenses-by-category',
+      label: 'Expenses by category',
+      icon: ChartBar,
     })
+  })
+
+  // Feature 37 removed the screen of feature 32: no entry, no route, and its old address
+  // is treated like any unknown one.
+  it('no longer lists Monthly cost and sends its old address to the net worth home', async () => {
+    expect(navEntries.some((entry) => entry.label === 'Monthly cost')).toBe(false)
+    expect(navEntries.some((entry) => entry.name === 'monthly-cost')).toBe(false)
+    expect(routes.some((route) => route.name === 'monthly-cost')).toBe(false)
+
+    const router = newRouter()
+    await router.push('/monthly-cost')
+    await router.isReady()
+    expect(router.currentRoute.value.name).toBe(HOME_ROUTE_NAME)
+    expect(router.currentRoute.value.path).toBe('/net-worth')
   })
 
   it('lists My accounts in the menu right below Transfers', () => {
@@ -150,7 +165,7 @@ describe('router', () => {
       'transfers',
       'own-accounts',
       'overview',
-      'monthly-cost',
+      'expenses-by-category',
       'movements',
       'investments',
     ])
@@ -161,7 +176,7 @@ describe('router', () => {
       'Transfers',
       'My accounts',
       'Overview',
-      'Monthly cost',
+      'Expenses by category',
       'Movements',
       'Investments',
     ])

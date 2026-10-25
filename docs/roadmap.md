@@ -51,7 +51,7 @@ sección `Review`, pasos 20 a 22.
 
 **Lo siguiente en la E8**: los recurrentes (traspaso `../docs/handoff-recurrentes.md`,
 backend primero). Detalle en la sección de la E8. *(Nota del 2026-10-17: el backend los
-sirve desde su feature 58 y el frontend los enseña en la pantalla `Monthly cost`, feature 32.)*
+sirve desde su feature 58 y el frontend los enseña en la pantalla `Monthly cost`, feature 32.)* *(Nota del 2026-10-25: la F37 quitó `Monthly cost` y la sustituyó por `Expenses by category`, el gasto por categoría en un mes o un año, fijo y variable.)*
 
 **El ruido de las sumas está resuelto en el extracto.** La **F22** (cerrada el
 2026-09-29) permite marcar movimientos como que no cuentan, de uno en uno o en bloque, y
@@ -90,7 +90,7 @@ Leyenda: ✅ hecho · 🟡 a medias · ⬜ sin empezar · ⚠️ hecho con deuda
 | E5 | **La pantalla que dispara la ingesta** — aviso de «N nuevos» + botón importar | ✅ | F13, F14 |
 | E6 | **Revisar antes de confirmar** — la pantalla de lo importado pendiente | ✅ | F15, F16, F17, F18 |
 | E7 | **El extracto** — tabla con filtros y búsqueda: el histórico completo | ✅ | F19, F20, F21, F22, F23, F24 |
-| E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | 🟡 | F25, F26 |
+| E8 | **Los dashboards** — ingresos vs gastos, saldo por cuenta, patrimonio | 🟡 | F25, F26, F37 |
 | E9 | **Que esto se vea desde algún sitio** — despliegue y acceso | ⬜ | *sin etapa hasta hoy* |
 
 ### E0 — Cimientos ✅
@@ -377,9 +377,12 @@ agregados: `GET /api/overview`, `GET /api/investments/overview`,
 >    frontend**. También es lo siguiente.
 > 4. ✅ **Recurrentes**: hecho el 2026-10-17. Backend, feature 58
 >    (`GET /api/recurring-expenses`); frontend, feature 32 (pantalla `Monthly cost`).
->    No se calcula en el navegador.
-> 5. ⏸️ **El reparto por categoría**: aplazado hasta que haya más categorizado. Hoy solo
->    el 6,9 % del gasto tiene categoría y sería un gráfico que finge saber.
+>    No se calcula en el navegador. **Sustituida el 2026-10-25 por la F37**: `Monthly cost`
+>    ya no existe.
+> 5. ✅ **El reparto por categoría**: hecho el 2026-10-25. Backend, feature 63
+>    (`GET /api/expenses-by-category`); frontend, F37 (pantalla `Expenses by category`: mes
+>    o año, fijo y variable, comparado con el periodo anterior). ~~Aplazado hasta que haya más
+>    categorizado.~~ A 2026-10-22, 1.590 de 1.667 movimientos tenían categoría.
 >
 > **F25 cerrada el 2026-10-02** — primera rodaja: `/overview` deja de ser placeholder y
 > enseña un mes. Lo primero es una frase ya interpretada; debajo, lo que entró, lo que
