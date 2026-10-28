@@ -31,14 +31,14 @@
 
 ## Framework / Runtime
 
-- **Vue 3** `^3.5.43` — SFC (`.vue`) con Composition API. `jsx: preserve` /
+- **Vue 3** `^3.5.44` — SFC (`.vue`) con Composition API. `jsx: preserve` /
   `jsxImportSource: vue` habilitados por si se usa TSX.
 - **Runtime Node** — `engines`: `^22.22.2 || ^24.15.0 || >=26.0.0`. En desarrollo todo
   corre sobre Vite; no hay servidor propio (el backend es un proyecto hermano).
 
 ## Librerías clave
 
-- **Estado / store:** Pinia `^4.0.3` — se usan *setup stores* (función que
+- **Estado / store:** Pinia `^4.1.0` — se usan *setup stores* (función que
   devuelve refs/computed/acciones). Se registra en `src/main.ts` como plugin
   base. Desde la v4, Pinia es **ESM-only** (sin problema: el proyecto es
   `"type": "module"` y se empaqueta con Vite). Declara `@vue/devtools-api` como
@@ -50,7 +50,7 @@
   declararla. El store de ejemplo del scaffold (`src/stores/counter.ts`) se retiró en
   el bootstrap; los stores viven por feature en `src/features/<feature>/store.ts`
   (ver `docs/architecture.md`).
-- **Routing:** Vue Router `^5.3.1` — `createWebHistory(import.meta.env.BASE_URL)`.
+- **Routing:** Vue Router `^5.4.0` — `createWebHistory(import.meta.env.BASE_URL)`.
   Ver `src/router/index.ts`: desde la feature #8 declara las rutas reales del
   shell (`/` redirige a `/net-worth`), y su `meta.label` / `meta.icon` es la
   única fuente de verdad de la sidebar y del título de la topbar.
@@ -285,7 +285,7 @@ feature #8; ver *Iconos (Lucide)*.
 > Feature #8 (`app-shell`, 2026-09-12). **Dependencia nueva aprobada** para esta
 > feature.
 
-- **Paquete:** `@lucide/vue` **1.51.0** (rango `^1.51.0` en `dependencies`; es
+- **Paquete:** `@lucide/vue` **1.62.0** (rango `^1.62.0` en `dependencies`; es
   código de runtime). Peer: `vue >=3.0.1`.
 - **Por qué este paquete y no otro:**
   - Es el paquete **oficial** de Lucide para Vue. `lucide-vue-next`, el nombre
@@ -343,7 +343,7 @@ feature #8; ver *Iconos (Lucide)*.
 
 ## Build / Dev tooling
 
-- **Bundler / build tool:** Vite `^8.3.2` con `@vitejs/plugin-vue` `^6.0.9` y
+- **Bundler / build tool:** Vite `^8.3.5` con `@vitejs/plugin-vue` `^6.0.10` y
   `@tailwindcss/vite`. **Sin `vite-plugin-vue-devtools`** desde la feature #12
   (decisión del humano): ya no aparece el botón flotante de Vue DevTools en
   `pnpm dev`. Para inspeccionar componentes o stores sigue valiendo la extensión
@@ -371,7 +371,7 @@ feature #8; ver *Iconos (Lucide)*.
 
 > Tarea de higiene, 2026-09-23. Sin dependencias nuevas.
 
-**Prettier** `3.9.9`, configurado en `.prettierrc.json`: `semi: false`,
+**Prettier** `3.9.10`, configurado en `.prettierrc.json`: `semi: false`,
 `singleQuote: true`, **`printWidth: 100`**. Se invoca con `--experimental-cli`.
 
 `pnpm format` va por **lista de rutas explícita**, no por `.` :
@@ -405,7 +405,7 @@ prettier --write --experimental-cli src/ e2e/ "*.config.ts" env.d.ts index.html 
 
 > Feature #12 (`dependency-cleanup-and-upgrade`, 2026-09-13). Decisión del
 > humano: **ESLint y todo su ecosistema se retiraron**; el único linter es
-> **oxlint** `~1.86.0`. `pnpm lint` = `run-s "lint:*"` → `oxlint . --fix`.
+> **oxlint** `~1.90.0`. `pnpm lint` = `run-s "lint:*"` → `oxlint . --fix`.
 
 **Dos entradas: una arregla, otra comprueba** (higiene 2026-09-30).
 `pnpm lint` lleva `--fix` y **modifica archivos**: perfecto mientras trabajas,
@@ -466,7 +466,7 @@ Configuración en `.oxlintrc.json`:
 
 ## Testing
 
-- **Unitarios:** **Vitest** `^5.0.3`, entorno `jsdom` `^30.1.1`, con
+- **Unitarios:** **Vitest** `^5.0.5`, entorno `jsdom` `^30.1.3`, con
   `@vue/test-utils`. El requisito de Node del proyecto lo marca **jsdom**, que
   es más estricto que Vite o Vue: ver *Restricciones / decisiones de versionado*.
   - Comando: `pnpm test:unit`.
@@ -477,7 +477,7 @@ Configuración en `.oxlintrc.json`:
     Antes los globals del DOM (`HTMLElement`, `location`…) llegaban de rebote por
     `@types/jsdom`; al quitarlo (feature #12) se declaran explícitamente. Ningún
     test usa la API de `jsdom` (`new JSDOM(...)`): el entorno lo monta Vitest.
-- **E2E:** **Playwright** `^1.63.0`. Tras subir de versión hay que refrescar los
+- **E2E:** **Playwright** `^1.64.1`. Tras subir de versión hay que refrescar los
   navegadores con `npx playwright install`; los binarios van atados a la versión.
   - Comando: `pnpm test:e2e`.
   - Ubicación: `e2e/`.
@@ -643,11 +643,14 @@ de seguridad aborta cualquier `/api` no prevista, así que **nunca** llega un
 
 ## Mantenimiento de dependencias
 
-> Última pasada: **2026-10-04**, tarea de mantenimiento (no es una feature): se
-> subieron once versiones menores y de parche, y se volvió a probar TypeScript 7.
-> Informe completo: `progress/implementations/dependency-upgrade-2026-10.md`.
-> Pasada anterior: 2026-09-13, feature #12 (`dependency-cleanup-and-upgrade`),
-> informe en `progress/implementations/dependency-cleanup-and-upgrade.md`.
+> Última pasada: **2026-10-28**, tarea de mantenimiento (no es una feature): se
+> subieron catorce versiones menores y de parche (dos de ellas a una versión
+> anterior a la última, por la antigüedad mínima de pnpm) y se volvió a probar
+> TypeScript 7, que sigue sin entrar.
+> Informe completo: `progress/implementations/dependency-upgrade-2026-10-28.md`.
+> Pasadas anteriores: 2026-10-04 (`progress/implementations/dependency-upgrade-2026-10.md`)
+> y 2026-09-13, feature #12 (`dependency-cleanup-and-upgrade`), informe en
+> `progress/implementations/dependency-cleanup-and-upgrade.md`.
 
 ### Cómo se hace una actualización aquí
 
@@ -672,6 +675,23 @@ archivo en este proyecto. Lo que sigue **sin** cubrir es `pnpm build`: en una
 actualización de dependencias hay que lanzarlo a mano. Ver la tabla completa en
 `docs/verification.md` → *Qué comprueba la puerta*.
 
+### Lo que subió por debajo en la pasada del 2026-10-28
+
+En el diff del lockfile entran nueve versiones mayores de dependencias indirectas
+y salen cuatro (contadas por el reviewer comparando las claves de `packages:`):
+
+- De los tests (las trae `jsdom` 30.1.3 o `vitest` 5.0.5, ninguna va al build de
+  producción): `@asamuzakjp/dom-selector` 9 → 10, `data-urls` 7 → 8,
+  `whatwg-url` 16 → 17 (convive con otra 17.x), `tr46` 6 → 7 y `obug` 2 → 3.
+- De `vue-router` 5.4.0, a través de `ast-walker-scope` 0.10.0: entran
+  `ast-kit` 3 y `@babel/parser`, `@babel/types`, `@babel/helper-string-parser` y
+  `@babel/helper-validator-identifier` 8, **al lado** de las 2.x y 7.x
+  que siguen usando el compilador de Vue y `@vue-macros/common`. Son
+  herramientas de compilación, no código que se sirva al navegador.
+
+El lockfile pasó de 261 a 272 paquetes. La suite (2.077 tests) y el build
+pasaron con ellas.
+
 ### Lo que subió por debajo en la pasada del 2026-10-04
 
 Al subir `jsdom` a 30.1.1 y `vitest` a 5.0.3 cambiaron de versión mayor cinco
@@ -692,9 +712,10 @@ y `typescript` se queda en `~6.0.3` (la última 6.0.x publicada):
    `version` y rutas `unstable/*` (`unstable/sync`, `unstable/ast`…); ya no hay
    `typescript/lib/*` ni la API JS clásica.
 2. **`vue-tsc` depende de esa API y no arranca.** Comprobado por última vez el
-   **2026-10-04** con `vue-tsc` **3.3.12** (la última ese día) y `typescript`
-   `7.0.2`, instalados en el propio repo: `pnpm type-check` termina con exit 1 y
-   este error, antes de comprobar ningún archivo:
+   **2026-10-28** con `vue-tsc` **3.3.13** (la última ese día) y `typescript`
+   `7.0.2`, instalados en el propio repo; antes, el 2026-10-04, con `vue-tsc`
+   3.3.12. Las dos veces `pnpm type-check` termina con exit 1 y este error,
+   antes de comprobar ningún archivo:
 
    ```
    Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/tsc' is not
@@ -705,24 +726,33 @@ y `typescript` se queda en `~6.0.3` (la última 6.0.x publicada):
    `pnpm build` cae con él (exit 1, `ERROR: "type-check" exited with 1.`), porque
    lanza `type-check` en paralelo. Es un fallo duro, no un aviso. Es el mismo
    error que dio `vue-tsc` 3.3.11 en la feature #12 (2026-09-13).
-3. **`./init.sh` no lo detectaba cuando se hizo la prueba.** Con TypeScript 7
-   instalado, `./init.sh` terminó con exit 0 (tsc, lint, formato, 1703 tests
+3. **`./init.sh` no lo detectaba en la prueba del 2026-10-04.** Con TypeScript 7
+   instalado, ese día `./init.sh` terminó con exit 0 (tsc, lint, formato, 1703 tests
    unitarios y el e2e de chromium): entonces no ejecutaba `vue-tsc` ni el build.
    Ese mismo día, después de la prueba, se añadió a `init.local.sh` un paso que
    ejecuta `pnpm type-check` y pone `./init.sh` en rojo si falla (ver
-   `docs/verification.md` → *`pnpm type-check` dentro de `./init.sh`*). **No se
-   ha repetido la prueba con TypeScript 7 instalado** después de añadirlo; el
-   paso sí se comprobó con un error de tipos en un `.vue`. `pnpm build` sigue
+   `docs/verification.md` → *`pnpm type-check` dentro de `./init.sh`*). Hasta el
+   2026-10-28 no se repitió la prueba con TypeScript 7 instalado; el paso sí se
+   comprobó entonces con un error de tipos en un `.vue`. `pnpm build` sigue
    sin ejecutarlo `./init.sh`: hay que lanzarlo a mano.
 
-Tras la prueba del 2026-10-04 se volvió a `typescript` `~6.0.3` y los tres
-comandos quedaron otra vez en exit 0.
+   **Prueba del 2026-10-28**, ya con ese paso: con TypeScript 7.0.2 y `vue-tsc`
+   3.3.13, `./init.sh` termina con **exit 1**. Su sección 6b dice
+   `[FAIL] Fallido: pnpm type-check (exit 1)` con el mismo
+   `ERR_PACKAGE_PATH_NOT_EXPORTED`, y el resumen
+   `[FAIL] Entorno NO está listo`. Ahora `./init.sh` sí lo detecta. (El paso 4,
+   `npx tsc --noEmit --incremental`, siguió diciendo «Type check OK».)
+
+Tras las pruebas del 2026-10-04 y del 2026-10-28 se volvió a `typescript`
+`~6.0.3` (la última 6.0.x publicada) y los tres comandos quedaron otra vez en
+exit 0.
 
 El otro motivo que había (`typescript-eslint` limitaba TypeScript a `<6.1.0`)
 **desapareció con ESLint** en la feature #12; no cambia la conclusión.
 
 **Cuándo reintentarlo:** cuando `vue-tsc` publique una versión posterior a la
-3.3.12 (o TS 7 estabilice su API). La prueba son tres comandos con `typescript`
+3.3.13 (o TS 7 estabilice su API). Que salga una versión nueva de `vue-tsc` no
+basta por sí solo: la 3.3.13 salió y seguía pidiendo `typescript/lib/tsc`. La prueba son tres comandos con `typescript`
 en la 7: `pnpm type-check`, `pnpm build` y `./init.sh`. Hasta entonces `pnpm outdated` seguirá
 ofreciendo la 7: es esperado, no es un despiste.
 
@@ -739,6 +769,11 @@ ofreciendo la 7: es esperado, no es un despiste.
   obsoletas; en la feature #12 se borraron todas (oxlint 1.73/1.77, Vue 3.5.41,
   Vite 8.2.1, `@vitest/eslint-plugin`, `eslint-plugin-oxlint`) y con ellas el
   fichero, porque no contenía nada más.
+  **`pnpm outdated` ya no enseña las versiones demasiado nuevas:** en la pasada
+  del 2026-10-28, `ncu` ofrecía `@types/node` 26.6.6 y `@lucide/vue` 1.63.0,
+  publicadas ese mismo día, y `pnpm outdated` daba como última 26.6.5 y 1.62.0.
+  No se forzaron: se subió a esas dos y no hizo falta crear `pnpm-workspace.yaml`.
+  En la pasada siguiente ya cumplirán la antigüedad.
 - **Subir Playwright obliga a bajar navegadores** (`npx playwright install`): los
   binarios van atados a la versión.
 - **Vitest 5** (feature #12) no exigió cambios en `vitest.config.ts`. Lo que
