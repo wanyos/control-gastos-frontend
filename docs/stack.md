@@ -285,7 +285,7 @@ feature #8; ver *Iconos (Lucide)*.
 > Feature #8 (`app-shell`, 2026-09-12). **Dependencia nueva aprobada** para esta
 > feature.
 
-- **Paquete:** `@lucide/vue` **1.62.0** (rango `^1.62.0` en `dependencies`; es
+- **Paquete:** `@lucide/vue` **1.66.0** (rango `^1.66.0` en `dependencies`; es
   código de runtime). Peer: `vue >=3.0.1`.
 - **Por qué este paquete y no otro:**
   - Es el paquete **oficial** de Lucide para Vue. `lucide-vue-next`, el nombre
@@ -643,12 +643,12 @@ de seguridad aborta cualquier `/api` no prevista, así que **nunca** llega un
 
 ## Mantenimiento de dependencias
 
-> Última pasada: **2026-10-28**, tarea de mantenimiento (no es una feature): se
-> subieron catorce versiones menores y de parche (dos de ellas a una versión
-> anterior a la última, por la antigüedad mínima de pnpm) y se volvió a probar
-> TypeScript 7, que sigue sin entrar.
-> Informe completo: `progress/implementations/dependency-upgrade-2026-10-28.md`.
-> Pasadas anteriores: 2026-10-04 (`progress/implementations/dependency-upgrade-2026-10.md`)
+> Última pasada: **2026-11-01**, tarea de mantenimiento (no es una feature): se
+> subieron `@lucide/vue` 1.66.0, `@types/node` 26.6.6 y `vue-tsc` 3.3.14, y se
+> volvió a probar TypeScript 7, que sigue sin entrar.
+> Informe completo: `progress/implementations/dependency-upgrade-2026-11-01.md`.
+> Pasadas anteriores: 2026-10-28 (`progress/implementations/dependency-upgrade-2026-10-28.md`),
+> 2026-10-04 (`progress/implementations/dependency-upgrade-2026-10.md`)
 > y 2026-09-13, feature #12 (`dependency-cleanup-and-upgrade`), informe en
 > `progress/implementations/dependency-cleanup-and-upgrade.md`.
 
@@ -674,6 +674,21 @@ propio paso de tipos (`npx tsc --noEmit --incremental`) no comprueba ningún
 archivo en este proyecto. Lo que sigue **sin** cubrir es `pnpm build`: en una
 actualización de dependencias hay que lanzarlo a mano. Ver la tabla completa en
 `docs/verification.md` → *Qué comprueba la puerta*.
+
+### Lo que subió por debajo en la pasada del 2026-11-01
+
+Ninguna versión mayor. `vue-tsc` 3.3.14 sube `@volar/language-core`,
+`@volar/source-map` y `@volar/typescript` de 2.4.28 a 2.4.30 y
+`@vue/language-core` de 3.3.13 a 3.3.14, y trae cinco paquetes nuevos:
+`@volar/language-service` 2.4.30 (lo pide `@volar/typescript` 2.4.30),
+`vscode-jsonrpc` 10.0.0, `vscode-languageserver-protocol` 3.18.5,
+`vscode-languageserver-textdocument` 1.0.16 y `vscode-languageserver-types` 3.18.5.
+Son de la comprobación de tipos, no van al build de producción (el bundle salió
+idéntico, mismo hash `index-oXIqPBcg.js`). El lockfile pasó de 272 a 277
+paquetes. **Dato a recordar:** `@volar/typescript` y `@volar/language-service`
+2.4.30 declaran `peerDependencies: { "typescript": "<7" }` (la 2.4.28 no
+declaraba ninguna), así que desde esta pasada `pnpm add` de TypeScript 7 avisa de
+peers.
 
 ### Lo que subió por debajo en la pasada del 2026-10-28
 
@@ -712,10 +727,10 @@ y `typescript` se queda en `~6.0.3` (la última 6.0.x publicada):
    `version` y rutas `unstable/*` (`unstable/sync`, `unstable/ast`…); ya no hay
    `typescript/lib/*` ni la API JS clásica.
 2. **`vue-tsc` depende de esa API y no arranca.** Comprobado por última vez el
-   **2026-10-28** con `vue-tsc` **3.3.13** (la última ese día) y `typescript`
-   `7.0.2`, instalados en el propio repo; antes, el 2026-10-04, con `vue-tsc`
-   3.3.12. Las dos veces `pnpm type-check` termina con exit 1 y este error,
-   antes de comprobar ningún archivo:
+   **2026-11-01** con `vue-tsc` **3.3.14** (la última ese día) y `typescript`
+   `7.0.2`, instalados en el propio repo; antes, el 2026-10-28 con `vue-tsc`
+   3.3.13 y el 2026-10-04 con `vue-tsc` 3.3.12. Las tres veces `pnpm type-check`
+   termina con exit 1 y este error, antes de comprobar ningún archivo:
 
    ```
    Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './lib/tsc' is not
@@ -743,17 +758,66 @@ y `typescript` se queda en `~6.0.3` (la última 6.0.x publicada):
    `[FAIL] Entorno NO está listo`. Ahora `./init.sh` sí lo detecta. (El paso 4,
    `npx tsc --noEmit --incremental`, siguió diciendo «Type check OK».)
 
-Tras las pruebas del 2026-10-04 y del 2026-10-28 se volvió a `typescript`
-`~6.0.3` (la última 6.0.x publicada) y los tres comandos quedaron otra vez en
-exit 0.
+   **Prueba del 2026-11-01**, con TypeScript 7.0.2 y `vue-tsc` 3.3.14: lo mismo.
+   `pnpm type-check` exit 1 con el mismo `ERR_PACKAGE_PATH_NOT_EXPORTED`,
+   `pnpm build` exit 1 (`ERROR: "type-check" exited with 1.`) y `./init.sh`
+   exit 1 (`[FAIL] Fallido: pnpm type-check (exit 1)` en 6b). Novedad: `pnpm add`
+   avisa ya de peers (`✕ unmet peer typescript`, `Wanted: <7` por
+   `@volar/typescript` 2.4.30 y `@volar/language-service` 2.4.30). Es decir, la
+   serie 3 de `vue-tsc` declara ahora por escrito que no admite TypeScript 7.
+
+Tras las pruebas del 2026-10-04, del 2026-10-28 y del 2026-11-01 se volvió a
+`typescript` `~6.0.3` (la última 6.0.x publicada) y los tres comandos quedaron
+otra vez en exit 0.
+
+**El camino que hay (investigado el 2026-11-01; detalle, fuentes y opciones en
+`progress/implementations/dependency-upgrade-2026-11-01.md` → «TypeScript 7:
+opciones»):**
+
+- La serie 3 de `vue-tsc` **no va a admitir TypeScript 7**. Lo que viene es la
+  **versión 4 de las herramientas de Vue** (`vuejs/language-tools`, PR #6170, en
+  alfa), que **elimina `vue-tsc`**: los `.vue` los comprueba el propio `tsc` de
+  **TypeScript 7.1**, con la opción `contentMappers` del `tsconfig` apuntando al
+  paquete `@vue/content-mapper` y lanzando `tsc --runExternalCode`. Exige
+  `typescript >=7.1.0-beta`; no funciona con la 7.0.
+- Estado el 2026-11-01: `@vue/content-mapper` y `@vue/language-core`
+  `4.0.0-alpha.2` (publicadas el 2026-10-29), `typescript` `7.1.0-beta`
+  (2026-10-20). El plan de TypeScript 7.1 (microsoft/TypeScript#63703) pone la RC
+  el 2026-11-10 y la estable el **2026-11-24**; la beta salió dos semanas más tarde
+  de lo previsto.
+- Probado el 2026-11-01 en una **copia del proyecto fuera del repo** (no en el
+  repo): con TypeScript 7.1.0-beta y `@vue/content-mapper` 4.0.0-alpha.2, `tsc -b
+  --runExternalCode` sí revisa los `.vue` (detecta un error metido a propósito en
+  el `<script setup>` y otro en la plantilla), pero da **1.270 errores falsos**
+  con la configuración por defecto (los `data-*`, `aria-*`, `onClick`, `lang`,
+  `title` que se pasan a componentes) y **4** tras añadir
+  `dataAttributes`, `htmlAttributes` y `fallthroughAttributes`. `vite build`
+  salió con el mismo bundle. En Windows, con el `node_modules` de pnpm por
+  defecto, el `tsc` de la 7.1 beta se cae por una ruta de más de 260 caracteres;
+  hubo que instalar con `node-linker=hoisted`.
+- Usar TypeScript 7 **solo para los `.ts`** dejando `vue-tsc` en la 6 es
+  posible (se comprobó en otra copia: `typescript` como alias de
+  `@typescript/typescript6`, que `vue-tsc` 3.3.14 reconoce, y la 7 con otro
+  nombre), pero aquí casi no gana nada: solo `tsconfig.node.json` (los 3 archivos de
+  configuración `vite`, `vitest` y `playwright`) no tiene `.vue`; `tsconfig.app.json` y
+  `tsconfig.vitest.json` importan `.vue` y siguen necesitando `vue-tsc`.
 
 El otro motivo que había (`typescript-eslint` limitaba TypeScript a `<6.1.0`)
 **desapareció con ESLint** en la feature #12; no cambia la conclusión.
 
-**Cuándo reintentarlo:** cuando `vue-tsc` publique una versión posterior a la
-3.3.13 (o TS 7 estabilice su API). Que salga una versión nueva de `vue-tsc` no
-basta por sí solo: la 3.3.13 salió y seguía pidiendo `typescript/lib/tsc`. La prueba son tres comandos con `typescript`
-en la 7: `pnpm type-check`, `pnpm build` y `./init.sh`. Hasta entonces `pnpm outdated` seguirá
+**Cuándo reintentarlo:** ya no tiene sentido repetir la prueba con una 3.3.x
+nueva de `vue-tsc`: la 3.3.14 declara `typescript <7` (por `@volar` 2.4.30). Hasta
+el 2026-10-28 la regla era «cuando `vue-tsc` publique una versión posterior a la
+3.3.13»; salió la 3.3.14 y seguía pidiendo `typescript/lib/tsc`. Desde el
+2026-11-01 se reintenta cuando se cumplan **las dos**: `typescript` **7.1.0
+estable** publicada (prevista el 2026-11-24) y una **4.0.0 no alfa** de
+`@vue/content-mapper` (beta o estable). Hasta entonces, en cada pasada basta con
+mirar `pnpm view @vue/content-mapper dist-tags` y `pnpm view typescript dist-tags`.
+La prueba entonces ya no son los tres comandos de antes: es cambiar
+`pnpm type-check` a `tsc --build --runExternalCode` con `contentMappers` en el
+`tsconfig`, y que `pnpm type-check`, `pnpm build` y `./init.sh` salgan con 0 sin
+errores falsos. Es un cambio de configuración y de `package.json`, no una subida
+de versión: lo decide el humano. Hasta entonces `pnpm outdated` seguirá
 ofreciendo la 7: es esperado, no es un despiste.
 
 ### Otras trampas conocidas
@@ -773,7 +837,19 @@ ofreciendo la 7: es esperado, no es un despiste.
   del 2026-10-28, `ncu` ofrecía `@types/node` 26.6.6 y `@lucide/vue` 1.63.0,
   publicadas ese mismo día, y `pnpm outdated` daba como última 26.6.5 y 1.62.0.
   No se forzaron: se subió a esas dos y no hizo falta crear `pnpm-workspace.yaml`.
-  En la pasada siguiente ya cumplirán la antigüedad.
+  En la pasada siguiente ya cumplirán la antigüedad. (Así fue: el 2026-11-01
+  `pnpm outdated` ya daba 26.6.6 y 1.66.0, y las tres de esa pasada, la más
+  reciente `@lucide/vue` 1.66.0 del 2026-10-31, entraron sin excepción.)
+- **El e2e de chromium falla a veces**, sin causa comprobada (cabo 41 de
+  `docs/roadmap.md`). El 2026-11-01 un `./init.sh` salió con exit 1 por
+  `action-notice-in-view.spec.ts:992` (`watch.aborted` con
+  `"GET /api/movements"`) y el siguiente salió con 0; ese test no se ha visto
+  fallar con las versiones de antes de esa pasada, y el reviewer no lo hizo fallar
+  en 60 repeticiones. Con las versiones de antes, `--repeat-each=5` dio 2 fallos de
+  `category-rules.spec.ts:779` (el del cabo 41) en 415 (un color de fondo que difiere en 1:
+  `rgb(21, 28, 35)` frente a `rgb(20, 27, 34)`), y ese mismo test tumbó otro
+  `./init.sh` con las versiones nuevas. Si `./init.sh` cae solo en el e2e,
+  repetirlo antes de culpar a la subida.
 - **Subir Playwright obliga a bajar navegadores** (`npx playwright install`): los
   binarios van atados a la versión.
 - **Vitest 5** (feature #12) no exigió cambios en `vitest.config.ts`. Lo que

@@ -18,7 +18,7 @@
     "format:check": "prettier --check --experimental-cli src/ e2e/ \"*.config.ts\" env.d.ts index.html \"tsconfig*.json\" .oxlintrc.json package.json"
   },
   "dependencies": {
-    "@lucide/vue": "^1.62.0",
+    "@lucide/vue": "^1.66.0",
     "pinia": "^4.1.0",
     "vue": "^3.5.44",
     "vue-router": "^5.4.0"
@@ -27,7 +27,7 @@
     "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/node24": "^24.0.5",
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/test-utils": "^2.5.1",
     "@vue/tsconfig": "^0.9.1",
@@ -39,7 +39,7 @@
     "typescript": "~6.0.3",
     "vite": "^8.3.5",
     "vitest": "^5.0.5",
-    "vue-tsc": "^3.3.13"
+    "vue-tsc": "^3.3.14"
   },
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
