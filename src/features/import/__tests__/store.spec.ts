@@ -29,6 +29,9 @@ import {
   networkDown,
 } from './fixtures'
 
+/** What each deposit earned, asked by the net worth store with the net worth (feature 38). */
+const GET_DEPOSITS = 'GET /api/investments/deposits'
+
 /** `GET /api/movements` over a base with nothing in it (feature 25). */
 const EMPTY_MOVEMENTS_PAGE = {
   movements: [],
@@ -399,6 +402,29 @@ describe('useImportStore', () => {
 
       expect(useNetWorthStore().netWorth).toBeNull()
       expect(api.count(GET_NET_WORTH)).toBe(0)
+      expect(api.count(GET_DEPOSITS)).toBe(0)
+    })
+
+    it('asks the deposits again after an import when the net worth was loaded', async () => {
+      // mockApi answers any other path with `netWorth`: the deposits read gets this body,
+      // which the deposits part rejects. What is checked here is that it is asked again.
+      const api = mockApi({
+        pending: json(PENDING_TWO),
+        import: json(FULL_REPORT),
+        netWorth: json(coherentNetWorth()),
+      })
+      const netWorth = useNetWorthStore()
+      await netWorth.load()
+      expect(netWorth.netWorth).not.toBeNull()
+      expect(api.count(GET_DEPOSITS)).toBe(1)
+      const store = useImportStore()
+      await atConfirm(store)
+
+      await store.start()
+      await flushPromises()
+
+      expect(api.count(GET_DEPOSITS)).toBe(2)
+      expect(api.count(GET_NET_WORTH)).toBe(2)
     })
   })
 })

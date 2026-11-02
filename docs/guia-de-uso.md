@@ -168,12 +168,50 @@ con cada cuenta y cada producto.
    dos veces.
    -- ok
 
+8. Baja hasta la tarjeta `Deposits`, debajo de `Details`. **Debes ver** una fila
+   por cada depósito que has tenido, también los cerrados hace meses, en el orden
+   en que los manda el backend (el vencimiento más reciente primero). Cada fila
+   lleva el nombre, una etiqueta con su estado, el banco, `Put in` (lo que
+   metiste), `Opened` (cuándo se abrió), la fecha de vencimiento y `Expected` (lo
+   que esperabas ganar). Un dato que el backend no tenga sale como `—`, nunca
+   como 0. A la derecha, la columna de lo ganado:
+   - `Active` (vivo): la fecha dice `Matures …` y la columna, `Not earned yet`.
+   - `Matured` (vencido): la fecha dice `Matured …` y la columna enseña lo que
+     ganó, en verde. Es lo único que suma en el total.
+   - `Cancelled` (cancelado): toda la fila en gris, la fecha dice `Was due …`,
+     debajo `Cancelled on <fecha>, before it matured` y la columna,
+     `Not in the total`.
+   - `Doubtful` (dudoso, en ámbar): debajo dice el motivo, uno de estos tres:
+     `its payment is not in your statement` (su cobro no está en tu extracto),
+     `2 possible payments in your statement, none chosen` (varios cobros
+     posibles, no se elige ninguno) o `it paid back <importe>, less than you put
+     in` (devolvió menos de lo que metiste). La columna dice `Not in the total`.
+
+9. Mira arriba de la tarjeta `Deposits`: `Earned by your deposits` y una cifra.
+   **Debe** ser la suma de las cifras en verde de los vencidos. La frase de
+   debajo recuerda que **esa cifra no forma parte de tu patrimonio**: ese
+   interés ya cuenta como ingreso en `Overview` y `Movements`. La cifra grande
+   `Net worth` no cambia por ella.
+
+10. En un depósito con su cobro en el extracto pulsa `See in Movements`.
+    **Debes ver** `Movements` abierto en el mes de ese cobro (no señala la
+    línea). Un dudoso con varios cobros posibles no lleva el enlace.
+
+11. Si no tienes depósitos, la tarjeta dice `You have no deposits yet.` Si el
+    backend no los puede servir, solo la tarjeta dice
+    `Couldn't load your deposits` y el resto de `Net Worth` se sigue viendo.
+    Tras una importación, los depósitos se vuelven a pedir solos.
+
 ### Lo que no hace o hace a medias
 
 - **No tiene histórico.** No dice cuánto ha crecido ni cómo ha evolucionado: el
   backend no sirve todavía el patrimonio a una fecha pasada.
 - **No dice desde cuándo hay dato** de cada producto. El backend no lo envía.
-- **No enseña lo que ganó cada depósito.** Es lo siguiente que está previsto.
+- **Desde la tarjeta `Deposits` no se corrige un dudoso ni se elige su cobro:**
+  solo lee.
+- **El total de `Deposits` no tiene por qué coincidir con los intereses que suma
+  `Overview`:** un vencimiento antiguo sin archivo de producto suma su interés
+  allí y aquí no aparece (así lo define el backend).
 - Un producto sin valoración sale con el texto `No valuation` en lugar de un
   importe, y **no suma** en ningún total. No es un cero.
 - Si la carga falla, la tarjeta de error **no tiene botón de reintentar**.
@@ -1835,9 +1873,6 @@ categoría es donde se ve avanzar este trabajo.
 
 Sacado de `docs/roadmap.md` (última revisión del roadmap: 2026-10-04). Nada de
 esto existe todavía en la aplicación.
-
-- **Lo que ganó cada depósito**, en `Net Worth`. Es lo siguiente previsto. El
-  backend ya lo sirve; el frontend no lo usa.
 
 - **El reparto por categoría.** Aplazado hasta que haya más gasto
   categorizado.

@@ -6,10 +6,15 @@
 
 import { http } from '@/services/http'
 import type { HttpClient } from '@/services/http'
+import { toCents } from '@/shared/money'
 import { createValidators } from '@/shared/validation'
 
 import type {
   AccountType,
+  DepositEarning,
+  DepositEarnings,
+  DepositMaturity,
+  DepositStatus,
   InvestmentProduct,
   NetWorth,
   NetWorthAccount,
@@ -155,4 +160,98 @@ export function parseNetWorth(raw: unknown): NetWorth {
  */
 export async function getNetWorth(client: HttpClient = http): Promise<NetWorth> {
   return parseNetWorth(await client<unknown>(NET_WORTH_PATH))
+}
+
+// GET /api/investments/deposits (feature 38): read only, no parameters.
+
+export const DEPOSITS_PATH = '/api/investments/deposits'
+
+const DEPOSIT_STATUSES: readonly DepositStatus[] = [
+  'active',
+  'matured',
+  'cancelled',
+  'maturity_not_found',
+  'ambiguous',
+  'below_principal',
+]
+
+/** Statuses whose entry carries the maturity movement (contract table). */
+const WITH_MATURITY: readonly DepositStatus[] = ['matured', 'below_principal']
+
+// Own validators, so a drift names this path and not the net worth one.
+const deposit = createValidators(`GET ${DEPOSITS_PATH}`)
+
+function parseMaturity(raw: unknown, path: string): DepositMaturity {
+  const maturity = deposit.asObject(raw, path)
+  return {
+    movementId: deposit.asInteger(maturity.movementId, `${path}.movementId`),
+    date: deposit.asDateOnly(maturity.date, `${path}.date`),
+    amount: deposit.asDecimal(maturity.amount, `${path}.amount`),
+  }
+}
+
+function parseDeposit(raw: unknown, path: string): DepositEarning {
+  const entry = deposit.asObject(raw, path)
+  const status = deposit.asMember(entry.status, DEPOSIT_STATUSES, `${path}.status`)
+
+  // Only `matured` carries a figure; any other status sends null (design §3).
+  let earned: string | null = null
+  if (status === 'matured') {
+    earned = deposit.asDecimal(entry.earned, `${path}.earned`)
+  } else if (entry.earned !== null) {
+    deposit.reject(`${path}.earned`, `null on a deposit that is not matured`)
+  }
+
+  let maturity: DepositMaturity | null = null
+  if (WITH_MATURITY.includes(status)) {
+    maturity = parseMaturity(entry.maturity, `${path}.maturity`)
+  } else if (entry.maturity !== null) {
+    deposit.reject(`${path}.maturity`, `null on a ${status} deposit`)
+  }
+
+  return {
+    id: deposit.asInteger(entry.id, `${path}.id`),
+    bank: deposit.asText(entry.bank, `${path}.bank`),
+    name: deposit.asText(entry.name, `${path}.name`),
+    openedAt: deposit.asNullableDateOnly(entry.openedAt, `${path}.openedAt`),
+    closedAt: deposit.asNullableDateOnly(entry.closedAt, `${path}.closedAt`),
+    principal: deposit.asNullableDecimal(entry.principal, `${path}.principal`),
+    expectedGain: deposit.asNullableDecimal(entry.expectedGain, `${path}.expectedGain`),
+    maturityDate: deposit.asNullableDateOnly(entry.maturityDate, `${path}.maturityDate`),
+    status,
+    earned,
+    maturity,
+    candidateMovementIds: deposit
+      .asArray(entry.candidateMovementIds, `${path}.candidateMovementIds`)
+      .map((id, index) => deposit.asInteger(id, `${path}.candidateMovementIds[${index}]`)),
+  }
+}
+
+/**
+ * Maps the raw API payload to the frontend types, or throws ValidationError. That
+ * includes a total that is not the sum of the matured deposits: it is checked,
+ * never corrected nor shown (design §3).
+ */
+export function parseDepositEarnings(raw: unknown): DepositEarnings {
+  const body = deposit.asObject(raw, 'response')
+  const read: DepositEarnings = {
+    asOf: deposit.asDateOnly(body.asOf, 'asOf'),
+    deposits: deposit
+      .asArray(body.deposits, 'deposits')
+      .map((item, index) => parseDeposit(item, `deposits[${index}]`)),
+    total: deposit.asDecimal(body.total, 'total'),
+  }
+  const sum = read.deposits.reduce(
+    (cents, entry) => cents + (entry.earned === null ? 0n : toCents(entry.earned)),
+    0n,
+  )
+  if (sum !== toCents(read.total)) {
+    deposit.reject('total', 'the sum of the earned of the matured deposits')
+  }
+  return read
+}
+
+/** Only a GET of the path: no method, body nor querystring (the contract has none). */
+export async function getDepositEarnings(client: HttpClient = http): Promise<DepositEarnings> {
+  return parseDepositEarnings(await client<unknown>(DEPOSITS_PATH))
 }

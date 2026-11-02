@@ -58,6 +58,12 @@
           />
         </div>
       </section>
+
+      <DepositEarnings
+        :earnings="store.deposits"
+        :loading="store.depositsLoading"
+        :error="store.depositsError"
+      />
     </template>
   </div>
 </template>
@@ -72,6 +78,7 @@ import { formatMoney, toCents } from '@/shared/money'
 import { bankLabel, groupByBank, groupByNature, sumOfGroups } from '../breakdown'
 import type { BreakdownGroup, NatureGroupId } from '../breakdown'
 import BankCard from '../components/BankCard.vue'
+import DepositEarnings from '../components/DepositEarnings.vue'
 import BreakdownList from '../components/BreakdownList.vue'
 import DataWarnings from '../components/DataWarnings.vue'
 import { buildSummarySentence } from '../sentence'

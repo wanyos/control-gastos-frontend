@@ -71,8 +71,11 @@ cuentan lo mismo. **La E8, los dashboards, hereda estas cifras**, que ya son las
   inflados por traspasos a cuentas propias de inversión sin marcar. Se corrige marcándolos
   desde el extracto, no con código (detalle en la E8).
 
-- `GET /api/investments/deposits` (feature 50 del backend) está servido y **sin usar**:
-  es una de las dos features siguientes de la E8, en Patrimonio.
+- `GET /api/investments/deposits` (feature 50 del backend) lo usa la **F38** (2026-11-02),
+  en la parte Deposits de `Net Worth`. Aviso del backend (2026-11-01): el interés de cada vencimiento ya
+  entra en los ingresos de `GET /api/overview` y `GET /api/movements` (feature 57 del
+  backend) y **no** en `GET /api/investments/overview`; `expectedGain` se enseña y no se
+  suma; `total` suma solo los `matured`. Contrato: sección «GET /api/investments/deposits».
 
 ---
 
@@ -349,9 +352,9 @@ texto: la vista del histórico completo, confirmados incluidos.
 >
 > **El traspaso `handoff-sumas-honestas.md` está cerrado entero y se borró el 2026-10-05**:
 > la parte del backend son sus features 49 y 50 (commits `7711063` y `a6195be`), y la del
-> frontend, las F22, F23 y F24. De ahí queda **sin usar en el
-> frontend** la feature 50: `GET /api/investments/deposits`, lo que ganó cada depósito,
-> que no encaja aquí sino en la **E8**.
+> frontend, las F22, F23 y F24. De ahí quedaba sin usar en el
+> frontend la feature 50: `GET /api/investments/deposits`, lo que ganó cada depósito,
+> que no encajaba aquí sino en la **E8**; la usa la F38 (2026-11-02).
 >
 > **La paginación del backend, que escondía movimientos en la cola de revisión, está
 > arreglada** (commit `f10fe8c` del backend) y comprobada contra los datos reales el
@@ -372,9 +375,8 @@ agregados: `GET /api/overview`, `GET /api/investments/overview`,
 > 1. ✅ **El mes de un vistazo** — F25, cerrada.
 > 2. ✅ **Los meses anteriores, debajo del mes**, en esta misma pantalla `Overview` (el mes
 >    y el año son una sola pantalla) — F26, cerrada.
-> 3. ⬜ **Lo que ganó cada depósito**, en Patrimonio, con `GET /api/investments/deposits`
->    (feature 50 del backend, commit `a6195be`), servido y todavía **sin usar en el
->    frontend**. También es lo siguiente.
+> 3. 🟡 **Lo que ganó cada depósito**, en Patrimonio, con `GET /api/investments/deposits`
+>    (feature 50 del backend, commit `a6195be`): **F38**, en revisión el 2026-11-02.
 > 4. ✅ **Recurrentes**: hecho el 2026-10-17. Backend, feature 58
 >    (`GET /api/recurring-expenses`); frontend, feature 32 (pantalla `Monthly cost`).
 >    No se calcula en el navegador. **Sustituida el 2026-10-25 por la F37**: `Monthly cost`
@@ -482,6 +484,7 @@ datos bancarios reales. No es urgente; es que no estaba.
 | 42 | **Prueba con sus datos reales de la F35**, sin hacer con un caso real: el 2026-10-21 no había ningún movimiento dudoso de dinero propio en su base. Cuando llegue el primero (una transferencia a una cuenta que solo se reconoce por el nombre de su banco), ver en `Transfers` la sección de dudosos y el número del menú, decir «es mío» o «no es mío» y deshacerlo, y ver la línea del informe de la importación. Lo que sí se comprobó con datos reales, solo leyendo: de 200 movimientos, 10 reconocidos como suyos salen como `Between your accounts` | el humano, cuando llegue el primer dudoso, o el leader con su permiso |
 | ~~43~~ | **Prueba con sus datos reales de la F36 que escribe.** Hecha por el leader el 2026-10-22 en Chromium, con permiso del humano, siguiendo los pasos 1 a 12 de `docs/guia-de-uso.md` §7b salvo el 8: las 12 filas con sus datos y las 2 formas del nombre, sin botón de borrar; la ventana `Add an account` bloquea `Save` con campos vacíos y con un texto de 2 letras (`Use at least 3 letters or digits.`), `Cancel` no manda nada; `Edit` en Criptan guardó un texto (`PATCH /api/own-accounts/12 {"texts":["Criptan Wallet"]}`) y la fila lo enseñó; en Cartera Metal, `2026-09-30` (antes de abrir) dijo `The closing date can't be before the opening date.` y `2026-10-22` se guardó y salió en `Closed`; `Save` sin cambios no hizo ninguna petición; una tercera forma del nombre se guardó y salió en orden alfabético. Todo se vio igual tras recargar y **se deshizo desde la pantalla** (texto quitado, cierre a `null`, forma quitada): la API quedó como estaba. El paso 8, dar de alta una cuenta, no se hizo: no se puede deshacer y el humano decidió ese día no crear cuentas nuevas | ✅ **cerrado el 2026-10-22**: el alta se probará si algún día le hace falta una fila |
 | 44 | **Seis pruebas de navegador fallan en Firefox y WebKit**, y ya fallaban antes de la actualización de librerías del 2026-10-28: el reviewer las lanzó ese día en una copia del commit anterior (Playwright 1.63.0) con `npx playwright test --project=firefox --project=webkit e2e/statement.spec.ts e2e/action-notice-in-view.spec.ts` → `7 failed`, con los mismos errores (`Expected: "month"` / `Received: "text"`, y `its bottom (493.55…) is below the window (411)`). `./init.sh` no lo ve porque solo lanza chromium. Aparte, dos de `e2e/category-rules.spec.ts` (`[chromium] :779`, fondo con 1 unidad de color de diferencia, que es el cabo 41, y `[firefox] :370`, `page.goto` de más de 30 s) fallaron una vez y pasaron 60 de 60 al repetirlos. Detalle en `progress/reviews/dependency-upgrade-2026-10-28.md` | sin etapa |
+| 45 | **La parte Deposits de `Net Worth` (F38) no se ha probado con datos reales**: el backend estaba apagado durante la implementación y la revisión (2026-11-02). Hay que abrir `Net Worth` con el backend en marcha y mirar si los depósitos dudosos que salen son los que esperas | **deber del humano** |
 | 38 | El vencimiento de un depósito cuyo archivo de producto no existe cuenta 0 € de interés y sale como dudoso (`principal_not_found`); el 2026-10-16 pasó con el depósito vencido el 25/08/2025 y se resolvió escribiendo su archivo en Drive con una fecha de apertura aproximada. Si aparece otro, es el mismo remedio | sin etapa |
 
 > Los cabos 3, 4 y 5 **no son tuyos**: son del backend. Está aquí porque bloquea bloques

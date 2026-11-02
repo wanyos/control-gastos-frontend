@@ -506,6 +506,13 @@ así que el smoke **intercepta `**/api/net-worth` con `page.route`** y responde
 una muestra pequeña y coherente con el contrato. Sigue probando el arranque
 real, no la vista, y no depende de tener el backend en `:3000`.
 
+Desde la feature #38 la home pide también `GET /api/investments/deposits` al
+montar, a la vez que la anterior: el smoke y las demás specs de `e2e/` que
+responden `**/api/net-worth` responden también `**/api/investments/deposits`
+(`{ asOf: '2026-06-15', deposits: [], total: '0.00' }`). Comprobado antes de
+añadirla: sin ella el smoke se pone rojo, como otras 9 pruebas de navegador que
+pasan por la home.
+
 Desde la feature #13 la barra superior pide `GET /api/ingestion/pending` al
 montar, en todas las rutas: el smoke intercepta también `**/api/ingestion/pending`
 (`{ totalPending: 0, banks: [] }`). Comprobado antes de añadirla: sin ella el

@@ -126,6 +126,10 @@ async function prepare(page: Page, answerImport: Parameters<Page['route']>[1]): 
   // Safety net first (later routes win): any other API call is aborted, never proxied.
   await page.route('**/api/**', (route) => route.abort())
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
+  // The home also asks what each deposit earned (feature 38): none here.
+  await page.route('**/api/investments/deposits', (route) =>
+    route.fulfill({ json: { asOf: '2026-06-15', deposits: [], total: '0.00' } }),
+  )
   await page.route('**/api/ingestion/pending', (route) => route.fulfill({ json: PENDING_TWO }))
   // The sidebar asks for the review count on mount and after every import (feature 15).
   await page.route('**/api/movements*', (route) =>

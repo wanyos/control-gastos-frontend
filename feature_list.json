@@ -2062,6 +2062,98 @@
       ],
       "sdd": true,
       "status": "done"
+    },
+    {
+      "id": 38,
+      "name": "deposit-earnings",
+      "title": "Lo que ganó cada depósito, en Net Worth",
+      "intent": {
+        "que_quiero": "En la pantalla Net Worth, una parte nueva con todos mis depósitos: los vivos, los que ya vencieron y los cancelados. De cada uno, el banco, el nombre, cuánto metí, cuándo lo abrí y cuándo vence o venció, cuánto esperaba ganar y cuánto ganó de verdad. Arriba, el total ganado entre todos.",
+        "por_que": "El backend ya lo calcula (su feature 50, GET /api/investments/deposits) y ninguna pantalla lo enseña: es la tercera deuda de ../docs/ideas.md. Quiero saber cuánto me han dado los depósitos, en total y uno por uno. [Redactado por el leader a petición del humano el 2026-11-01; aprobado ese día]",
+        "como_se_que_esta_bien": [
+          "Veo todos mis depósitos, también los que se cerraron hace meses.",
+          "Un depósito que venció y cuyo cobro está en el extracto enseña lo que ganó. El total es la suma de esos y de ninguno más.",
+          "Un depósito vivo enseña lo que espera ganar y cuándo vence. Se ve que eso todavía no está ganado y no entra en el total.",
+          "Un depósito cancelado antes de vencer se distingue y no entra en el total.",
+          "Un depósito vencido cuyo cobro no se encuentra, o que tiene varios cobros posibles, o que devolvió menos de lo que metí, se ve como dudoso y con el motivo. La pantalla dice que no entra en el total. [añadido por el leader: no esconder un dato dudoso, como en la F31]",
+          "Si no hay ningún depósito, la parte lo dice en vez de quedarse vacía. [añadido por el leader]",
+          "El total ganado no se suma al patrimonio ni a ninguna otra cifra de la pantalla. [añadido por el leader: el interés ya cuenta como ingreso en Overview y Movements desde la feature 57 del backend; aquí solo se enseña]",
+          "Textos en inglés, en oscuro, y pnpm type-check, lint, test:unit, build e ./init.sh en verde. [añadido por el leader: estándar del proyecto]"
+        ],
+        "que_no_quiero": [
+          "No tocar el backend.",
+          "No poder corregir desde aquí un depósito dudoso ni elegir su cobro. [añadido por el leader]",
+          "No cambiar el resto de Net Worth: solo se añade esta parte. [añadido por el leader]"
+        ],
+        "delego_en_agente": [
+          "En qué sitio de Net Worth va. El leader propone una parte propia debajo del detalle por banco.",
+          "En qué orden salen los depósitos y si los vivos y los cancelados se ven igual de destacados que los vencidos.",
+          "El texto exacto de cada estado, en inglés, con su traducción en la hoja de decisiones.",
+          "Si desde un depósito vencido se puede ir a su movimiento en Movements."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-11-01: pidió que el leader redactara este bloque y él lo corregía; lo aprobó sin cambios.",
+          "Del 2026-11-01: con spec y aprobación de la hoja de decisiones antes de programar (sdd: true).",
+          "Del 2026-11-02: aprobó la hoja de decisiones (specs/38-deposit-earnings/decisions.md) sin cambios."
+        ]
+      },
+      "acceptance": [],
+      "checks": [
+        {
+          "descripcion": "Veo todos mis depósitos, también los que se cerraron hace meses.",
+          "comando": "grep -qF \"paints one row per deposit of every status in the order the backend sends\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"paints one row per deposit of every status in the order the backend sends\""
+        },
+        {
+          "descripcion": "Un depósito que venció y cuyo cobro está en el extracto enseña lo que ganó. El total es la suma de esos y de ninguno más.",
+          "comando": "grep -qF \"shows what a matured deposit earned, in green\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows what a matured deposit earned, in green\""
+        },
+        {
+          "descripcion": "Un depósito que venció y cuyo cobro está en el extracto enseña lo que ganó. El total es la suma de esos y de ninguno más.",
+          "comando": "grep -qF \"shows the total exactly as the backend sent it\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows the total exactly as the backend sent it\""
+        },
+        {
+          "descripcion": "Un depósito que venció y cuyo cobro está en el extracto enseña lo que ganó. El total es la suma de esos y de ninguno más.",
+          "comando": "grep -qF \"rejects a response whose total is not the sum of the matured deposits\" src/features/net-worth/__tests__/service.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/service.spec.ts -t \"rejects a response whose total is not the sum of the matured deposits\""
+        },
+        {
+          "descripcion": "Un depósito vivo enseña lo que espera ganar y cuándo vence. Se ve que eso todavía no está ganado y no entra en el total.",
+          "comando": "grep -qF \"shows an active deposit with its expected gain, its maturity date and not earned yet\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows an active deposit with its expected gain, its maturity date and not earned yet\""
+        },
+        {
+          "descripcion": "Un depósito cancelado antes de vencer se distingue y no entra en el total.",
+          "comando": "grep -qF \"shows a cancelled deposit in grey, with its cancel date and not in the total\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows a cancelled deposit in grey, with its cancel date and not in the total\""
+        },
+        {
+          "descripcion": "Un depósito vencido cuyo cobro no se encuentra, o que tiene varios cobros posibles, o que devolvió menos de lo que metí, se ve como dudoso y con el motivo. La pantalla dice que no entra en el total. [añadido por el leader: no esconder un dato dudoso, como en la F31]",
+          "comando": "grep -qF \"shows each doubtful deposit in amber with its reason and not in the total\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows each doubtful deposit in amber with its reason and not in the total\""
+        },
+        {
+          "descripcion": "Si no hay ningún depósito, la parte lo dice en vez de quedarse vacía. [añadido por el leader]",
+          "comando": "grep -qF \"says there are no deposits instead of an empty part\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"says there are no deposits instead of an empty part\""
+        },
+        {
+          "descripcion": "El total ganado no se suma al patrimonio ni a ninguna otra cifra de la pantalla. [añadido por el leader: el interés ya cuenta como ingreso en Overview y Movements desde la feature 57 del backend; aquí solo se enseña]",
+          "comando": "grep -qF \"keeps every net worth figure as the backend sends it when deposits earned something\" src/features/net-worth/__tests__/NetWorthView.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/NetWorthView.spec.ts -t \"keeps every net worth figure as the backend sends it when deposits earned something\""
+        },
+        {
+          "descripcion": "Textos en inglés, en oscuro, y pnpm type-check, lint, test:unit, build e ./init.sh en verde. [añadido por el leader: estándar del proyecto]",
+          "comando": "pnpm type-check && pnpm lint:oxlint:check && pnpm format:check && pnpm test:unit && pnpm build-only && ./init.sh"
+        },
+        {
+          "descripcion": "(añadido) Si no se pueden leer los depósitos, solo esa parte lo dice y el resto de Net Worth se sigue viendo.",
+          "comando": "grep -qF \"keeps the rest of the screen when the deposits request fails\" src/features/net-worth/__tests__/NetWorthView.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/NetWorthView.spec.ts -t \"keeps the rest of the screen when the deposits request fails\""
+        },
+        {
+          "descripcion": "(añadido) Desde un depósito vencido con su cobro se puede ir a su mes en Movements.",
+          "comando": "grep -qF \"offers See in Movements on a deposit with its maturity movement\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"offers See in Movements on a deposit with its maturity movement\""
+        },
+        {
+          "descripcion": "(añadido) Después de importar, la parte vuelve a pedir los depósitos.",
+          "comando": "grep -qF \"asks the deposits again after an import when the net worth was loaded\" src/features/import/__tests__/store.spec.ts && pnpm exec vitest run src/features/import/__tests__/store.spec.ts -t \"asks the deposits again after an import when the net worth was loaded\""
+        }
+      ],
+      "sdd": true,
+      "status": "done"
     }
   ]
 }

@@ -558,6 +558,19 @@ src/
 > (#14). `net-worth` no conoce `import`. Si una tercera pieza hiciera falta en
 > las dos, se mueve a `shared/`.
 
+> **La segunda petición de `net-worth` (feature #38).** Además de
+> `GET /api/net-worth`, el store de `net-worth` pide `GET /api/investments/deposits`
+> (lo que esperaba y lo que ganó cada depósito). `load()` lanza las dos a la vez y
+> cada una guarda su propio estado de carga y su propio error (`deposits`,
+> `depositsLoading`, `depositsError`): si falla la de depósitos, solo la tarjeta
+> `Deposits` (`components/DepositEarnings.vue` y `DepositRow.vue`, que reciben todo
+> por props) lo dice, y el resto de la pantalla se sigue viendo. Es **de solo
+> lectura**: no hay ninguna escritura sobre depósitos. Su `total` se enseña tal cual
+> llega y **no entra en ninguna cifra** del patrimonio ni de otra pantalla; el
+> service rechaza la respuesta si ese total no es la suma de lo ganado por los
+> depósitos vencidos. Como la recarga tras importar llama a `load()`, tras una
+> importación se piden las dos otra vez; el sentido `import` → `net-worth` no cambia.
+
 ## Flujo de datos
 
 ```

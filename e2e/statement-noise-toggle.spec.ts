@@ -176,6 +176,10 @@ async function prepare(page: Page, ambiguousCount = 2) {
     route.fulfill({ json: { totalPending: 0, banks: [] } }),
   )
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
+  // The home also asks what each deposit earned (feature 38): none here.
+  await page.route('**/api/investments/deposits', (route) =>
+    route.fulfill({ json: { asOf: '2026-06-15', deposits: [], total: '0.00' } }),
+  )
   await page.route('**/api/accounts', (route) => route.fulfill({ json: ACCOUNTS }))
   await page.route('**/api/categories', (route) => route.fulfill({ json: CATEGORIES }))
   await page.route('**/api/transfers/ambiguous', (route) =>
