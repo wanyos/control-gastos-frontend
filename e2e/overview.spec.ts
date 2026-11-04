@@ -196,10 +196,6 @@ async function prepare(page: Page) {
     route.fulfill({ json: { totalPending: 0, banks: [] } }),
   )
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
-  // The home also asks what each deposit earned (feature 38): none here.
-  await page.route('**/api/investments/deposits', (route) =>
-    route.fulfill({ json: { asOf: '2026-06-15', deposits: [], total: '0.00' } }),
-  )
   // What the statement asks for on mount, reached through the link of this screen.
   await page.route('**/api/accounts', (route) =>
     route.fulfill({ json: [{ ...ACCOUNT, balance: '0.00' }] }),

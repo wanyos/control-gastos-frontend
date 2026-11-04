@@ -1,20 +1,12 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
-import { createMemoryHistory, createRouter } from 'vue-router'
 
 import { formatDate } from '@/shared/money'
 
-import { DEPOSITS_PATH, NET_WORTH_PATH } from '../service'
-import type { DepositEarnings, NetWorth } from '../types'
+import type { NetWorth } from '../types'
 import NetWorthView from '../views/NetWorthView.vue'
-import {
-  coherentNetWorth,
-  depositEarnings,
-  emptyDepositEarnings,
-  emptyNetWorth,
-  inconsistentNetWorth,
-} from './fixtures'
+import { coherentNetWorth, emptyNetWorth, inconsistentNetWorth } from './fixtures'
 
 const NBSP = String.fromCharCode(0xa0)
 const euros = (figure: string) => `${figure}${NBSP}€`
@@ -30,44 +22,14 @@ function jsonResponse(body: unknown, init?: ResponseInit): Response {
   })
 }
 
-type Answer = () => Promise<Response>
-
-const pathOf = (input: unknown) => new URL(String(input)).pathname
-const answer =
-  (body: unknown, init?: ResponseInit): Answer =>
-  () =>
-    Promise.resolve(jsonResponse(body, init))
-
-/**
- * Mocks only the HTTP boundary: store, service and http client run for real. The
- * screen asks two paths (feature 38); each gets its own answer, and an unexpected
- * one is rejected.
- */
-function mockApi(netWorth: Answer, deposits: Answer = answer(emptyDepositEarnings())) {
-  return vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
-    const path = pathOf(input)
-    if (path === NET_WORTH_PATH) return netWorth()
-    if (path === DEPOSITS_PATH) return deposits()
-    return Promise.reject(new TypeError(`unexpected ${path}`))
-  })
+/** Mocks only the HTTP boundary: store, service and http client run for real. */
+function mockApi(respond: () => Promise<Response>) {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(respond)
 }
 
-/** The deposit rows link to Movements, so the view needs a router. */
-function mountView() {
-  const blank = { render: () => null }
-  const router = createRouter({
-    history: createMemoryHistory(),
-    routes: [
-      { path: '/net-worth', name: 'net-worth', component: blank },
-      { path: '/movements', name: 'movements', component: blank },
-    ],
-  })
-  return mount(NetWorthView, { global: { plugins: [createPinia(), router] } })
-}
-
-async function mountLoaded(netWorth: NetWorth, deposits: Answer = answer(emptyDepositEarnings())) {
-  const fetchSpy = mockApi(answer(netWorth), deposits)
-  const wrapper = mountView()
+async function mountLoaded(netWorth: NetWorth) {
+  const fetchSpy = mockApi(() => Promise.resolve(jsonResponse(netWorth)))
+  const wrapper = mount(NetWorthView, { global: { plugins: [createPinia()] } })
   await flushPromises()
   return { wrapper, fetchSpy }
 }
@@ -90,15 +52,13 @@ describe('NetWorthView', () => {
   it('requests the net worth exactly once on mount (R1)', async () => {
     const { fetchSpy } = await mountLoaded(coherentNetWorth())
 
-    // The deposits are asked too (feature 38); the net worth, exactly once.
-    const paths = fetchSpy.mock.calls.map(([input]) => pathOf(input))
-    expect(paths.filter((path) => path === '/api/net-worth')).toHaveLength(1)
-    expect(paths.filter((path) => path !== DEPOSITS_PATH)).toEqual(['/api/net-worth'])
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    expect(new URL(String(fetchSpy.mock.calls[0]?.[0])).pathname).toBe('/api/net-worth')
   })
 
   it('shows a loading state and no blocks while the request is pending (R2)', async () => {
     mockApi(() => new Promise<Response>(() => {}))
-    const wrapper = mountView()
+    const wrapper = mount(NetWorthView, { global: { plugins: [createPinia()] } })
     await flushPromises()
 
     expect(wrapper.find('[data-test="net-worth-loading"]').exists()).toBe(true)
@@ -108,8 +68,8 @@ describe('NetWorthView', () => {
   })
 
   it('shows the store error message and no blocks when the request fails (R3)', async () => {
-    mockApi(answer({ message: 'database down' }, { status: 500 }))
-    const wrapper = mountView()
+    mockApi(() => Promise.resolve(jsonResponse({ message: 'database down' }, { status: 500 })))
+    const wrapper = mount(NetWorthView, { global: { plugins: [createPinia()] } })
     await flushPromises()
 
     const error = wrapper.get('[data-test="net-worth-error"]')
@@ -120,8 +80,8 @@ describe('NetWorthView', () => {
   })
 
   it('shows a contract drift (ValidationError) as an error too (R3)', async () => {
-    mockApi(answer({ ...coherentNetWorth(), total: 12 }))
-    const wrapper = mountView()
+    mockApi(() => Promise.resolve(jsonResponse({ ...coherentNetWorth(), total: 12 })))
+    const wrapper = mount(NetWorthView, { global: { plugins: [createPinia()] } })
     await flushPromises()
 
     expect(wrapper.get('[data-test="net-worth-error"]').text()).toContain('total is not')
@@ -379,106 +339,17 @@ describe('NetWorthView', () => {
     expect(blocks).toEqual(['net-worth-block-a', 'net-worth-block-b', 'net-worth-block-e'])
   })
 
-  describe('Deposits part (feature 38)', () => {
-    it('asks the deposits once on mount, only with GET', async () => {
-      const { fetchSpy } = await mountLoaded(coherentNetWorth(), answer(depositEarnings()))
+  // Feature 39 moved the Deposits card of feature 38 to Investments: Net Worth is back
+  // to what it was before feature 38.
+  it('does not show the deposits card', async () => {
+    const { wrapper, fetchSpy } = await mountLoaded(coherentNetWorth())
 
-      const calls = fetchSpy.mock.calls.map(([input, init]) => ({
-        path: pathOf(input),
-        search: new URL(String(input)).search,
-        method: init?.method ?? 'GET',
-        body: init?.body,
-      }))
-      expect(calls.filter((call) => call.path === DEPOSITS_PATH)).toEqual([
-        { path: DEPOSITS_PATH, search: '', method: 'GET', body: undefined },
-      ])
-      // Nothing but the two reads: no write of any kind.
-      expect(calls).toHaveLength(2)
-      expect(calls.every((call) => call.method === 'GET')).toBe(true)
-    })
-
-    it('paints the Deposits part below Details', async () => {
-      const { wrapper } = await mountLoaded(coherentNetWorth(), answer(depositEarnings()))
-
-      const part = wrapper.get('[data-test="deposit-earnings"]')
-      const column = wrapper.element
-      // A direct child of the screen column (full width), right after Details.
-      expect(part.element.parentElement).toBe(column)
-      const children = [...column.children]
-      const details = wrapper.get('[data-test="net-worth-block-e"]').element
-      expect(children.indexOf(part.element)).toBe(children.indexOf(details) + 1)
-      expect(part.text()).toContain('Deposits')
-      expect(part.findAll('[data-test="deposit-row"]')).toHaveLength(
-        depositEarnings().deposits.length,
-      )
-    })
-
-    it('keeps every net worth figure as the backend sends it when deposits earned something', async () => {
-      const figuresOf = (wrapper: Wrapper) =>
-        wrapper
-          .findAll(
-            [
-              '[data-test="net-worth-block-a"] [data-test="money"]',
-              '[data-test="net-worth-block-b"] [data-test="money"]',
-              '[data-test="net-worth-block-b"] [data-test="share"]',
-              '[data-test="net-worth-block-e"] [data-test="money"]',
-            ].join(', '),
-          )
-          .map((figure) => figure.text())
-      const sentenceOf = (wrapper: Wrapper) => wrapper.get('[data-test="summary-sentence"]').text()
-
-      const baseline = await mountLoaded(coherentNetWorth(), answer(emptyDepositEarnings()))
-      const without = figuresOf(baseline.wrapper)
-      const sentenceWithout = sentenceOf(baseline.wrapper)
-      baseline.wrapper.unmount()
-      vi.restoreAllMocks()
-
-      const { wrapper } = await mountLoaded(coherentNetWorth(), answer(depositEarnings()))
-
-      expect(wrapper.get('[data-test="deposits-total"]').text()).toBe(euros('25,65'))
-      expect(without.length).toBeGreaterThan(10)
-      expect(figuresOf(wrapper)).toEqual(without)
-      expect(sentenceOf(wrapper)).toBe(sentenceWithout)
-      // And they are the backend figures: 39924.05, not 39924.05 + 25.65.
-      expect(wrapper.get('[data-test="net-worth-block-a"] [data-test="money"]').text()).toBe(
-        euros('39.924,05'),
-      )
-      expect(wrapper.text()).not.toContain(euros('39.949,70'))
-      expect(rowByLabel(wrapper, 'bank-row', 'MyInvestor').get('[data-test="money"]').text()).toBe(
-        euros('25.310,75'),
-      )
-      expect(
-        rowByLabel(wrapper, 'nature-row', 'Fixed-term deposits').get('[data-test="money"]').text(),
-      ).toBe(euros('10.000,00'))
-    })
-
-    it('keeps the rest of the screen when the deposits request fails', async () => {
-      const { wrapper } = await mountLoaded(
-        coherentNetWorth(),
-        answer({ message: 'deposits down' }, { status: 500 }),
-      )
-
-      const error = wrapper.get('[data-test="deposits-error"]')
-      expect(error.text()).toContain("Couldn't load your deposits")
-      expect(error.text()).toContain('HTTP 500: deposits down')
-      expect(wrapper.find('[data-test="net-worth-error"]').exists()).toBe(false)
-      for (const block of ['a', 'b', 'e']) {
-        expect(wrapper.find(`[data-test="net-worth-block-${block}"]`).exists()).toBe(true)
-      }
-      expect(wrapper.get('[data-test="net-worth-block-a"] [data-test="money"]').text()).toBe(
-        euros('39.924,05'),
-      )
-    })
-
-    it('shows a deposits answer that breaks the contract as the error of the part only', async () => {
-      const broken: DepositEarnings = { ...depositEarnings(), total: '99.99' }
-      const { wrapper } = await mountLoaded(coherentNetWorth(), answer(broken))
-
-      expect(wrapper.get('[data-test="deposits-error"]').text()).toContain(
-        'total is not the sum of the earned of the matured deposits',
-      )
-      expect(wrapper.find('[data-test="deposits-total"]').exists()).toBe(false)
-      expect(wrapper.find('[data-test="net-worth-block-a"]').exists()).toBe(true)
-    })
+    expect(wrapper.find('[data-test="deposit-earnings"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="deposits-loading"]').exists()).toBe(false)
+    expect(wrapper.find('[data-test="deposits-error"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('Earned by your deposits')
+    expect(wrapper.text()).not.toContain('Loading your deposits')
+    const paths = fetchSpy.mock.calls.map(([input]) => new URL(String(input)).pathname)
+    expect(paths).toEqual(['/api/net-worth'])
   })
 })

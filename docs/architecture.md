@@ -260,8 +260,24 @@ src/
                           # de una fila para el PATCH, y todos los textos, incluidos los de error
       types.ts            # OwnAccountType, OwnAccount, OwnAccountDraft, NewOwnAccount,
                           # OwnAccountChanges, LoadState
+    investments/          # features #39 y #40: la pantalla Investments (ruta /investments);
+                          # SOLO LECTURA. Lo que gana o pierde cada inversión, viva o
+                          # cerrada, y el total de las vivas (#40; la tarjeta `Deposits` de
+                          # la #38, que la #39 trajo aquí, la quitó la #40)
+      components/         # GainsSummary (la cifra grande), GainRow (una fila, viva o cerrada)
+                          # y GainBar (la barra a dos lados); todos solo props
+      views/              # InvestmentsView (pide lo ganado al montarse; cargando, error con
+                          # `Try again`, vacío, la cifra grande y las tarjetas de vivas y cerradas)
+      store.ts            # useInvestmentsStore: `gains`, `gainsLoading`, `gainsError`;
+                          # `loadGains` y `refreshGainsIfLoaded` (la usa `import`)
+      service.ts          # GET /api/investments/gains y su comprobación (`parseInvestmentGains`)
+      gains.ts            # todo lo puro: orden de las vivas, barra, color, textos de cada fila,
+                          # motivos de una cifra que falta, la línea de los que no suman
+      types.ts            # InvestmentType, GainsReason, GainsProduct, ClosedGainsProduct,
+                          # GainsTotal, InvestmentGains
   shared/                 # componentes/composables/utils reutilizables entre features
-    components/           # AppShell, AppSidebar, AppTopBar, PlaceholderView (feature #8);
+    components/           # AppShell, AppSidebar, AppTopBar (feature #8; PlaceholderView, también
+                          # de la #8, se quitó en la #39 al no quedar ninguna ruta que la usara);
                           # BaseCard, BaseBadge, StatCard, ShareBar (feature #9);
                           # BaseButton, BaseSpinner, BaseDialog (feature #13);
                           # BaseInput, BaseSelect, BaseCheckbox (feature #15;
@@ -558,18 +574,22 @@ src/
 > (#14). `net-worth` no conoce `import`. Si una tercera pieza hiciera falta en
 > las dos, se mueve a `shared/`.
 
-> **La segunda petición de `net-worth` (feature #38).** Además de
-> `GET /api/net-worth`, el store de `net-worth` pide `GET /api/investments/deposits`
-> (lo que esperaba y lo que ganó cada depósito). `load()` lanza las dos a la vez y
-> cada una guarda su propio estado de carga y su propio error (`deposits`,
-> `depositsLoading`, `depositsError`): si falla la de depósitos, solo la tarjeta
-> `Deposits` (`components/DepositEarnings.vue` y `DepositRow.vue`, que reciben todo
-> por props) lo dice, y el resto de la pantalla se sigue viendo. Es **de solo
-> lectura**: no hay ninguna escritura sobre depósitos. Su `total` se enseña tal cual
-> llega y **no entra en ninguna cifra** del patrimonio ni de otra pantalla; el
-> service rechaza la respuesta si ese total no es la suma de lo ganado por los
-> depósitos vencidos. Como la recarga tras importar llama a `load()`, tras una
-> importación se piden las dos otra vez; el sentido `import` → `net-worth` no cambia.
+> **Lo que gana cada inversión vive en `investments` (features #38, #39 y #40).** La #38
+> puso lo ganado por cada depósito como segunda petición del store de `net-worth`; la #39
+> lo trasladó tal cual a `features/investments/`, con su propio store, y `net-worth`
+> volvió a una sola petición, `GET /api/net-worth`. La #40 sustituyó esa lectura por
+> `GET /api/investments/gains`: `InvestmentsView` la pide al montarse y guarda su propio
+> estado de carga y su propio error (`gains`, `gainsLoading`, `gainsError`); si falla, lo
+> dice con `Try again`. Los depósitos son una fila más de las listas de vivas y cerradas, y
+> la tarjeta `Deposits` (con `GET /api/investments/deposits`) ya no existe. Es **de solo
+> lectura**: no hay ninguna escritura. Las cifras se enseñan tal cual llegan y **no entran
+> en ninguna cifra** del patrimonio ni de otra pantalla; el service rechaza la respuesta si
+> trae un tipo que no es de inversión o si su `total.gain` no es la suma de los `gain` de las
+> vivas. Tras una importación, el store de `import` llama a `refreshGainsIfLoaded`, que
+> vuelve a pedir lo ganado solo si ya estaba cargado. Es una dependencia más en el mismo
+> sentido, `import` → `investments`; `investments` no conoce ni `import` ni `net-worth`
+> (sus tipos de fecha e importe vienen de `shared/movements.ts`, y los nombres de cada
+> tipo de producto se repiten en `gains.ts` en vez de importarlos de `net-worth`).
 
 ## Flujo de datos
 

@@ -117,6 +117,26 @@ export function formatPercent(permille: number): string {
   return PERCENT_FORMAT.format(ratio)
 }
 
+/** `"4.07"` → `4,07 %`, `"0.9"` → `0,9 %`: exactly the decimals that came, none padded nor rounded. */
+export function formatPercentText(value: string): string {
+  if (!isNumericLiteral(value)) {
+    throw new ValidationError(`${JSON.stringify(value)} is not a percent string`)
+  }
+  const digits = value.split('.')[1]?.length ?? 0
+  const format = new Intl.NumberFormat('es-ES', {
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+    useGrouping: 'always',
+  })
+  return `${format.format(value)} %`
+}
+
+/** `formatMoney` with a `+` in front of an amount above zero: `+500,50 €`, `-5,00 €`, `0,00 €`. */
+export function formatSignedMoney(amount: DecimalString): string {
+  const text = formatMoney(amount)
+  return toCents(amount) > 0n ? `+${text}` : text
+}
+
 /** `10:42`, 24 h, in the local time of the browser: the hour something happened here. */
 export function formatClock(at: Date): string {
   const twoDigits = (value: number): string => String(value).padStart(2, '0')

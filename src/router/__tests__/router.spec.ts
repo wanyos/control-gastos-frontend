@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { ChartBar, Landmark, LayoutDashboard, Link2 } from '@lucide/vue'
+import { ChartBar, ChartLine, Landmark, LayoutDashboard, Link2 } from '@lucide/vue'
 
 import ExpensesByCategoryView from '@/features/expenses-by-category/views/ExpensesByCategoryView.vue'
+import InvestmentsView from '@/features/investments/views/InvestmentsView.vue'
 import OverviewView from '@/features/overview/views/OverviewView.vue'
 import OwnAccountsView from '@/features/own-accounts/views/OwnAccountsView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
 import TransfersView from '@/features/transfers/views/TransfersView.vue'
-import PlaceholderView from '@/shared/components/PlaceholderView.vue'
 
 import { HOME_ROUTE_NAME, REVIEW_ROUTE_NAME, navEntries, routes } from '../index'
 
@@ -78,11 +78,10 @@ describe('router', () => {
 
   // Feature 25 retired the placeholder of /overview. Same entry, same icon, same place;
   // the home is still the net worth.
-  it('mounts the month at a glance on /overview, not the placeholder (feature 25)', () => {
+  it('mounts the month at a glance on /overview (feature 25)', () => {
     const overview = newRouter().resolve('/overview').matched[0]?.components?.default
 
     expect(overview).toBe(OverviewView)
-    expect(overview).not.toBe(PlaceholderView)
     expect(navEntries.find((entry) => entry.name === 'overview')).toMatchObject({
       label: 'Overview',
       icon: LayoutDashboard,
@@ -147,7 +146,19 @@ describe('router', () => {
     expect(review).toBeTruthy()
     expect(movements).toBe(StatementView)
     expect(movements).not.toBe(review)
-    expect(movements).not.toBe(PlaceholderView)
+  })
+
+  // Feature 39 put the Deposits card of feature 38 on /investments, the last route that
+  // still showed the shared placeholder. Same entry, same icon, same place.
+  it('mounts the investments screen on /investments (feature 39)', () => {
+    expect(newRouter().resolve('/investments').matched[0]?.components?.default).toBe(
+      InvestmentsView,
+    )
+    expect(navEntries.at(-1)).toEqual({
+      name: 'investments',
+      label: 'Investments',
+      icon: ChartLine,
+    })
   })
 
   it('sends an unknown path to the net worth home instead of a blank screen (2026-10-16)', async () => {

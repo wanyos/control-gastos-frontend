@@ -506,12 +506,12 @@ así que el smoke **intercepta `**/api/net-worth` con `page.route`** y responde
 una muestra pequeña y coherente con el contrato. Sigue probando el arranque
 real, no la vista, y no depende de tener el backend en `:3000`.
 
-Desde la feature #38 la home pide también `GET /api/investments/deposits` al
-montar, a la vez que la anterior: el smoke y las demás specs de `e2e/` que
-responden `**/api/net-worth` responden también `**/api/investments/deposits`
-(`{ asOf: '2026-06-15', deposits: [], total: '0.00' }`). Comprobado antes de
-añadirla: sin ella el smoke se pone rojo, como otras 9 pruebas de navegador que
-pasan por la home.
+`GET /api/investments/gains` lo pide la pantalla `Investments` (`/investments`)
+al montar, no la home. Antes, desde la feature #39, esa pantalla pedía
+`GET /api/investments/deposits` (la #38 lo había puesto en la home y la #39 lo
+trasladó); la feature #40 la cambió por `GET /api/investments/gains` y ya no se pide
+desde ninguna pantalla. Lo responde solo `e2e/investments.spec.ts`, que entra por la
+home, comprueba que allí no se pide y abre `Investments` desde el menú.
 
 Desde la feature #13 la barra superior pide `GET /api/ingestion/pending` al
 montar, en todas las rutas: el smoke intercepta también `**/api/ingestion/pending`
@@ -523,7 +523,8 @@ concretas, cada spec registra `await page.route('**/api/**', route => route.abor
 y encima declara las llamadas que sí espera (las rutas posteriores ganan). Motivo:
 el proxy de `vite.config.ts` reenvía `/api` al backend real de `:3000`, así que una
 llamada no prevista **saldría de verdad** — con la red, se aborta y el test se pone
-rojo, que es lo que queremos ver. La cumplen los **doce** specs de `e2e/`; el smoke
+rojo, que es lo que queremos ver. La cumplen los **diecisiete** specs de `e2e/` (contados el
+2026-11-03, al añadir `e2e/investments.spec.ts` en la feature #39); el smoke
 `app-boot.spec.ts` la incorporó en la higiene del 2026-09-23 (era el único que le
 faltaba) sin que ninguna llamada nueva apareciera: sus tres rutas ya lo cubrían.
 El sexto es `e2e/statement.spec.ts` (feature #19, el extracto mes a mes): de

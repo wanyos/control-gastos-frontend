@@ -54,12 +54,13 @@ describe('AppShell', () => {
     expect(wrapper.get('[data-test="topbar-title"]').text()).toBe('Investments')
   })
 
-  // /investments since feature 25: /overview stopped being a placeholder.
+  // /investments since feature 25; since feature 40 it shows what each investment gains
+  // (before, feature 39's Deposits card): its request is held pending, so it says it is loading.
   it('renders the routed view inside the shell', async () => {
     const { wrapper } = await mountShell('/investments')
 
-    const view = wrapper.get('[data-test="placeholder"]')
-    expect(view.text()).toContain('Investments')
+    const view = wrapper.get('[data-test="investments-view"]')
+    expect(view.find('[data-test="gains-loading"]').exists()).toBe(true)
     expect(wrapper.get('main').element.contains(view.element)).toBe(true)
   })
 
@@ -81,7 +82,8 @@ describe('AppShell', () => {
 
     expect(wrapper.get('nav a[aria-current="page"]').text()).toBe('Investments')
     expect(wrapper.get('[data-test="topbar-title"]').text()).toBe('Investments')
-    expect(wrapper.get('[data-test="placeholder"]').text()).toContain('Investments')
+    expect(wrapper.find('[data-test="investments-view"]').exists()).toBe(true)
+    expect(wrapper.find('[data-test="net-worth-loading"]').exists()).toBe(false)
   })
 
   it('lands on the net worth home from a route outside the navigation (2026-10-16)', async () => {

@@ -425,6 +425,8 @@ export function mockApi(answers: {
    * GET_MOVEMENTS, so the reads the other tests count stay the same.
    */
   doubtful?: Answer
+  /** `GET /api/investments/gains`, read by the Investments screen (feature 40). */
+  gains?: Answer
 }) {
   const calls: string[] = []
   /** The querystring of every doubtful read, in order. */
@@ -444,7 +446,9 @@ export function mockApi(answers: {
           ? answers.import
           : path === '/api/movements'
             ? answers.movements
-            : answers.netWorth
+            : path === '/api/investments/gains'
+              ? answers.gains
+              : answers.netWorth
     return answer ? answer() : Promise.reject(new TypeError(`unexpected ${method} ${path}`))
   })
   const count = (call: string) => calls.filter((c) => c === call).length

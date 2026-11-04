@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import { useInvestmentsStore } from '@/features/investments/store'
 import { useNetWorthStore } from '@/features/net-worth/store'
 import { useOverviewStore } from '@/features/overview/store'
 import { useReviewStore } from '@/features/review/store'
@@ -101,6 +102,9 @@ export const useImportStore = defineStore('import', () => {
       if (netWorthStore.netWorth !== null) {
         void netWorthStore.load(client)
       }
+      // What each investment gains, on Investments (feature 40): asked again only if it had
+      // been read, since an import can bring the payment of a deposit.
+      void useInvestmentsStore().refreshGainsIfLoaded(client)
       // The month at a glance drops what it read, if it had read anything (feature 25).
       void useOverviewStore().refreshIfLoaded(client)
       // The list the user has in front of them is asked for again too (2026-10-16):

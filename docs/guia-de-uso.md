@@ -100,7 +100,7 @@ En algunos casos el texto puede ser `Couldn't reach the server.` en lugar de
 | `Net Worth` | Cuánto tienes hoy y de qué está hecho, por tipo y por banco | Solo mira |
 | `Overview` | Un mes resumido: qué entró, qué salió, cuánto ahorraste, y debajo los últimos 24 meses | Solo mira |
 | `Expenses by category` | Lo gastado en un mes o en un año, por categoría, separado en gasto fijo y variable, comparado con el periodo anterior, con los movimientos de cada categoría. Desde la feature 37; sustituye a `Monthly cost` (feature 32), que la feature 37 quitó | Solo mira |
-| `Investments` | Nada todavía: pantalla vacía | — |
+| `Investments` | Lo que gana o pierde cada inversión (fondos, ETF, carteras y depósitos) y el total de las vivas; las cerradas, aparte. Desde la feature 40 (antes, desde la 39, solo la tarjeta `Deposits`) | Solo mira |
 | `Movements` | Todos tus movimientos mes a mes, con sus sumas | **Escribe**: la categoría de un movimiento, y si un movimiento cuenta o no en las sumas |
 | `Review` | La lista de lo importado que aún no has dado por bueno | **Escribe**: la categoría y el estado (pendiente o confirmado) |
 | `Rules` | Las reglas que ponen categoría solas según el texto del concepto, y las reglas que propone la aplicación | **Escribe**: crea, cambia y borra reglas; al crearlas, cambiarlas o aplicarlas, pone categoría a muchos movimientos de golpe |
@@ -168,50 +168,11 @@ con cada cuenta y cada producto.
    dos veces.
    -- ok
 
-8. Baja hasta la tarjeta `Deposits`, debajo de `Details`. **Debes ver** una fila
-   por cada depósito que has tenido, también los cerrados hace meses, en el orden
-   en que los manda el backend (el vencimiento más reciente primero). Cada fila
-   lleva el nombre, una etiqueta con su estado, el banco, `Put in` (lo que
-   metiste), `Opened` (cuándo se abrió), la fecha de vencimiento y `Expected` (lo
-   que esperabas ganar). Un dato que el backend no tenga sale como `—`, nunca
-   como 0. A la derecha, la columna de lo ganado:
-   - `Active` (vivo): la fecha dice `Matures …` y la columna, `Not earned yet`.
-   - `Matured` (vencido): la fecha dice `Matured …` y la columna enseña lo que
-     ganó, en verde. Es lo único que suma en el total.
-   - `Cancelled` (cancelado): toda la fila en gris, la fecha dice `Was due …`,
-     debajo `Cancelled on <fecha>, before it matured` y la columna,
-     `Not in the total`.
-   - `Doubtful` (dudoso, en ámbar): debajo dice el motivo, uno de estos tres:
-     `its payment is not in your statement` (su cobro no está en tu extracto),
-     `2 possible payments in your statement, none chosen` (varios cobros
-     posibles, no se elige ninguno) o `it paid back <importe>, less than you put
-     in` (devolvió menos de lo que metiste). La columna dice `Not in the total`.
-
-9. Mira arriba de la tarjeta `Deposits`: `Earned by your deposits` y una cifra.
-   **Debe** ser la suma de las cifras en verde de los vencidos. La frase de
-   debajo recuerda que **esa cifra no forma parte de tu patrimonio**: ese
-   interés ya cuenta como ingreso en `Overview` y `Movements`. La cifra grande
-   `Net worth` no cambia por ella.
-
-10. En un depósito con su cobro en el extracto pulsa `See in Movements`.
-    **Debes ver** `Movements` abierto en el mes de ese cobro (no señala la
-    línea). Un dudoso con varios cobros posibles no lleva el enlace.
-
-11. Si no tienes depósitos, la tarjeta dice `You have no deposits yet.` Si el
-    backend no los puede servir, solo la tarjeta dice
-    `Couldn't load your deposits` y el resto de `Net Worth` se sigue viendo.
-    Tras una importación, los depósitos se vuelven a pedir solos.
-
 ### Lo que no hace o hace a medias
 
 - **No tiene histórico.** No dice cuánto ha crecido ni cómo ha evolucionado: el
   backend no sirve todavía el patrimonio a una fecha pasada.
 - **No dice desde cuándo hay dato** de cada producto. El backend no lo envía.
-- **Desde la tarjeta `Deposits` no se corrige un dudoso ni se elige su cobro:**
-  solo lee.
-- **El total de `Deposits` no tiene por qué coincidir con los intereses que suma
-  `Overview`:** un vencimiento antiguo sin archivo de producto suma su interés
-  allí y aquí no aparece (así lo define el backend).
 - Un producto sin valoración sale con el texto `No valuation` en lugar de un
   importe, y **no suma** en ningún total. No es un cero.
 - Si la carga falla, la tarjeta de error **no tiene botón de reintentar**.
@@ -447,15 +408,75 @@ listas.
 
 ---
 
-## 3. `Investments` — vacía
+## 3. `Investments` — solo mira
 
-**Para qué sirve.** Hoy, para nada. Es una entrada del menú sin pantalla
-construida.
+**Para qué sirve.** Lo que gana o pierde cada inversión desde que la abriste
+(fondos, ETF, carteras gestionadas y depósitos) y el total de las que siguen vivas.
+Desde la feature 40; antes (features 38 y 39) solo enseñaba la tarjeta
+`Deposits`, que ya no existe: cada depósito es ahora una fila más de las listas.
+Ninguna cuenta sale aquí, tampoco la remunerada.
 
 ### Qué probar
 
-1. Pulsa `Investments` en el menú. **Debes ver** una tarjeta que dice
-   `Investments is not built yet.`
+1. Pulsa `Investments` en el menú. **Debes ver** arriba la cifra grande
+   `Gain or loss on live investments`, debajo la tarjeta `Your investments` y,
+   si tienes algo cerrado, la tarjeta `Closed`. No hay tarjeta `Deposits`.
+
+2. Mira la cifra grande. **Debes ver** lo que ganas o pierdes con las
+   inversiones vivas en euros y en %, con signo (`+686,35 €` · `+3,08 %`): en
+   verde si ganas, en rojo si pierdes y en el color normal si es exactamente 0.
+   Debajo, `on <importe> put in` (sobre cuánto se calcula el %) y, si alguna viva
+   no entra en el total, `Not included: <nombre> (<motivo>)`. **Debe** ser la
+   suma de las cifras de las filas de `Your investments`; si el backend mandara
+   un total que no cuadra, la pantalla dice que no se pudo leer en vez de
+   enseñarlo.
+
+3. Mira las filas de `Your investments`. **Debes ver** una por producto vivo,
+   de la que más gana a la que más pierde en euros; las que no tienen cifra, al
+   final. Cada fila lleva el nombre, el tipo (`Fund`, `ETF`,
+   `Managed portfolio`, `Fixed-term deposit`), el banco, `Started <fecha>`,
+   `Put in <importe>` y `Worth <importe> today`, o `Worth <importe> on <fecha>`
+   si la valoración no es de hoy. A la derecha, lo que gana o pierde en € y en
+   %, en verde o en rojo. Debajo, una barra que sale de una línea central: verde
+   hacia la derecha si gana, roja hacia la izquierda si pierde, más larga cuanto
+   más gana o pierde respecto a la que más.
+
+4. En un depósito vivo **debes ver** lo que lleva ganado hasta hoy como cifra de
+   la fila y, debajo, `Counted day by day: <importe> when it matures on <fecha>`
+   (lo que ganará cuando venza).
+
+5. Un dato que el backend no tiene sale como `—`, nunca como 0, con su motivo
+   debajo: `No valuation on file`, `The valuation has no gain`,
+   `The valuation has no gain percent`, `Its payment is not in your statement`,
+   `Several possible payments in your statement`,
+   `It paid back less than you put in` o `Its conditions are incomplete`. Si le
+   falta lo ganado, añade `· Not in the total`.
+
+6. Mira la tarjeta `Closed`. **Debes ver** la frase
+   `Not part of the total: when they closed, the money went back to your account.`
+   y una fila por cada producto cerrado (un fondo vendido, un depósito vencido o
+   cancelado), toda en gris y sin barra: nombre, tipo, banco, `Started`,
+   `Closed` y lo ganado en € y % con su signo. Un depósito cancelado antes de
+   vencer añade `Cancelled before it matured` (y sale con 0).
+
+7. Si no tienes inversiones, la pantalla dice `You have no investments yet.`;
+   si solo tienes cerradas, en lugar de la cifra grande dice
+   `No live investments right now.` Si el backend no responde, dice
+   `Couldn't load your investments`, el motivo y el botón `Try again`. Si
+   importas después de haber abierto esta pantalla, lo ganado se vuelve a pedir
+   solo.
+
+### Lo que no hace o hace a medias
+
+- **Solo mira:** desde aquí no se edita ningún producto ni se elige el cobro de
+  un depósito dudoso.
+- **Un depósito vivo no vale lo mismo aquí que en `Net Worth`:** aquí, capital +
+  lo ganado por días; allí, solo el capital. Uno vencido sin cierre escrito está
+  aquí en `Closed` y allí sigue sumando con su aviso. Así lo define el backend.
+- **Sin enlace a `Movements`:** la tarjeta `Deposits` llevaba `See in Movements`
+  y, en los dudosos, el número de cobros posibles o lo que devolvió; ahora solo
+  queda el motivo.
+- **El efectivo sin invertir de un fondo no sale aquí:** está en `Net Worth`.
 
 > **Mis notas de esta prueba**
 > - Falla:

@@ -52,10 +52,6 @@ test('app boots: shell mounts with the design system applied and no console erro
   // would leave the browser for real; aborting it turns that into a visible failure.
   await page.route('**/api/**', (route) => route.abort())
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
-  // The home also asks what each deposit earned (feature 38): none here.
-  await page.route('**/api/investments/deposits', (route) =>
-    route.fulfill({ json: { asOf: '2026-06-15', deposits: [], total: '0.00' } }),
-  )
   // The topbar asks for the pending Drive files on mount (feature 13).
   await page.route('**/api/ingestion/pending', (route) =>
     route.fulfill({ json: { totalPending: 0, banks: [] } }),

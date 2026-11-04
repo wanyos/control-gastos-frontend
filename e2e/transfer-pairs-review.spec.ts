@@ -205,10 +205,6 @@ async function prepare(page: Page, options: Options = {}) {
     route.fulfill({ json: { totalPending: 0, banks: [] } }),
   )
   await page.route('**/api/net-worth', (route) => route.fulfill({ json: NET_WORTH_SAMPLE }))
-  // The home also asks what each deposit earned (feature 38): none here.
-  await page.route('**/api/investments/deposits', (route) =>
-    route.fulfill({ json: { asOf: '2026-06-15', deposits: [], total: '0.00' } }),
-  )
   await page.route('**/api/movements*', (route) =>
     route.request().method() === 'GET' ? route.fulfill({ json: COUNT_PAGE }) : stop(route),
   )

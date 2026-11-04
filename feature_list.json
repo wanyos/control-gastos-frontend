@@ -2098,62 +2098,163 @@
         ]
       },
       "acceptance": [],
+      "checks": [],
+      "sdd": true,
+      "status": "done"
+    },
+    {
+      "id": 39,
+      "name": "deposits-to-investments",
+      "title": "Lo que ganó cada depósito pasa de Net Worth a Investments",
+      "intent": {
+        "que_quiero": "Mover la tarjeta Deposits que se hizo en la feature 38 de la pantalla Net Worth a la pantalla Investments, que hoy está vacía. En Investments se ve lo mismo que hoy en Net Worth, y Net Worth vuelve a quedar como estaba antes de la 38.",
+        "por_que": "Net Worth es el mapa del dinero por cuenta: cuánto hay y cómo está repartido. Lo que ganan las inversiones va en Investments, que está pensada para eso (ver ../docs/ideas.md, idea #3, «Para qué sirve cada pantalla»). En la 38 se puso en Net Worth porque el leader lo redactó así sin preguntar. [Redactado por el leader a partir de lo que dijo el humano el 2026-11-03; aprobado ese día sin cambios]",
+        "como_se_que_esta_bien": [
+          "En Investments veo la tarjeta de depósitos con todo lo que se veía en Net Worth: cada depósito, su estado y el total ganado.",
+          "Net Worth ya no enseña la tarjeta ni pide los depósitos al backend. [añadido por el leader]",
+          "Si no se pueden leer los depósitos, la pantalla Investments lo dice en vez de quedarse en blanco. [añadido por el leader]: hoy solo lo dice la tarjeta, porque compartía pantalla con el patrimonio",
+          "Tras una importación, los depósitos se vuelven a pedir si ya estaban cargados, como ahora. [añadido por el leader]: es la decisión 6 de la 38",
+          "Las pruebas de navegador que pasan por Net Worth ya no necesitan contestar la petición de los depósitos, y hay una que abre Investments y ve la tarjeta. [añadido por el leader]",
+          "Textos en inglés, en oscuro, y pnpm type-check, lint, test:unit, build e ./init.sh en verde. [añadido por el leader]: estándar del proyecto"
+        ],
+        "que_no_quiero": [
+          "No tocar el backend.",
+          "No cambiar lo que enseña la tarjeta ni cómo: es un traslado. [añadido por el leader]",
+          "No añadir todavía los demás productos ni el resumen de lo ganado en Investments: eso es otra feature, después de esta. [añadido por el leader]"
+        ],
+        "delego_en_agente": [
+          "Dónde vive el código. El leader propone una carpeta nueva src/features/investments con su propio store, para que lo que venga después en Investments no dependa de Net Worth."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-11-03: pidió mover los depósitos de Net Worth a Investments.",
+          "Del 2026-11-03: aprobó el bloque y la carpeta propuesta (src/features/investments) sin cambios; sin hoja de decisiones."
+        ]
+      },
+      "sdd": false,
+      "status": "done",
+      "acceptance": [
+        "La ruta /investments monta una vista nueva (InvestmentsView, en src/features/investments/) en lugar de PlaceholderView, con la tarjeta Deposits de la feature 38 sin cambios visibles.",
+        "La lectura de GET /api/investments/deposits, sus tipos, su validación, los componentes DepositEarnings y DepositRow y sus tests pasan a src/features/investments/; el store de esa carpeta lleva datos, carga y error de los depósitos.",
+        "El store de net-worth deja de pedir los depósitos y NetWorthView deja de pintar la tarjeta; Net Worth queda como antes de la feature 38.",
+        "Si la lectura de depósitos falla, InvestmentsView enseña el error en la tarjeta (no se queda en blanco).",
+        "Tras una importación, el store de investments vuelve a pedir los depósitos solo si ya estaban cargados (decisión 6 de la feature 38).",
+        "Las specs de e2e/ que pasan por Net Worth dejan de interceptar **/api/investments/deposits; e2e/investments.spec.ts abre /investments y ve la tarjeta.",
+        "docs/guia-de-uso.md, docs/stack.md y docs/architecture.md dicen Investments donde decían Net Worth para los depósitos.",
+        "pnpm type-check, lint, format:check, test:unit, build-only e ./init.sh en verde."
+      ],
+      "checks": []
+    },
+    {
+      "id": 40,
+      "name": "investments-gains",
+      "title": "Cuánto gano o pierdo con las inversiones, en Investments",
+      "intent": {
+        "que_quiero": "En la pantalla Investments, ver de forma gráfica y simple cuánto gano o pierdo con las inversiones. Cada producto con sus datos, dejando claro cuánto gana o pierde en porcentaje y en euros, y cuándo empezó. Y un sitio con un resumen más simple: cuánto gano o pierdo en total con las inversiones.",
+        "por_que": "Net Worth es el mapa del dinero por cuenta; Investments es donde quiero saber si las inversiones me están dando dinero o quitándomelo, producto a producto y en total (../docs/ideas.md, idea #3, «Para qué sirve cada pantalla»). [Redactado por el leader a partir de lo que dijo el humano el 2026-11-03; aprobado ese día]",
+        "como_se_que_esta_bien": [
+          "Arriba, una cifra grande con lo que gano o pierdo en total con las inversiones que siguen vivas, en euros y en porcentaje, en verde si gano y en rojo si pierdo. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "Veo cada producto con su fecha de inicio, lo invertido, lo que vale ahora y lo que gana o pierde en euros y en porcentaje.",
+          "Los productos salen ordenados de lo que más gana a lo que más pierde, con una barra horizontal que enseña de un vistazo cuáles suman y cuáles restan. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "Los productos ya cerrados (un fondo vendido, un depósito vencido) se ven aparte, como referencia, con otro tono de color, lo que ganaron o perdieron y que ya se cerraron. No suman en el total: al cerrarse, lo ganado ya pasó al saldo de la cuenta corriente de MyInvestor.",
+          "En esta pantalla no sale ninguna cuenta, ni la remunerada: solo inversiones. Lo que gana la cuenta remunerada ya está en sus movimientos.",
+          "Los depósitos siguen viéndose en esta pantalla con lo que ganó cada uno (feature 39), dentro de la lista o justo debajo. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "Un producto del que no hay dato para calcular lo ganado se ve con el hueco y el motivo, y la pantalla dice que no entra en el total; nunca se pinta como cero. [añadido por el leader]: es la regla del contrato de GET /api/investments/overview",
+          "Textos en inglés, en oscuro, y pnpm type-check, lint, test:unit, build e ./init.sh en verde. [añadido por el leader]: estándar del proyecto"
+        ],
+        "que_no_quiero": [
+          "Que lo ganado con las inversiones se sume al patrimonio de Net Worth. [añadido por el leader]",
+          "No cambiar Net Worth. [añadido por el leader]",
+          "No poder editar productos desde aquí: la pantalla solo lee. [añadido por el leader]"
+        ],
+        "delego_en_agente": [
+          "Cómo se calcula el % del total: ya lo decidió el backend (feature 67, GET /api/investments/gains, sección en ../gastos-backend/docs/api-contract.md); la hoja de esta feature lo enseña tal cual.",
+          "Si los depósitos van en la misma lista que el resto o en su tarjeta debajo.",
+          "El texto exacto de cada etiqueta, en inglés, con su traducción en la hoja de decisiones."
+        ],
+        "respuestas_del_humano": [
+          "Del 2026-11-03: describió lo que quería en Investments y aprobó la propuesta del leader (cifra grande arriba, una fila por producto ordenada por lo ganado, barra horizontal).",
+          "Del 2026-11-03: con spec y aprobación de la hoja de decisiones antes de programar (sdd: true), después de cerrar la feature 39.",
+          "Del 2026-11-03: las cuentas no salen en Investments (tampoco la remunerada, cuya ganancia está en sus movimientos); los productos cerrados se ven aparte como referencia y con otro tono, sin sumar en el total; el total es solo de los productos vivos. Pidió redactar el encargo para el backend.",
+          "Del 2026-11-04: el backend cerró su feature 67 (GET /api/investments/gains). En esa sesión el humano decidió que un depósito vivo suma su ganancia esperada repartida por días hasta hoy, y que uno cancelado antes de vencer pasa a cerrados con 0.",
+          "Del 2026-11-04: aprobó la hoja de decisiones (specs/40-investments-gains/decisions.md) sin cambios."
+        ]
+      },
+      "sdd": true,
+      "status": "done",
       "checks": [
         {
-          "descripcion": "Veo todos mis depósitos, también los que se cerraron hace meses.",
-          "comando": "grep -qF \"paints one row per deposit of every status in the order the backend sends\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"paints one row per deposit of every status in the order the backend sends\""
+          "descripcion": "Arriba, una cifra grande con lo que gano o pierdo en total con las inversiones que siguen vivas, en euros y en porcentaje, en verde si gano y en rojo si pierdo. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "comando": "grep -qF \"shows the total of the live investments in euros and percent, green when it gains\" src/features/investments/__tests__/GainsSummary.spec.ts && pnpm exec vitest run src/features/investments/__tests__/GainsSummary.spec.ts -t \"shows the total of the live investments in euros and percent, green when it gains\""
         },
         {
-          "descripcion": "Un depósito que venció y cuyo cobro está en el extracto enseña lo que ganó. El total es la suma de esos y de ninguno más.",
-          "comando": "grep -qF \"shows what a matured deposit earned, in green\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows what a matured deposit earned, in green\""
+          "descripcion": "Arriba, una cifra grande con lo que gano o pierdo en total con las inversiones que siguen vivas, en euros y en porcentaje, en verde si gano y en rojo si pierdo. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "comando": "grep -qF \"paints the total red when it loses\" src/features/investments/__tests__/GainsSummary.spec.ts && pnpm exec vitest run src/features/investments/__tests__/GainsSummary.spec.ts -t \"paints the total red when it loses\""
         },
         {
-          "descripcion": "Un depósito que venció y cuyo cobro está en el extracto enseña lo que ganó. El total es la suma de esos y de ninguno más.",
-          "comando": "grep -qF \"shows the total exactly as the backend sent it\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows the total exactly as the backend sent it\""
+          "descripcion": "Veo cada producto con su fecha de inicio, lo invertido, lo que vale ahora y lo que gana o pierde en euros y en porcentaje.",
+          "comando": "grep -qF \"shows one row per live investment with its start date, put in, worth and gain\" src/features/investments/__tests__/InvestmentsView.spec.ts && pnpm exec vitest run src/features/investments/__tests__/InvestmentsView.spec.ts -t \"shows one row per live investment with its start date, put in, worth and gain\""
         },
         {
-          "descripcion": "Un depósito que venció y cuyo cobro está en el extracto enseña lo que ganó. El total es la suma de esos y de ninguno más.",
-          "comando": "grep -qF \"rejects a response whose total is not the sum of the matured deposits\" src/features/net-worth/__tests__/service.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/service.spec.ts -t \"rejects a response whose total is not the sum of the matured deposits\""
+          "descripcion": "Los productos salen ordenados de lo que más gana a lo que más pierde, con una barra horizontal que enseña de un vistazo cuáles suman y cuáles restan. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "comando": "grep -qF \"sorts live products by gain in euros, with the ones without a figure at the end\" src/features/investments/__tests__/gains.spec.ts && pnpm exec vitest run src/features/investments/__tests__/gains.spec.ts -t \"sorts live products by gain in euros, with the ones without a figure at the end\""
         },
         {
-          "descripcion": "Un depósito vivo enseña lo que espera ganar y cuándo vence. Se ve que eso todavía no está ganado y no entra en el total.",
-          "comando": "grep -qF \"shows an active deposit with its expected gain, its maturity date and not earned yet\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows an active deposit with its expected gain, its maturity date and not earned yet\""
+          "descripcion": "Los productos salen ordenados de lo que más gana a lo que más pierde, con una barra horizontal que enseña de un vistazo cuáles suman y cuáles restan. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "comando": "grep -qF \"orders the live investments from the one that gains most to the one that loses most\" src/features/investments/__tests__/InvestmentsView.spec.ts && pnpm exec vitest run src/features/investments/__tests__/InvestmentsView.spec.ts -t \"orders the live investments from the one that gains most to the one that loses most\""
         },
         {
-          "descripcion": "Un depósito cancelado antes de vencer se distingue y no entra en el total.",
-          "comando": "grep -qF \"shows a cancelled deposit in grey, with its cancel date and not in the total\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows a cancelled deposit in grey, with its cancel date and not in the total\""
+          "descripcion": "Los productos salen ordenados de lo que más gana a lo que más pierde, con una barra horizontal que enseña de un vistazo cuáles suman y cuáles restan. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "comando": "grep -qF \"draws a green bar to the right for a gain and a red one to the left for a loss\" src/features/investments/__tests__/GainRow.spec.ts && pnpm exec vitest run src/features/investments/__tests__/GainRow.spec.ts -t \"draws a green bar to the right for a gain and a red one to the left for a loss\""
         },
         {
-          "descripcion": "Un depósito vencido cuyo cobro no se encuentra, o que tiene varios cobros posibles, o que devolvió menos de lo que metí, se ve como dudoso y con el motivo. La pantalla dice que no entra en el total. [añadido por el leader: no esconder un dato dudoso, como en la F31]",
-          "comando": "grep -qF \"shows each doubtful deposit in amber with its reason and not in the total\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"shows each doubtful deposit in amber with its reason and not in the total\""
+          "descripcion": "Los productos ya cerrados (un fondo vendido, un depósito vencido) se ven aparte, como referencia, con otro tono de color, lo que ganaron o perdieron y que ya se cerraron. No suman en el total: al cerrarse, lo ganado ya pasó al saldo de la cuenta corriente de MyInvestor.",
+          "comando": "grep -qF \"shows the closed investments apart, in grey, with their gain and close date, outside the total\" src/features/investments/__tests__/InvestmentsView.spec.ts && pnpm exec vitest run src/features/investments/__tests__/InvestmentsView.spec.ts -t \"shows the closed investments apart, in grey, with their gain and close date, outside the total\""
         },
         {
-          "descripcion": "Si no hay ningún depósito, la parte lo dice en vez de quedarse vacía. [añadido por el leader]",
-          "comando": "grep -qF \"says there are no deposits instead of an empty part\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"says there are no deposits instead of an empty part\""
+          "descripcion": "En esta pantalla no sale ninguna cuenta, ni la remunerada: solo inversiones. Lo que gana la cuenta remunerada ya está en sus movimientos.",
+          "comando": "grep -qF \"rejects a product whose type is not an investment\" src/features/investments/__tests__/service.spec.ts && pnpm exec vitest run src/features/investments/__tests__/service.spec.ts -t \"rejects a product whose type is not an investment\""
         },
         {
-          "descripcion": "El total ganado no se suma al patrimonio ni a ninguna otra cifra de la pantalla. [añadido por el leader: el interés ya cuenta como ingreso en Overview y Movements desde la feature 57 del backend; aquí solo se enseña]",
-          "comando": "grep -qF \"keeps every net worth figure as the backend sends it when deposits earned something\" src/features/net-worth/__tests__/NetWorthView.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/NetWorthView.spec.ts -t \"keeps every net worth figure as the backend sends it when deposits earned something\""
+          "descripcion": "Los depósitos siguen viéndose en esta pantalla con lo que ganó cada uno (feature 39), dentro de la lista o justo debajo. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "comando": "grep -qF \"shows the deposits inside the lists and no Deposits card\" src/features/investments/__tests__/InvestmentsView.spec.ts && pnpm exec vitest run src/features/investments/__tests__/InvestmentsView.spec.ts -t \"shows the deposits inside the lists and no Deposits card\""
         },
         {
-          "descripcion": "Textos en inglés, en oscuro, y pnpm type-check, lint, test:unit, build e ./init.sh en verde. [añadido por el leader: estándar del proyecto]",
+          "descripcion": "Los depósitos siguen viéndose en esta pantalla con lo que ganó cada uno (feature 39), dentro de la lista o justo debajo. [recomendado por el leader y aprobado por el humano el 2026-11-03]",
+          "comando": "grep -qF \"shows a live deposit counting its expected gain day by day\" src/features/investments/__tests__/GainRow.spec.ts && pnpm exec vitest run src/features/investments/__tests__/GainRow.spec.ts -t \"shows a live deposit counting its expected gain day by day\""
+        },
+        {
+          "descripcion": "Un producto del que no hay dato para calcular lo ganado se ve con el hueco y el motivo, y la pantalla dice que no entra en el total; nunca se pinta como cero. [añadido por el leader]: es la regla del contrato de GET /api/investments/overview",
+          "comando": "grep -qF \"shows a gap and its reason for a figure that cannot be obtained, never a zero\" src/features/investments/__tests__/GainRow.spec.ts && pnpm exec vitest run src/features/investments/__tests__/GainRow.spec.ts -t \"shows a gap and its reason for a figure that cannot be obtained, never a zero\""
+        },
+        {
+          "descripcion": "Un producto del que no hay dato para calcular lo ganado se ve con el hueco y el motivo, y la pantalla dice que no entra en el total; nunca se pinta como cero. [añadido por el leader]: es la regla del contrato de GET /api/investments/overview",
+          "comando": "grep -qF \"lists the live investments left out of the total with their reason\" src/features/investments/__tests__/GainsSummary.spec.ts && pnpm exec vitest run src/features/investments/__tests__/GainsSummary.spec.ts -t \"lists the live investments left out of the total with their reason\""
+        },
+        {
+          "descripcion": "Textos en inglés, en oscuro, y pnpm type-check, lint, test:unit, build e ./init.sh en verde. [añadido por el leader]: estándar del proyecto",
           "comando": "pnpm type-check && pnpm lint:oxlint:check && pnpm format:check && pnpm test:unit && pnpm build-only && ./init.sh"
         },
         {
-          "descripcion": "(añadido) Si no se pueden leer los depósitos, solo esa parte lo dice y el resto de Net Worth se sigue viendo.",
-          "comando": "grep -qF \"keeps the rest of the screen when the deposits request fails\" src/features/net-worth/__tests__/NetWorthView.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/NetWorthView.spec.ts -t \"keeps the rest of the screen when the deposits request fails\""
+          "descripcion": "(añadido) La pantalla solo lee: pide lo ganado una vez, solo con GET, y la cifra grande no se enseña si no cuadra con las filas.",
+          "comando": "grep -qF \"rejects a response whose total gain is not the sum of the live gains\" src/features/investments/__tests__/service.spec.ts && pnpm exec vitest run src/features/investments/__tests__/service.spec.ts -t \"rejects a response whose total gain is not the sum of the live gains\""
         },
         {
-          "descripcion": "(añadido) Desde un depósito vencido con su cobro se puede ir a su mes en Movements.",
-          "comando": "grep -qF \"offers See in Movements on a deposit with its maturity movement\" src/features/net-worth/__tests__/DepositEarnings.spec.ts && pnpm exec vitest run src/features/net-worth/__tests__/DepositEarnings.spec.ts -t \"offers See in Movements on a deposit with its maturity movement\""
+          "descripcion": "(añadido) La pantalla solo lee: pide lo ganado una vez, solo con GET, y la cifra grande no se enseña si no cuadra con las filas.",
+          "comando": "grep -qF \"asks the gains once on mount, only with GET\" src/features/investments/__tests__/InvestmentsView.spec.ts && pnpm exec vitest run src/features/investments/__tests__/InvestmentsView.spec.ts -t \"asks the gains once on mount, only with GET\""
         },
         {
-          "descripcion": "(añadido) Después de importar, la parte vuelve a pedir los depósitos.",
-          "comando": "grep -qF \"asks the deposits again after an import when the net worth was loaded\" src/features/import/__tests__/store.spec.ts && pnpm exec vitest run src/features/import/__tests__/store.spec.ts -t \"asks the deposits again after an import when the net worth was loaded\""
+          "descripcion": "(añadido) Si no se puede leer lo ganado, la pantalla lo dice y deja reintentar.",
+          "comando": "grep -qF \"says the investments could not be loaded and offers Try again\" src/features/investments/__tests__/InvestmentsView.spec.ts && pnpm exec vitest run src/features/investments/__tests__/InvestmentsView.spec.ts -t \"says the investments could not be loaded and offers Try again\""
+        },
+        {
+          "descripcion": "(añadido) Después de importar, la pantalla vuelve a pedir lo ganado si ya lo había leído.",
+          "comando": "grep -qF \"asks the gains again after an import when they were loaded\" src/features/import/__tests__/store.spec.ts && pnpm exec vitest run src/features/import/__tests__/store.spec.ts -t \"asks the gains again after an import when they were loaded\""
+        },
+        {
+          "descripcion": "(añadido) Abro Investments desde el menú y veo la cifra grande, los productos en orden y los cerrados aparte.",
+          "comando": "grep -qF \"opens investments and sees the gain of each product and the total\" e2e/investments.spec.ts && pnpm exec playwright test e2e/investments.spec.ts --project=chromium -g \"opens investments and sees the gain of each product and the total\""
         }
-      ],
-      "sdd": true,
-      "status": "done"
+      ]
     }
   ]
 }

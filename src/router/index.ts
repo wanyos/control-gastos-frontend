@@ -16,12 +16,12 @@ import type { LucideIcon } from '@lucide/vue'
 import NetWorthView from '@/features/net-worth/views/NetWorthView.vue'
 import RulesView from '@/features/category-rules/views/RulesView.vue'
 import ExpensesByCategoryView from '@/features/expenses-by-category/views/ExpensesByCategoryView.vue'
+import InvestmentsView from '@/features/investments/views/InvestmentsView.vue'
 import OverviewView from '@/features/overview/views/OverviewView.vue'
 import OwnAccountsView from '@/features/own-accounts/views/OwnAccountsView.vue'
 import ReviewView from '@/features/review/views/ReviewView.vue'
 import StatementView from '@/features/statement/views/StatementView.vue'
 import TransfersView from '@/features/transfers/views/TransfersView.vue'
-import PlaceholderView from '@/shared/components/PlaceholderView.vue'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -42,10 +42,10 @@ export const REVIEW_ROUTE_NAME = 'review'
  * single source of truth for the sidebar entries and the topbar title, so a
  * route and its navigation entry can never drift apart.
  *
- * Array order is sidebar order. The routes without a view yet render the shared
- * placeholder: the shell is navigable end to end before the views exist. `/movements`
- * is the statement since feature 19 — the whole history month by month, a different
- * screen from `/review`, which is the queue of what is still pending. `/overview` is the
+ * Array order is sidebar order. Every route has its own view since feature 39, which
+ * put the Deposits card on `/investments` (the last one that showed the shared
+ * placeholder, now removed). `/movements` is the statement since feature 19 — the whole
+ * history month by month, a different screen from `/review`, which is the queue of what is still pending. `/overview` is the
  * month at a glance since feature 25; the home is still the net worth.
  * `/expenses-by-category` (feature 37), right below it, is what the spending of a month or
  * a year went on; it took the place of `/monthly-cost` (feature 32), which feature 37
@@ -105,7 +105,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/investments',
     name: 'investments',
-    component: PlaceholderView,
+    component: InvestmentsView,
     meta: { label: 'Investments', icon: ChartLine },
   },
   // A mistyped address used to leave the main area blank (2026-10-16): it goes home.

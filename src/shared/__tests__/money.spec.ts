@@ -8,6 +8,8 @@ import {
   formatMoney,
   formatMoneyWhole,
   formatPercent,
+  formatPercentText,
+  formatSignedMoney,
   fromCents,
   sharePermille,
   sumAmounts,
@@ -151,5 +153,31 @@ describe('formatMoneyWhole (feature 25)', () => {
   it('rejects anything that is not a two-decimal string', () => {
     expect(() => formatMoneyWhole('12')).toThrow(ValidationError)
     expect(() => formatMoneyWhole('abc')).toThrow(ValidationError)
+  })
+})
+
+describe('formatPercentText (feature 40)', () => {
+  it('formats a percent string as it comes, with a comma and no invented digits', () => {
+    expect(formatPercentText('4.07')).toBe(`4,07${NBSP}%`)
+    expect(formatPercentText('0.9')).toBe(`0,9${NBSP}%`)
+    expect(formatPercentText('-1.20')).toBe(`-1,20${NBSP}%`)
+    expect(formatPercentText('0.00')).toBe(`0,00${NBSP}%`)
+    expect(formatPercentText('12')).toBe(`12${NBSP}%`)
+    expect(formatPercentText('1234.5')).toBe(`1.234,5${NBSP}%`)
+  })
+
+  it('rejects anything that is not a plain decimal string', () => {
+    expect(() => formatPercentText('4,07')).toThrow(ValidationError)
+    expect(() => formatPercentText('')).toThrow(ValidationError)
+    expect(() => formatPercentText('1e3')).toThrow(ValidationError)
+  })
+})
+
+describe('formatSignedMoney (feature 40)', () => {
+  it('puts a plus sign only in front of an amount above zero', () => {
+    expect(formatSignedMoney('500.50')).toBe(`+500,50${NBSP}€`)
+    expect(formatSignedMoney('1234.56')).toBe(`+1.234,56${NBSP}€`)
+    expect(formatSignedMoney('-5.00')).toBe(`-5,00${NBSP}€`)
+    expect(formatSignedMoney('0.00')).toBe(`0,00${NBSP}€`)
   })
 })

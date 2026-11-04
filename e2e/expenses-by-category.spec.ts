@@ -233,12 +233,6 @@ async function prepare(page: Page, today: Date): Promise<Watch> {
   await page.route('**/api/net-worth', (route) =>
     route.request().method() === 'GET' ? route.fulfill({ json: NET_WORTH_SAMPLE }) : stop(route),
   )
-  // The home also asks what each deposit earned (feature 38): none here.
-  await page.route('**/api/investments/deposits', (route) =>
-    route.request().method() === 'GET'
-      ? route.fulfill({ json: { asOf: '2026-06-15', deposits: [], total: '0.00' } })
-      : stop(route),
-  )
   // The number next to Review and the one next to Transfers (feature 35): nothing.
   await page.route('**/api/movements*', (route) => {
     const request = route.request()

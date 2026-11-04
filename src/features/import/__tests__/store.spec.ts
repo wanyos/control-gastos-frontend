@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { flushPromises } from '@vue/test-utils'
 
+import { investmentGains } from '@/features/investments/__tests__/fixtures'
+import { useInvestmentsStore } from '@/features/investments/store'
 import { coherentNetWorth } from '@/features/net-worth/__tests__/fixtures'
 import { useNetWorthStore } from '@/features/net-worth/store'
 import { useOverviewStore } from '@/features/overview/store'
@@ -29,8 +31,8 @@ import {
   networkDown,
 } from './fixtures'
 
-/** What each deposit earned, asked by the net worth store with the net worth (feature 38). */
-const GET_DEPOSITS = 'GET /api/investments/deposits'
+/** What each investment gains (feature 40), asked by the Investments screen. */
+const GET_GAINS = 'GET /api/investments/gains'
 
 /** `GET /api/movements` over a base with nothing in it (feature 25). */
 const EMPTY_MOVEMENTS_PAGE = {
@@ -402,29 +404,50 @@ describe('useImportStore', () => {
 
       expect(useNetWorthStore().netWorth).toBeNull()
       expect(api.count(GET_NET_WORTH)).toBe(0)
-      expect(api.count(GET_DEPOSITS)).toBe(0)
+      expect(api.count(GET_GAINS)).toBe(0)
     })
 
-    it('asks the deposits again after an import when the net worth was loaded', async () => {
-      // mockApi answers any other path with `netWorth`: the deposits read gets this body,
-      // which the deposits part rejects. What is checked here is that it is asked again.
+    // Spec 40, R13: the investments store asks the gains again after an import only if
+    // it had them.
+    it('asks the gains again after an import when they were loaded', async () => {
       const api = mockApi({
         pending: json(PENDING_TWO),
         import: json(FULL_REPORT),
-        netWorth: json(coherentNetWorth()),
+        gains: json(investmentGains()),
       })
-      const netWorth = useNetWorthStore()
-      await netWorth.load()
-      expect(netWorth.netWorth).not.toBeNull()
-      expect(api.count(GET_DEPOSITS)).toBe(1)
+      const investments = useInvestmentsStore()
+      await investments.loadGains()
+      expect(investments.gains).toEqual(investmentGains())
+      expect(api.count(GET_GAINS)).toBe(1)
       const store = useImportStore()
       await atConfirm(store)
 
       await store.start()
       await flushPromises()
 
-      expect(api.count(GET_DEPOSITS)).toBe(2)
+      expect(api.count(GET_GAINS)).toBe(2)
+      expect(investments.gains).toEqual(investmentGains())
+      // The net worth was never loaded, so it is not asked: each screen goes on its own.
+      expect(api.count(GET_NET_WORTH)).toBe(0)
+    })
+
+    it('does not ask the gains after an import when they were never loaded', async () => {
+      const api = mockApi({
+        pending: json(PENDING_TWO),
+        import: json(FULL_REPORT),
+        netWorth: json(coherentNetWorth()),
+      })
+      await useNetWorthStore().load()
+      expect(api.count(GET_NET_WORTH)).toBe(1)
+      const store = useImportStore()
+      await atConfirm(store)
+
+      await store.start()
+      await flushPromises()
+
       expect(api.count(GET_NET_WORTH)).toBe(2)
+      expect(api.count(GET_GAINS)).toBe(0)
+      expect(useInvestmentsStore().gains).toBeNull()
     })
   })
 })
