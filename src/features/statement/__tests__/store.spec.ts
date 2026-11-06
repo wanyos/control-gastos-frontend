@@ -49,6 +49,13 @@ import {
   networkDown,
 } from './fixtures'
 
+/** A 409 of the contract: the backend refused the write. Words made up for the test. */
+const CONFLICT_BODY = {
+  statusCode: 409,
+  code: 'CONFLICT',
+  message: 'Otra escritura llegó antes durante la transacción. No se escribe nada.',
+}
+
 describe('useStatementStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -759,6 +766,129 @@ describe('useStatementStore', () => {
       expect(store.result?.pagination.total).toBe(5)
     })
 
+    // Roadmap, loose end 47: the reload took the list off the screen while it travelled,
+    // the page was left one window tall and the browser took it back to the top.
+    it('the reload after a failed write keeps the list on screen until the answer arrives', async () => {
+      const reload = deferred()
+      let reads = 0
+      const api = mockApi({
+        movements: (query) => {
+          if (query.get('page') === '2') return json(BIG_MONTH_PAGE_TWO)()
+          reads += 1
+          return reads === 1 ? json(BIG_MONTH_PAGE_ONE)() : reload.answer()
+        },
+        patch: json(CONFLICT_BODY, 409),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      await store.loadMore()
+      expect(store.shown).toBe(3)
+
+      const writing = store.categorize(10, 2)
+      await flushPromises()
+
+      // The PATCH has failed and the month is being asked for again.
+      expect(api.queries()).toHaveLength(3)
+      expect(store.isLoading).toBe(false)
+      expect(store.result).not.toBeNull()
+      expect(store.shown).toBe(3)
+
+      reload.resolve(jsonResponse(BIG_MONTH_PAGE_ONE))
+      await writing
+
+      // Then it leaves what `show` of the month leaves: page 1 only, and the failure.
+      expect(store.shown).toBe(2)
+      expect(store.page).toBe(1)
+      expect(store.hasMore).toBe(true)
+      expect(store.lastAction).toBeNull()
+      expect(store.actionMessage).toBe(
+        'Something went wrong. Reloading the month to show what really happened.',
+      )
+    })
+
+    it('Load more does nothing while the month is asked for again after a failed write', async () => {
+      // A month of three pages, made up: page 2 already on screen when the write fails.
+      const threePages = (base: typeof BIG_MONTH_PAGE_ONE, page: number) => ({
+        ...base,
+        pagination: { ...base.pagination, page, total: 603, totalPages: 3 },
+      })
+      const pageOne = threePages(BIG_MONTH_PAGE_ONE, 1)
+      const pageTwo = threePages(BIG_MONTH_PAGE_TWO, 2)
+      const pageThree = {
+        ...threePages(BIG_MONTH_PAGE_TWO, 3),
+        movements: [
+          rawMovement({
+            id: 41,
+            type: 'expense',
+            bookingDate: '2026-09-01',
+            valueDate: '2026-09-01',
+            amount: '13.85',
+            description: 'COMPRA FARMACIA SAN ROQUE',
+          }),
+        ],
+      }
+      const reload = deferred()
+      const third = deferred()
+      let firstPageReads = 0
+      const api = mockApi({
+        movements: (query) => {
+          if (query.get('page') === '2') return json(pageTwo)()
+          if (query.get('page') === '3') return third.answer()
+          firstPageReads += 1
+          return firstPageReads === 1 ? json(pageOne)() : reload.answer()
+        },
+        patch: json(CONFLICT_BODY, 409),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      await store.loadMore()
+      expect(store.shown).toBe(3)
+
+      const writing = store.categorize(10, 2)
+      await flushPromises()
+      const more = store.loadMore()
+      // The reload answers before any page 3 could.
+      reload.resolve(jsonResponse(pageOne))
+      await writing
+      third.resolve(jsonResponse(pageThree))
+      await more
+
+      expect(
+        api.queries().filter((query) => new URLSearchParams(query).get('page') === '3'),
+      ).toHaveLength(0)
+      expect(store.page).toBe(1)
+      expect(store.shown).toBe(2)
+      expect(store.hasMore).toBe(true)
+      expect(store.isLoadingMore).toBe(false)
+
+      // Once the reload is over, Load more works again from page 2.
+      await store.loadMore()
+      expect(store.page).toBe(2)
+      expect(store.shown).toBe(3)
+    })
+
+    it('a reload after a failed write that fails too paints the failure of the month', async () => {
+      let reads = 0
+      mockApi({
+        movements: () => {
+          reads += 1
+          return reads === 1 ? json(MONTH_PAGE)() : networkDown()
+        },
+        patch: json(CONFLICT_BODY, 409),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+
+      await store.categorize(10, 2)
+
+      expect(store.result).toBeNull()
+      expect(store.error).not.toBeNull()
+      expect(store.isLoading).toBe(false)
+      expect(store.actionMessage).toBe(
+        'Something went wrong. Reloading the month to show what really happened.',
+      )
+    })
+
     it('a second click while one write is in flight starts nothing (C2)', async () => {
       const slow = deferred()
       const api = mockApi({ movements: json(MONTH_PAGE), patch: slow.answer })
@@ -1101,6 +1231,36 @@ describe('useStatementStore', () => {
       )
       expect(store.actionMessage).not.toContain('existe')
       expect(store.lastExclusion).toBeNull()
+    })
+
+    it('the reload after a failed batch keeps the list on screen until the answer arrives (roadmap, loose end 47)', async () => {
+      const reload = deferred()
+      let reads = 0
+      mockApi({
+        movements: () => {
+          reads += 1
+          return reads === 1 ? json(MONTH_PAGE)() : reload.answer()
+        },
+        bulkPatch: json(CONFLICT_BODY, 409),
+      })
+      const store = useStatementStore()
+      await store.show('2026-09')
+      select(store, [10, 11])
+
+      const writing = store.setExcluded(true)
+      await flushPromises()
+
+      expect(reads).toBe(2)
+      expect(store.isLoading).toBe(false)
+      expect(store.result?.movements).toHaveLength(MONTH_PAGE.movements.length)
+
+      reload.resolve(jsonResponse(MONTH_PAGE))
+      await writing
+
+      expect(store.selectedIds).toEqual([])
+      expect(store.actionMessage).toBe(
+        'Something went wrong. Reloading the month to show what really happened.',
+      )
     })
 
     it('a network failure reloads the month: the write may have been heard (2026-10-16)', async () => {

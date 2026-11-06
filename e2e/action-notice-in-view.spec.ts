@@ -1671,3 +1671,155 @@ test('a rule that fails to save, from a line partly behind the notice in Movemen
 
   expectNothingUnforeseen(watch, { rejection: true })
 })
+
+// ─── An Undo that fails in Movements (roadmap, loose end 47) ───────────────
+// A failed Undo reloads the month, to know what was really written. Until 2026-11-06
+// that reload took the list off the screen while it travelled: the page was left one
+// window tall, the browser took it back to the top (`scrollY` 0) and it stayed there
+// when the list came back. Review never did it: its reload keeps the list painted.
+
+/** A 409 of the contract: the write was refused, and the screen reloads to be sure. */
+const CONFLICT = {
+  status: 409,
+  json: {
+    statusCode: 409,
+    code: 'CONFLICT',
+    message: 'Otra escritura llegó antes durante la transacción. No se escribe nada.',
+  },
+}
+
+/**
+ * The first PATCH of `pattern` writes as `routeMovements` does; the next one (the Undo)
+ * answers 409 after a while, as a real answer would.
+ */
+const rejectUndoSlowly = (page: Page, pattern: string): Promise<void> => {
+  let patches = 0
+  return page.route(pattern, async (route) => {
+    const url = new URL(route.request().url())
+    if (route.request().method() !== 'PATCH' || !url.pathname.startsWith('/api/movements')) {
+      return route.fallback()
+    }
+    patches += 1
+    if (patches === 1) return route.fallback()
+    await new Promise((done) => setTimeout(done, 300))
+    return route.fulfill(CONFLICT)
+  })
+}
+
+/**
+ * Starts writing down the lowest `scrollY` the page reaches from now on: at every frame,
+ * at every `scroll` event and at every change of the page. Where the page ends is not
+ * enough: in Firefox and WebKit the notice, painted again after the reload, scrolled the
+ * page from the top back down to the line. And `scroll` events alone are not either: in
+ * WebKit the jump to the top did not always fire one, but it was there frame by frame.
+ */
+async function watchLowestScroll(page: Page): Promise<() => Promise<number>> {
+  await page.evaluate(() => {
+    const seen = window as unknown as { lowestScroll: number }
+    seen.lowestScroll = window.scrollY
+    const note = (): void => {
+      seen.lowestScroll = Math.min(seen.lowestScroll, window.scrollY)
+    }
+    const everyFrame = (): void => {
+      note()
+      requestAnimationFrame(everyFrame)
+    }
+    requestAnimationFrame(everyFrame)
+    window.addEventListener('scroll', note)
+    new MutationObserver(note).observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
+  })
+  return () => page.evaluate(() => (window as unknown as { lowestScroll: number }).lowestScroll)
+}
+
+test('an Undo of a category that fails in Movements leaves the page where it was', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+
+  await routeMovements(page, watch)
+  await rejectUndoSlowly(page, '**/api/movements/*')
+  await page.goto('/movements')
+  await expect(page.getByTestId('statement-row')).toHaveCount(STATEMENT_ROWS)
+  const line = statementRow(page, STATEMENT_FIRST_ID + 31)
+  await bringUnderTopBar(page, line)
+  await changeStatementCategory(line, GROCERIES.id)
+  await expect(page.getByTestId('statement-action-summary')).toContainText('Groceries')
+  await expectStuckUnderTopBar(page)
+  await leavePartlyUnderNotice(page, line)
+  const before = await scrollY(page)
+  const lowestScroll = await watchLowestScroll(page)
+
+  await page.getByTestId('statement-action-undo').click()
+
+  await expect(page.getByTestId('statement-action-error')).toHaveText(
+    'Something went wrong. Reloading the month to show what really happened.',
+  )
+  await expect(page.getByTestId('statement-row')).toHaveCount(STATEMENT_ROWS)
+  // The 409 wrote nothing: the line keeps the category of the first change.
+  await expect(line.getByTestId('statement-row-category')).toHaveText('Groceries')
+  await twoFrames(page)
+  await twoFrames(page)
+  // The notice changing moves the page a few pixels at most, never to the top.
+  expect(await lowestScroll()).toBeGreaterThan(before - 60)
+  // As in Review: the page moves only as much as the notice needs to leave the line clear.
+  await expectRowClearOfNotice(page, line)
+  expect(await gapUnderNotice(page, line)).toBeLessThan(1)
+  expect(watch.writes.map((write) => `${write.method} ${write.path}`)).toEqual([
+    `PATCH /api/movements/${STATEMENT_FIRST_ID + 31}`,
+    `PATCH /api/movements/${STATEMENT_FIRST_ID + 31}`,
+  ])
+
+  expectNothingUnforeseen(watch, { rejection: true })
+})
+
+test('an Undo of an exclusion that fails in Movements leaves the page where it was', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+
+  await routeMovements(page, watch)
+  await rejectUndoSlowly(page, '**/api/movements*')
+  await page.goto('/movements')
+  await expect(page.getByTestId('statement-row')).toHaveCount(STATEMENT_ROWS)
+  await page.getByTestId('statement-start-selecting').click()
+  const line = statementRow(page, STATEMENT_FIRST_ID + 31)
+  await line.getByTestId('statement-row-select').click()
+  // `Exclude from totals` is above the list: whoever is down the month goes up to press it.
+  await page.evaluate(() => window.scrollTo(0, 0))
+  await page.getByTestId('statement-exclude').click()
+  await expect(page.getByTestId('statement-action-summary')).toContainText(
+    '1 movement excluded from totals',
+  )
+  await expect(line.getByTestId('statement-row-excluded')).toHaveCount(1)
+  // Back down to the line, which sits in the middle of the window.
+  await bringUnderTopBar(page, line, 300)
+  await twoFrames(page)
+  const before = await scrollY(page)
+  const lineBefore = await topOf(line)
+  const lowestScroll = await watchLowestScroll(page)
+
+  await page.getByTestId('statement-action-undo').click()
+
+  await expect(page.getByTestId('statement-action-error')).toHaveText(
+    'Something went wrong. Reloading the month to show what really happened.',
+  )
+  // The 409 wrote nothing: the line is still out of the totals.
+  await expect(line.getByTestId('statement-row-excluded')).toHaveCount(1)
+  await twoFrames(page)
+  await twoFrames(page)
+  // No line to keep clear after a batch: the line stays where it was on the screen.
+  // The notice changing moves the page a few pixels at most, never to the top.
+  expect(await lowestScroll()).toBeGreaterThan(before - 60)
+  expect(Math.abs((await topOf(line)) - lineBefore)).toBeLessThan(1)
+  await expectInView(page, line)
+  expect(watch.writes.map((write) => `${write.method} ${write.path}`)).toEqual([
+    'PATCH /api/movements',
+    'PATCH /api/movements',
+  ])
+
+  expectNothingUnforeseen(watch, { rejection: true })
+})

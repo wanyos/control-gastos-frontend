@@ -123,6 +123,12 @@ export const useStatementStore = defineStore('statement', () => {
   // Only the latest request may write the state: the arrows are clicked faster than
   // the network answers, and September must never show July's figures (R15).
   let loadRun = 0
+  /**
+   * True while `reloadAfterFailedWrite` travels. The list stays on screen then, so
+   * `Load more` can be pressed; its page would be added to rows the answer is about to
+   * replace, and the pages already brought would be lost (roadmap, loose end 47).
+   */
+  let isReloadingAfterFailure = false
   let accountsRequested = false
   let categoriesRequested = false
   let ambiguousRequested = false
@@ -192,22 +198,53 @@ export const useStatementStore = defineStore('statement', () => {
    * Loads a month with the filters it is looked at through, from scratch. Whatever
    * `Load more` had brought goes with it: that list belonged to the previous filter (R3).
    */
-  async function show(
+  function show(
     next: MonthKey,
     nextFilters: StatementFilters = filters.value,
     nextHideNoise: HideNoise = hideNoise.value,
+    client?: HttpClient,
+  ): Promise<void> {
+    return load(next, nextFilters, nextHideNoise, false, client)
+  }
+
+  /**
+   * The reload after a write that failed and may have been written anyway (R15 of
+   * feature 21, R16 of feature 22): it leaves exactly what `show` of the same month
+   * leaves, but the list stays painted while the request travels. With `show` the list
+   * went away for that moment, the page was left one window tall, the browser took it
+   * back to the top and it stayed there when the list came back: the user lost the line
+   * they were on (roadmap, loose end 47).
+   */
+  function reloadAfterFailedWrite(client?: HttpClient): Promise<void> {
+    return load(month.value, filters.value, hideNoise.value, true, client)
+  }
+
+  async function load(
+    next: MonthKey,
+    nextFilters: StatementFilters,
+    nextHideNoise: HideNoise,
+    keepListOnScreen: boolean,
     client?: HttpClient,
   ): Promise<void> {
     const run = ++loadRun
     month.value = next
     filters.value = nextFilters
     hideNoise.value = nextHideNoise
-    isLoading.value = true
     error.value = null
-    extra.value = []
-    page.value = 0
-    // A stale number would say how much of ANOTHER month is hidden (R7).
-    totalWithoutHiding.value = null
+    // What `Load more` had brought, and the hidden count, belong to the previous read.
+    const forgetPreviousRead = (): void => {
+      extra.value = []
+      page.value = 0
+      // A stale number would say how much of ANOTHER month is hidden (R7).
+      totalWithoutHiding.value = null
+    }
+    // Kept on screen, the list is only swapped when the answer arrives: emptying it now
+    // would paint a list without the rows of `Load more` for the length of the request.
+    isReloadingAfterFailure = keepListOnScreen
+    if (!keepListOnScreen) {
+      isLoading.value = true
+      forgetPreviousRead()
+    }
     // A new month or a new filter is a new context: the open editor and the Undo of
     // the last write go with it (R13), and so does the selection — a ticked id that is
     // no longer on screen would be a trap (feature 22, R7). The selection MODE stays
@@ -218,15 +255,20 @@ export const useStatementStore = defineStore('statement', () => {
     try {
       const answer = await getMovements(monthQuery(next, nextFilters, 1, nextHideNoise), client)
       if (run !== loadRun) return
+      if (keepListOnScreen) forgetPreviousRead()
       result.value = answer
       page.value = answer.pagination.page
       loaded = true
     } catch (rejection) {
       if (run !== loadRun) return
+      if (keepListOnScreen) forgetPreviousRead()
       result.value = null
       error.value = toAppError(rejection)
     } finally {
-      if (run === loadRun) isLoading.value = false
+      if (run === loadRun) {
+        isLoading.value = false
+        isReloadingAfterFailure = false
+      }
     }
     // After the month, never instead of it: the list is already on screen when the
     // count travels, and a failure of this one changes nothing (R7, R9).
@@ -274,6 +316,7 @@ export const useStatementStore = defineStore('statement', () => {
    */
   async function loadMore(client?: HttpClient): Promise<void> {
     if (isLoading.value || isLoadingMore.value || !hasMore.value) return
+    if (isReloadingAfterFailure) return
     const run = loadRun
     const next = page.value + 1
     isLoadingMore.value = true
@@ -431,7 +474,7 @@ export const useStatementStore = defineStore('statement', () => {
         // The screen could be lying: reload the month instead of claiming nothing
         // happened (R15). The reload goes FIRST because it forgets the last action
         // (R13) — including any sentence — and then the failure is painted.
-        if (needsReload(failure)) await show(month.value, filters.value, hideNoise.value, client)
+        if (needsReload(failure)) await reloadAfterFailedWrite(client)
         actionError.value = failure
         actionMessage.value = writeErrorMessage(failure)
         return null
@@ -551,7 +594,7 @@ export const useStatementStore = defineStore('statement', () => {
         // The screen could be lying: reload the month instead of claiming nothing
         // happened (R16). The reload goes FIRST because it forgets the last action
         // — including any sentence — and then the failure is painted (R15).
-        if (needsReload(failure)) await show(month.value, filters.value, hideNoise.value, client)
+        if (needsReload(failure)) await reloadAfterFailedWrite(client)
         actionError.value = failure
         actionMessage.value = writeErrorMessage(failure, 'exclusion')
       }

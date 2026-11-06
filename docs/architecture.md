@@ -511,6 +511,18 @@ src/
 > `shared/movements.ts` desde la #21, junto a la de lectura, y el `PATCH` en bloque bajó
 > ahí desde la #22: lo usan la cola y el extracto.
 >
+> **Tras una escritura que falla, el mes se vuelve a pedir sin quitar la lista (cabo
+> suelto 47 del roadmap, 2026-11-06).** Cuando `needsReload` dice que la escritura pudo
+> quedar hecha, `statement/store.ts` llama a `reloadAfterFailedWrite`: deja lo mismo que
+> `show` del mes en pantalla (solo la página 1, sin el `Undo` ni la selección, y la frase
+> del fallo después), pero la lista sigue pintada mientras viaja la petición y se cambia
+> al llegar la respuesta. Mientras tanto `Load more` no pide nada: su página se habría
+> sumado a una lista a punto de cambiarse, y se perdían las páginas ya traídas. Con `show`
+> la lista se quitaba ese momento, la página se quedaba
+> con el alto de la ventana, el navegador la llevaba arriba del todo y ahí seguía al
+> volver la lista. Si la petición del mes también falla, sale el error del mes, como antes.
+> `Review` no lo hacía: su recarga tras un fallo ya era la que no quita la lista.
+>
 > **Y desde la feature #21 tiene una dependencia, en el mismo sentido que ya existía:**
 > `statement/views/StatementView.vue` monta `RuleDialog` de `category-rules`, igual que
 > lo hace `ReviewView`. Es `statement` → `category-rules`; `category-rules` sigue sin
