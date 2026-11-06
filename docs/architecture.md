@@ -358,10 +358,22 @@ src/
 > redondeada hacia arriba a píxeles enteros, con `window.scrollBy`. Se redondea porque
 > las filas miden píxeles con decimales y Chromium deja la página en un píxel entero: sin
 > redondear, la fila quedaba tapada menos de un píxel. Varias de esas causas en el mismo
-> instante dan una sola medida. No escucha el evento `scroll`. La prop es estado de la vista, no del store: `ReviewView` la escribe al
-> confirmar una fila, al cambiarle la categoría y al abrir desde ella el diálogo de regla;
-> `StatementView`, al cambiar la categoría de una línea y al abrir desde ella el diálogo
-> de regla. Las dos la ponen a `null` en las acciones sobre varias filas.
+> instante dan una sola medida. No escucha el evento `scroll`. Tiene una segunda prop
+> opcional, `busy`: mientras vale `true` no mide, y mide cuando vuelve a `false`. Y solo
+> mueve la página si la prop `keepClearOf` o el texto del `div` son distintos de los de
+> la última medida: una acción que acaba sin cambiar nada del aviso (por ejemplo, una
+> regla que no se pudo guardar, con el diálogo abierto) no mueve la página.
+> `ReviewView` y `StatementView` le pasan `store.isActing || rules.isSaving`. Sin ella, al
+> pulsar `Undo` el botón se desactiva, Vue vuelve a pintar el aviso todavía con su frase
+> y su alto de antes, y la página subía 19 px contra ese aviso; luego el aviso encogía o
+> desaparecía y la fila quedaba unos 13 px más abajo de lo necesario (cabo suelto 30 de
+> `docs/roadmap.md`, arreglado el 2026-11-04). La prop `keepClearOf` es estado de la vista,
+> no del store: `ReviewView` la escribe al confirmar una fila, al cambiarle la categoría y
+> cuando se ha guardado la regla del diálogo abierto desde ella; `StatementView`, al
+> cambiar la categoría de una línea y cuando se ha guardado la regla del diálogo abierto
+> desde ella. Ni abrir el diálogo ni un guardado que falla la cambian: el aviso no ha
+> cambiado y la página no se mueve. Las dos la ponen
+> a `null` en las acciones sobre varias filas.
 > `TransfersView` no la pasa: enlazar y desenlazar quitan de su lista lo que se tocó. El
 > botón `Undo` de los tres avisos es la palabra sola en la
 > variante `secondary` de `BaseButton`, sin icono.

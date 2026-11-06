@@ -483,6 +483,17 @@ Configuración en `.oxlintrc.json`:
   - Ubicación: `e2e/`.
   - Navegadores: chromium, firefox, webkit. `baseURL` = `5173` en local
     (dev server) / `4173` en CI (preview). Config: `playwright.config.ts`.
+  - **WebKit en Windows se lanza con `__COMPAT_LAYER=DpiUnaware`** (cabo 44 de
+    `docs/roadmap.md`, 2026-11-04). Con la pantalla de Windows escalada (175 %), el
+    WebKit de Playwright 1.64.1 dividía la ventana por la escala: la página veía
+    731 × 411 en vez de los 1280 × 720 de `Desktop Safari`, y fallaban las pruebas
+    que miden posiciones. La variable la pone `playwright.config.ts` solo para el
+    proyecto `webkit` y solo si `process.platform === 'win32'`; no hay que
+    exportarla en la consola. Chromium y Firefox no la necesitan (ven 1280 × 720).
+  - **El campo `Jump to month` no es un selector de mes en Firefox ni en WebKit**:
+    no conocen `type="month"` y lo pintan como caja de texto, con la pista
+    `YYYY-MM` cuando está vacía. `e2e/statement.spec.ts` (`the month picker reads
+    legibly…`) comprueba lo que hace cada navegador.
   - **Headless por defecto en todos los modos** (para que la puerta de
     `./init.sh` no abra ventanas). Para observar la ejecución:
     `HEADED=1 pnpm test:e2e`.
@@ -848,16 +859,20 @@ ofreciendo la 7: es esperado, no es un despiste.
   En la pasada siguiente ya cumplirán la antigüedad. (Así fue: el 2026-11-01
   `pnpm outdated` ya daba 26.6.6 y 1.66.0, y las tres de esa pasada, la más
   reciente `@lucide/vue` 1.66.0 del 2026-10-31, entraron sin excepción.)
-- **El e2e de chromium falla a veces**, sin causa comprobada (cabo 41 de
-  `docs/roadmap.md`). El 2026-11-01 un `./init.sh` salió con exit 1 por
-  `action-notice-in-view.spec.ts:992` (`watch.aborted` con
-  `"GET /api/movements"`) y el siguiente salió con 0; ese test no se ha visto
-  fallar con las versiones de antes de esa pasada, y el reviewer no lo hizo fallar
-  en 60 repeticiones. Con las versiones de antes, `--repeat-each=5` dio 2 fallos de
-  `category-rules.spec.ts:779` (el del cabo 41) en 415 (un color de fondo que difiere en 1:
-  `rgb(21, 28, 35)` frente a `rgb(20, 27, 34)`), y ese mismo test tumbó otro
-  `./init.sh` con las versiones nuevas. Si `./init.sh` cae solo en el e2e,
-  repetirlo antes de culpar a la subida.
+- **El e2e de chromium falló a veces por dos pruebas.**
+  - `category-rules.spec.ts:779` (ahora `:793`, cabo 41 de `docs/roadmap.md`),
+    **arreglada el 2026-11-04**: un color de fondo que difería en 1
+    (`rgb(21, 28, 35)` frente a `rgb(20, 27, 34)`). La prueba daba el bloque por
+    quieto con dos lecturas que podían caer en el mismo fotograma, mientras el
+    botón recién pulsado aún cambiaba de color. Ahora espera antes a que no quede
+    nada en hover ni ninguna transición en marcha: 120 de 120 en chromium
+    (`progress/reviews/e2e-category-rules-779.md`).
+  - `action-notice-in-view.spec.ts:998` (era `:992` hasta el 2026-11-04), **sin causa comprobada**: el 2026-11-01
+    un `./init.sh` salió con exit 1 por ella (`watch.aborted` con
+    `"GET /api/movements"`) y el siguiente salió con 0; no se ha visto fallar con
+    las versiones de antes de esa pasada, y el reviewer no la hizo fallar en 60
+    repeticiones. Si `./init.sh` cae solo en el e2e, repetirlo antes de culpar a la
+    subida.
 - **Subir Playwright obliga a bajar navegadores** (`npx playwright install`): los
   binarios van atados a la versión.
 - **Vitest 5** (feature #12) no exigió cambios en `vitest.config.ts`. Lo que

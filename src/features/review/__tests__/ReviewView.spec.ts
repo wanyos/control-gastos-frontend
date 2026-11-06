@@ -1117,6 +1117,68 @@ describe('ReviewView', () => {
       expect(wrapper.getComponent(StickyBelowTopBar).props('keepClearOf')).toBeNull()
     })
 
+    it('names the row of a rule when the rule is saved, not when its dialog opens', async () => {
+      const queue = fakeQueue()
+      const { wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: rulesApi,
+      })
+      const ids = wrapper
+        .findAll('[data-movement-id]')
+        .map((row) => row.attributes('data-movement-id'))
+      expect(ids.length).toBeGreaterThan(1)
+
+      await wrapper.findAll('[data-test="movement-confirm"]')[1]?.trigger('click')
+      await flushPromises()
+      const block = () => wrapper.getComponent(StickyBelowTopBar)
+      expect(block().props('keepClearOf')).toBe(`[data-movement-id="${ids[1]}"]`)
+      expect(block().props('busy')).toBe(false)
+
+      // Opening the dialog changes nothing in the notice: the page must not move for it.
+      await wrapper.findAll('[data-test="movement-create-rule"]')[0]?.trigger('click')
+      await flushPromises()
+      expect(block().props('keepClearOf')).toBe(`[data-movement-id="${ids[1]}"]`)
+
+      document.querySelector<HTMLElement>('[data-test="rule-save"]')?.click()
+      await flushPromises()
+
+      expect(wrapper.get(BLOCK).find('[data-test="rule-created-notice"]').exists()).toBe(true)
+      expect(block().props('keepClearOf')).toBe(`[data-movement-id="${ids[0]}"]`)
+    })
+
+    it('does not name the row of a rule that failed to save', async () => {
+      const queue = fakeQueue()
+      const { wrapper } = await mountView('/review', {
+        movements: queue.movements,
+        patch: queue.patch,
+        rules: (call: ApiCall) =>
+          call.method === 'POST'
+            ? Promise.resolve(
+                jsonResponse(
+                  { statusCode: 409, code: 'CONFLICT', message: 'Ya existe una regla' },
+                  { status: 409 },
+                ),
+              )
+            : rulesApi(),
+      })
+      const ids = wrapper
+        .findAll('[data-movement-id]')
+        .map((row) => row.attributes('data-movement-id'))
+
+      await wrapper.findAll('[data-test="movement-confirm"]')[1]?.trigger('click')
+      await flushPromises()
+      await wrapper.findAll('[data-test="movement-create-rule"]')[0]?.trigger('click')
+      await flushPromises()
+      document.querySelector<HTMLElement>('[data-test="rule-save"]')?.click()
+      await flushPromises()
+
+      expect(document.querySelector('[data-test="rule-dialog"]')).not.toBeNull()
+      expect(wrapper.getComponent(StickyBelowTopBar).props('keepClearOf')).toBe(
+        `[data-movement-id="${ids[1]}"]`,
+      )
+    })
+
     it('puts the sentence of a failed action inside the block (R5)', async () => {
       const queue = fakeQueue()
       const { wrapper } = await mountView('/review', {

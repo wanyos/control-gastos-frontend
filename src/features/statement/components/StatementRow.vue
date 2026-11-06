@@ -100,28 +100,22 @@
       data-test="statement-row-category-button"
       @click="emit('edit')"
     >
-      <BaseBadge
-        v-if="movement.category"
-        size="sm"
-        tone="neutral"
-        data-test="statement-row-category"
-      >
+      <span v-if="movement.category" :class="CATEGORY_CLASS" data-test="statement-row-category">
         {{ movement.category.name }}
-      </BaseBadge>
+      </span>
       <span v-else :class="UNCATEGORIZED_CLASS" data-test="statement-row-category">
         Uncategorized
       </span>
     </button>
 
-    <BaseBadge
+    <span
       v-else-if="movement.category"
-      size="sm"
-      tone="neutral"
+      :class="CATEGORY_CLASS"
       :title="NEUTRAL_HINT"
       data-test="statement-row-category"
     >
       {{ movement.category.name }}
-    </BaseBadge>
+    </span>
     <span
       v-else
       :class="UNCATEGORIZED_CLASS"
@@ -156,7 +150,7 @@
 // One line of the statement. Same layout as the review row, and since feature 21 it
 // carries ONE control: its category badge, which becomes the editor in its own place
 // when pressed (R2, R3). Nothing else about the movement can be touched from here (C1).
-// Since feature 29 every category badge is neutral: the green lives only in the amount.
+// Since feature 29 every category label is grey: the green lives only in the amount.
 // Feature 22 adds a SECOND control, and only while the selection mode is on: a
 // checkbox. In that mode the category badge stops being a button, so one click can
 // never mean two things (R6); the badge is still there, just not pressable.
@@ -165,7 +159,6 @@
 import { computed } from 'vue'
 
 import { accountLabel } from '@/shared/accounts'
-import BaseBadge from '@/shared/components/BaseBadge.vue'
 import BaseCheckbox from '@/shared/components/BaseCheckbox.vue'
 import { countedLine, depositCountsNothing, depositLine } from '@/shared/deposits'
 import { formatMoney } from '@/shared/money'
@@ -237,6 +230,13 @@ const isLeftOut = computed(() =>
       props.movement.transferId !== null ||
       isBetweenOwnAccounts(props.movement),
 )
+
+// A category label, in the measures of a `size="sm"` badge. Its fill is --surface-hover,
+// not the --surface-sunken of BaseBadge's neutral tone: that is the colour the row takes
+// under the mouse, and the label vanished into it (roadmap, item 34). Local so Review and
+// Rules keep theirs.
+const CATEGORY_CLASS =
+  'inline-flex items-center whitespace-nowrap rounded-pill border border-transparent bg-surface-hover px-[7px] py-[2px] font-sans text-2xs leading-[1.4] font-semibold text-ink-body'
 
 // No category is said with the shape, not with a colour: dashed edge and no fill, in
 // the measures of a `size="sm"` badge. Local on purpose: BaseBadge is shared with

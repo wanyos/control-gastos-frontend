@@ -477,6 +477,11 @@ Ninguna cuenta sale aquí, tampoco la remunerada.
   y, en los dudosos, el número de cobros posibles o lo que devolvió; ahora solo
   queda el motivo.
 - **El efectivo sin invertir de un fondo no sale aquí:** está en `Net Worth`.
+- **Si vence un depósito cuyo archivo de producto no está en Drive**, el backend
+  cuenta su interés como 0 € y lo marca como dudoso (`principal_not_found`). El
+  remedio es escribir el archivo del depósito en la carpeta del banco en Drive,
+  aunque la fecha de apertura sea aproximada, y volver a importar. Así se resolvió
+  el depósito vencido el 25/08/2025 (el 2026-10-16).
 
 > **Mis notas de esta prueba**
 > - Falla:

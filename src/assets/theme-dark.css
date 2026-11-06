@@ -36,6 +36,7 @@
    contrast: --info on --surface-card >= 4.5 (info text)
    contrast: --brand on --surface-card >= 4.5 (brand text)
    contrast: --ink-body on --surface-hover >= 4.5 (hovered rows)
+   contrast: --ink-body on --surface-hover >= 4.5 (statement: category label, filled in --surface-hover so it still shows on a hovered row)
    Review rows hover to --surface-sunken, not --surface-hover: the income amount is
    painted in --positive, which only reaches 3.95 on --surface-hover.
    contrast: --positive on --surface-sunken >= 4.5 (income amount on a hovered review row)

@@ -46,19 +46,20 @@ async function mountBlock(keepClearOf?: string | null) {
  * A screen in small: the sentence and the selector are its own state, and the sentence
  * is read inside the slot, as the three screens do with their stores.
  */
-function mountScreen(firstSentence: string, firstSelector: string | null) {
+function mountScreen(firstSentence: string, firstSelector: string | null, firstBusy = false) {
   const sentence = ref(firstSentence)
   const selector = ref(firstSelector)
+  const busy = ref(firstBusy)
   const Screen = defineComponent({
     setup: () => () =>
       h(
         StickyBelowTopBar,
-        { keepClearOf: selector.value },
+        { keepClearOf: selector.value, busy: busy.value },
         { default: () => h('p', { 'data-test': 'inside' }, sentence.value) },
       ),
   })
   wrapper = mount(Screen, { attachTo: document.body })
-  return { sentence, selector, screen: wrapper }
+  return { sentence, selector, busy, screen: wrapper }
 }
 
 describe('StickyBelowTopBar (feature 27)', () => {
@@ -185,5 +186,63 @@ describe('StickyBelowTopBar (feature 27)', () => {
     await flushPromises()
 
     expect(scrollBy).toHaveBeenCalledExactlyOnceWith({ top: -20 })
+  })
+
+  // Measured in Chromium: pressing Undo disables the button, which renders the slot again
+  // before the answer; moving the page then, against the old notice, left the row lower
+  // than needed once the notice got shorter or went away.
+  it('does not measure while an action is in flight, and measures once it is over', async () => {
+    addRow()
+    layOut(box(60, 100), box(80, 136))
+    const { sentence, selector, busy } = mountScreen('1 movement confirmed', null)
+    await flushPromises()
+    expect(scrollBy).not.toHaveBeenCalled()
+
+    // The press: the row to keep clear is named and the action starts.
+    busy.value = true
+    selector.value = ROW
+    await flushPromises()
+    expect(scrollBy).not.toHaveBeenCalled()
+
+    // The answer: a shorter notice, with the row still partly under it.
+    layOut(box(60, 94), box(80, 136))
+    sentence.value = 'Change undone'
+    busy.value = false
+    await flushPromises()
+
+    expect(scrollBy).toHaveBeenCalledExactlyOnceWith({ top: -14 })
+  })
+
+  it('does not measure when it appears while an action is still in flight', async () => {
+    addRow()
+    layOut(box(60, 100), box(80, 136))
+    const { busy } = mountScreen('1 movement categorized as Groceries', ROW, true)
+    await flushPromises()
+    expect(scrollBy).not.toHaveBeenCalled()
+
+    busy.value = false
+    await flushPromises()
+
+    expect(scrollBy).toHaveBeenCalledExactlyOnceWith({ top: -20 })
+  })
+
+  // Measured in Chromium: a rule that failed to save left the notice as it was, and the
+  // end of the save still moved the page 19 px under the open dialog.
+  it('does not measure when an action ends without changing the row or the text', async () => {
+    addRow()
+    layOut(box(60, 100), box(120, 176))
+    const { busy } = mountScreen('1 movement categorized as Groceries', ROW)
+    await flushPromises()
+    expect(scrollBy).not.toHaveBeenCalled()
+
+    // The user scrolls: the row is now partly under the block. Then an action runs and
+    // fails somewhere else (a dialog), with nothing in the block changing.
+    layOut(box(60, 100), box(80, 136))
+    busy.value = true
+    await flushPromises()
+    busy.value = false
+    await flushPromises()
+
+    expect(scrollBy).not.toHaveBeenCalled()
   })
 })

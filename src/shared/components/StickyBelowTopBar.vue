@@ -20,6 +20,13 @@ const props = defineProps<{
    * still on the page and ends up under this block, the page moves up just enough.
    */
   keepClearOf?: string | null
+  /**
+   * True while the action that will change what the slot shows is in flight. Nothing
+   * is measured meanwhile: the slot still shows the previous result, with its old
+   * height, and moving the page against it left the row lower than needed once the
+   * answer came. The measure is taken when it turns false again.
+   */
+  busy?: boolean
 }>()
 
 const block = useTemplateRef<HTMLElement>('block')
@@ -28,9 +35,20 @@ const block = useTemplateRef<HTMLElement>('block')
 let waiting = false
 
 /**
+ * The row to keep clear and the text the block showed at the last measure. A render
+ * that changes neither (a button going disabled and enabled again, a save that failed
+ * inside a dialog) moves nothing.
+ */
+let lastSeen: string | null = null
+
+/**
  * Measured when the block appears, when the row to keep clear changes and every time
  * what the slot shows is rendered again (a second action on the same row changes the
  * sentence, not the selector). Never on scroll: afterwards rows pass under the block.
+ * Never while `busy`: pressing a button re-renders the slot (the button goes disabled)
+ * before the answer has changed it; the measure waits for the answer. And only when the
+ * row or the text differ from the last measure: an answer that changed nothing in the
+ * block does not move the page.
  */
 async function keepRowClear(): Promise<void> {
   if (waiting) return
@@ -38,10 +56,17 @@ async function keepRowClear(): Promise<void> {
   await nextTick()
   await new Promise<void>((done) => requestAnimationFrame(() => done()))
   waiting = false
+  if (props.busy) return
 
   const own = block.value
+  if (!own) return
+  const seen = `${props.keepClearOf ?? ''}
+${own.textContent ?? ''}`
+  if (seen === lastSeen) return
+  lastSeen = seen
+
   const row = props.keepClearOf ? document.querySelector(props.keepClearOf) : null
-  if (!own || !row) return
+  if (!row) return
 
   const blockBox = own.getBoundingClientRect()
   const rowBox = row.getBoundingClientRect()
@@ -57,4 +82,10 @@ async function keepRowClear(): Promise<void> {
 onMounted(keepRowClear)
 onUpdated(keepRowClear)
 watch(() => props.keepClearOf, keepRowClear)
+watch(
+  () => props.busy,
+  (now) => {
+    if (!now) void keepRowClear()
+  },
+)
 </script>

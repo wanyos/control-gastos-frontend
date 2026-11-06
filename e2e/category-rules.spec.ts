@@ -748,11 +748,25 @@ const lookOfLastApply = (page: Page) =>
 
 /**
  * The same, once it has stopped changing: the pointer is taken off the block (a button
- * under it is painted as hovered) and two readings in a row have to agree (the buttons
- * change colour over a few milliseconds).
+ * under it is painted as hovered), nothing in it may still be hovered or changing colour
+ * (`transition-colors` on the buttons), and two readings in a row have to agree.
+ *
+ * Two equal readings alone are not enough: both can fall inside the same frame while a
+ * colour change is still under way, and then the block is read halfway through it.
  */
 async function settledLookOfLastApply(page: Page) {
   await page.mouse.move(0, 0)
+  await expect
+    .poll(() =>
+      page
+        .getByTestId('last-apply')
+        .evaluate(
+          (block) =>
+            block.querySelector(':hover') === null &&
+            block.getAnimations({ subtree: true }).length === 0,
+        ),
+    )
+    .toBe(true)
   let last = await lookOfLastApply(page)
   await expect
     .poll(async () => {

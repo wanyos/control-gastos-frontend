@@ -137,6 +137,16 @@ código, y el CSS al final. Preferir siempre `<script setup lang="ts">`.
 - Estructura `describe` / `it`, patrón AAA (arrange-act-assert). Preferir
   recursos reales ligeros a mocks cuando sea viable; mockear solo la frontera
   HTTP.
+- **Ningún test unitario sale a la red** (cabo 9 del roadmap, 2026-11-04). El
+  origen de jsdom es `http://localhost:3000`, el mismo que el del backend real.
+  `src/__tests__/no-network.ts`, que `vitest.config.ts` carga (`setupFiles`) antes
+  de cada archivo de test, sustituye `fetch` (y `XMLHttpRequest`, `WebSocket`,
+  `EventSource` y `navigator.sendBeacon`) por una función que rechaza la petición,
+  y al terminar cada test lo hace fallar con el método y la ruta de cada petición
+  que ningún mock respondió. Cada test responde las suyas con
+  `vi.spyOn(globalThis, 'fetch')` (el `mockBackend` de cada feature);
+  `vi.restoreAllMocks()` devuelve ese rechazo, nunca el `fetch` real. No se
+  desactiva para ningún test: si uno falla por esto, le falta su mock.
 
 ## Manejo de errores
 

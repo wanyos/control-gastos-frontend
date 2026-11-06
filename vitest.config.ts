@@ -9,6 +9,9 @@ export default mergeConfig(
       environment: 'jsdom',
       exclude: [...configDefaults.exclude, 'e2e/**'],
       root: fileURLToPath(new URL('./', import.meta.url)),
+      // No unit test reaches the network: an unmocked request fails its test
+      // (jsdom's origin is the real backend's, localhost:3000).
+      setupFiles: ['src/__tests__/no-network.ts'],
     },
   }),
 )

@@ -343,8 +343,80 @@ test('a movement that does not count is crossed out, greyed and labelled under i
   expect(watch.consoleErrors).toEqual([])
 })
 
-test('the month picker reads legibly with the design system tokens', async ({ page }) => {
-  await prepare(page)
+test('the category label keeps its own fill, with and without the mouse over its line', async ({
+  page,
+}) => {
+  const watch = await prepare(page)
+  const month = currentMonth()
+  const FOOD = { id: 1, name: 'Food', kind: 'expense', parentId: null }
+  await page.route('**/api/movements*', (route) => {
+    const query = new URL(route.request().url()).searchParams
+    if (query.get('pageSize') === '1') return route.fallback()
+    return route.fulfill({
+      json: {
+        movements: [
+          movement(40, `${month}-07`, {
+            amount: '63.84',
+            description: 'MERCADONA AV PUERTO',
+            categoryId: 1,
+            category: FOOD,
+          }),
+        ],
+        pagination: { page: 1, pageSize: 200, total: 1, totalPages: 1 },
+        totals: { income: '0.00', expense: '63.84', net: '-63.84' },
+      },
+    })
+  })
+  await routeNoDoubtful(page)
+
+  await page.goto('/movements')
+  const row = page.getByTestId('statement-row')
+  await expect(row).toHaveCount(1)
+  const label = row.getByTestId('statement-row-category')
+  await expect(label).toHaveText('Food')
+
+  const fill = (variable: string) =>
+    page.evaluate((name) => {
+      const probe = document.createElement('span')
+      probe.style.backgroundColor = `var(${name})`
+      document.body.append(probe)
+      const color = getComputedStyle(probe).backgroundColor
+      probe.remove()
+      return color
+    }, variable)
+  const [card, sunken, hover] = await Promise.all(
+    ['--surface-card', '--surface-sunken', '--surface-hover'].map(fill),
+  )
+  // The label's fill must differ from both colours its line can take (roadmap, item 34).
+  expect(new Set([card, sunken, hover]).size).toBe(3)
+  const rowFill = () =>
+    row.evaluate((el) => {
+      // The row paints nothing when idle: what shows is the first ancestor with a fill.
+      for (let node: Element | null = el; node; node = node.parentElement) {
+        const color = getComputedStyle(node).backgroundColor
+        if (color !== 'rgba(0, 0, 0, 0)') return color
+      }
+      return ''
+    })
+
+  await page.mouse.move(0, 0)
+  await expect(label).toHaveCSS('background-color', hover!)
+  expect(await rowFill()).toBe(card)
+
+  await row.hover()
+  await expect(row).toHaveCSS('background-color', sunken!)
+  await expect(label).toHaveCSS('background-color', hover!)
+  expect(await rowFill()).not.toBe(hover)
+
+  expect(watch.pageErrors).toEqual([])
+  expect(watch.consoleErrors).toEqual([])
+})
+
+test('the month picker reads legibly with the design system tokens', async ({
+  page,
+  browserName,
+}) => {
+  const watch = await prepare(page)
   await page.goto('/movements')
   await expect(page.getByTestId('statement-totals')).toBeVisible()
 
@@ -360,6 +432,7 @@ test('the month picker reads legibly with the design system tokens', async ({ pa
     return {
       type: (el as HTMLInputElement).type,
       value: (el as HTMLInputElement).value,
+      placeholder: (el as HTMLInputElement).placeholder,
       color: computed.color,
       background: computed.backgroundColor,
       scheme: getComputedStyle(document.documentElement).colorScheme,
@@ -368,14 +441,35 @@ test('the month picker reads legibly with the design system tokens', async ({ pa
     }
   })
 
-  expect(styles.type).toBe('month')
-  expect(styles.value).toMatch(/^\d{4}-\d{2}$/)
+  // Chromium draws its own month field. Firefox and WebKit do not know `type="month"`
+  // and paint a plain text box: there the hint says how to write the month (roadmap,
+  // item 44). The attribute is `month` in all three; what the browser makes of it is not.
+  if (browserName === 'chromium') {
+    expect(styles.type).toBe('month')
+  } else {
+    expect(styles.type).toBe('text')
+  }
+  expect(styles.value).toBe(currentMonth())
+  expect(styles.placeholder).toBe('YYYY-MM')
   // The native field takes the tokens, and `color-scheme: dark` keeps its own
   // widgets (the picker glyph and the spinners) readable on a dark background.
   expect(styles.color).not.toBe(styles.background)
   expect(styles.scheme).toContain('dark')
   expect(styles.inkStrong).not.toBe('')
   expect(styles.surfaceCard).not.toBe('')
+
+  if (browserName !== 'chromium') {
+    // Emptied to type a month, the plain text box shows the hint.
+    await field.fill('')
+    expect(await field.evaluate((el) => el.matches(':placeholder-shown'))).toBe(true)
+  }
+
+  // Writing a whole month takes the statement there, in every browser.
+  await field.fill('2024-01')
+  await expect(page.getByTestId('statement-month-label')).toHaveText('January 2024')
+  await expect(page).toHaveURL(/month=2024-01$/)
+  expect(statementQueries(watch).at(-1)).toContain('from=2024-01-01')
+  expect(watch.consoleErrors).toEqual([])
 })
 
 test('the back arrow changes the month, the URL and the figures, and a reload stays', async ({

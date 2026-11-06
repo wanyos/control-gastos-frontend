@@ -70,6 +70,12 @@ export default defineConfig({
       name: 'webkit',
       use: {
         ...devices['Desktop Safari'],
+        /* On Windows with the screen scaled (175 %), Playwright's WebKit divides the
+           window by the scale: the page saw 731 × 411 instead of 1280 × 720. Started
+           as a DPI-unaware program it gets the real 1280 × 720 (roadmap, item 44). */
+        ...(process.platform === 'win32'
+          ? { launchOptions: { env: { ...process.env, __COMPAT_LAYER: 'DpiUnaware' } } }
+          : {}),
       },
     },
 

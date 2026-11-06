@@ -34,6 +34,7 @@
       <BaseInput
         type="month"
         label="Jump to month"
+        placeholder="YYYY-MM"
         :model-value="month"
         @update:model-value="onJump"
       />
@@ -59,6 +60,10 @@ defineProps<{ month: MonthKey }>()
 const emit = defineEmits<{ change: [MonthKey] }>()
 
 /**
+ * Firefox and Safari do not know `type="month"` and paint a plain text box; the
+ * placeholder tells what to type there. Chromium draws its own month field and never
+ * shows a placeholder, so nothing changes on screen there (roadmap, item 44).
+ *
  * A native month field can be half typed (`2026-`) or cleared: only a whole month
  * travels. Going back has no floor — the frontend does not know where the history
  * starts, and an earlier month simply comes back empty (design.md §5).

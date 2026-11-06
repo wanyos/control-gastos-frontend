@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import { parseCategories } from '@/shared/categories'
-import BaseBadge from '@/shared/components/BaseBadge.vue'
 import { parseMovement } from '@/shared/movements'
 import type { Movement } from '@/shared/movements'
 import { createValidators } from '@/shared/validation'
@@ -354,7 +353,11 @@ describe('StatementRow (R9, R10)', () => {
         for (const label of [income, expense]) {
           expect(label.classes()).not.toContain('text-brand')
           expect(label.classes()).not.toContain('bg-brand-subtle')
-          expect(label.classes()).toContain('bg-surface-sunken')
+          // Not the --surface-sunken the row takes under the mouse (roadmap, item 34).
+          expect(label.classes()).toContain('bg-surface-hover')
+          expect(label.classes()).not.toContain('bg-surface-sunken')
+          expect(label.classes()).toContain('text-ink-body')
+          expect(label.classes()).toContain('rounded-pill')
         }
       }
       // Pressable or not, it is the same label.
@@ -424,10 +427,9 @@ describe('StatementRow (R9, R10)', () => {
       expect(transfer.text()).toBe('Transfer')
       expect(notCounted.text()).toBe('Not counted')
 
-      // Plain words, not badges: the only badge of the line is its category.
-      const badges = row.findAllComponents(BaseBadge).map((badge) => badge.element)
-      expect(badges).not.toContain(transfer.element)
-      expect(badges).not.toContain(notCounted.element)
+      // Plain words, not labels: the only label of the line is its category.
+      const labels = row.findAll('span.rounded-pill').map((label) => label.element)
+      expect(labels).toEqual([row.get(CATEGORY).element])
       for (const label of [transfer, notCounted]) {
         expect(label.element.tagName).toBe('SPAN')
         expect(label.classes()).not.toContain('rounded-pill')

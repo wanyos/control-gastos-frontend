@@ -61,7 +61,11 @@
 
     <!-- Only while there is something to say: the block has an opaque background, so
          it must not exist empty (feature 27). -->
-    <StickyBelowTopBar v-if="hasNotice" :keep-clear-of="touchedRow">
+    <StickyBelowTopBar
+      v-if="hasNotice"
+      :keep-clear-of="touchedRow"
+      :busy="store.isActing || rules.isSaving"
+    >
       <RuleCreatedNotice v-if="rules.lastCreated" :saved="rules.lastCreated" />
 
       <ActionNotice
@@ -350,7 +354,6 @@ const closedAllSentence = computed(() => {
 const ruling = ref<Movement | null>(null)
 
 function onCreateRule(movement: Movement): void {
-  touchedRow.value = rowSelector(movement.id)
   rules.dismissQuestion()
   rules.saveMessage = null
   ruling.value = movement
@@ -377,8 +380,15 @@ function onPreviewRule(text: string): void {
   void rules.previewMatches(text, movement.type === 'income' ? 'income' : 'expense')
 }
 
+/**
+ * The row of the rule is the one to keep clear once the rule is saved, not when the
+ * dialog opens nor when a save fails: then the notice has not changed, and the page must
+ * not move under the dialog.
+ */
 async function onSaveRule(rule: NewRule): Promise<void> {
+  const movement = ruling.value
   if (await rules.create(rule)) {
+    if (movement) touchedRow.value = rowSelector(movement.id)
     rules.clearPreview()
     ruling.value = null
   }

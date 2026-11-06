@@ -39,7 +39,11 @@
     <!-- Between the figures and the list: what the last write did, with its Undo
          (R11, decisions.md 🔴 4). Since feature 27 it stays in view under the top bar on
          a scrolled page; the block has an opaque background, so it must not exist empty. -->
-    <StickyBelowTopBar v-if="hasNotice" :keep-clear-of="touchedRow">
+    <StickyBelowTopBar
+      v-if="hasNotice"
+      :keep-clear-of="touchedRow"
+      :busy="store.isActing || rules.isSaving"
+    >
       <!-- Since feature 34 the line of a created rule is painted here too, as in Review. -->
       <RuleCreatedNotice v-if="rules.lastCreated" :saved="rules.lastCreated" />
 
@@ -341,7 +345,6 @@ onBeforeUnmount(() => rules.dismissQuestion())
 const ruling = ref<Movement | null>(null)
 
 function onCreateRule(movement: Movement): void {
-  touchedRow.value = rowSelector(movement.id)
   rules.dismissQuestion()
   rules.saveMessage = null
   ruling.value = movement
@@ -364,8 +367,15 @@ function onPreviewRule(text: string): void {
   void rules.previewMatches(text, movement.type === 'income' ? 'income' : 'expense')
 }
 
+/**
+ * The row of the rule is the one to keep clear once the rule is saved, not when the
+ * dialog opens nor when a save fails: then the notice has not changed, and the page must
+ * not move under the dialog.
+ */
 async function onSaveRule(rule: NewRule): Promise<void> {
+  const movement = ruling.value
   if (await rules.create(rule)) {
+    if (movement) touchedRow.value = rowSelector(movement.id)
     rules.clearPreview()
     ruling.value = null
   }

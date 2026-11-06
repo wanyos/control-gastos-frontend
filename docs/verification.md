@@ -22,6 +22,10 @@ menos un test que:
 pnpm test:unit          # una sola pasada (es lo que corre init.sh y la puerta)
 ```
 
+> Desde el 2026-11-04 la suite unitaria no puede llegar a la red: una petición que
+> ningún mock responda hace fallar su test, con el método y la ruta. Cómo funciona,
+> en `docs/conventions.md` → *Tests*.
+
 > `init.sh` detecta el script de tests unitarios de `package.json`
 > (`test:unit` → `vitest run`, añadido en la feature #2) y ejecuta la suite
 > automáticamente en su bloque de tests. (Su paso 4, «Type checking», no comprueba

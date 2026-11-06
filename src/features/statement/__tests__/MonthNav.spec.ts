@@ -52,6 +52,12 @@ describe('MonthNav (R2)', () => {
     expect(nav.emitted('change')).toEqual([['2024-01']])
   })
 
+  it('hints the format for browsers that paint the month field as plain text', () => {
+    const input = mountNav('2026-09').get('[data-test="statement-month-input"] input')
+
+    expect(input.attributes('placeholder')).toBe('YYYY-MM')
+  })
+
   it('ignores a half-typed or cleared month instead of loading nonsense', async () => {
     const nav = mountNav('2026-09')
     const input = nav.get('[data-test="statement-month-input"] input')

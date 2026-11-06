@@ -680,15 +680,21 @@ async function expectStuckUnderTopBar(page: Page): Promise<void> {
 const topOf = (row: Locator): Promise<number> =>
   row.evaluate((element) => element.getBoundingClientRect().top)
 
-/** Scrolls until the top edge of `row` is exactly at the bottom edge of the top bar. */
+/**
+ * Scrolls until the top edge of `row` is exactly at the bottom edge of the top bar.
+ *
+ * The page only scrolls to whole pixels, and the row usually sits at a fraction of one.
+ * Chromium and Firefox round a fractional scroll to the nearest pixel, but WebKit cuts
+ * the fraction off (`scrollTo(0, 100.7)` leaves `scrollY` at 100): with `scrollBy` the
+ * row ended up to almost a pixel below the top bar in WebKit. The target is rounded here,
+ * so every browser lands on the same pixel and the row is at most half a pixel away.
+ */
 async function bringUnderTopBar(page: Page, row: Locator, offset = 0): Promise<void> {
   await row.evaluate((element, extra) => {
     const bar = document.querySelector('[data-test="topbar-title"]')?.closest('header')
     if (!bar) throw new Error('the top bar was not found')
-    window.scrollBy(
-      0,
-      element.getBoundingClientRect().top - bar.getBoundingClientRect().bottom - extra,
-    )
+    const distance = element.getBoundingClientRect().top - bar.getBoundingClientRect().bottom
+    window.scrollTo(0, Math.round(window.scrollY + distance - extra))
   }, offset)
 }
 
@@ -1407,4 +1413,261 @@ test('an open dialog paints over the notice', async ({ page }) => {
   expect(atCentre).toEqual({ insideTheNotice: false, insideTheDialog: true })
 
   expectNothingUnforeseen(watch)
+})
+
+// ─── The page does not move before the notice has changed ──────────────────
+// Measured in Chromium on 2026-10-11 and again on 2026-11-04: with the row partly behind
+// the notice, pressing `Undo` moved the page up 19 px at the press, against the notice
+// as it still was; the answer then shrank the notice (Movements) or took it away
+// (Review) and the row was left about 13 px lower than needed. Opening the rule dialog
+// from that row moved the page 19 px too, with nothing changed in the notice.
+
+/** Lets the browser paint two frames: the block measures one frame after Vue renders. */
+const twoFrames = (page: Page): Promise<void> =>
+  page.evaluate(
+    () =>
+      new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))),
+  )
+
+/** How far below the bottom edge of the block the row starts; negative, behind it. */
+const gapUnderNotice = async (page: Page, row: Locator): Promise<number> => {
+  const now = await edges(page)
+  if (now === null) throw new Error('there is no notice on the page')
+  return (await topOf(row)) - now.blockBottom
+}
+
+/**
+ * Leaves `row` with its upper part behind the notice, and makes sure it stays there: the
+ * block may still be measuring what the last action left (in WebKit it did after the
+ * first try), and the test must start from a row the notice covers.
+ */
+async function leavePartlyUnderNotice(page: Page, row: Locator): Promise<void> {
+  await expect(async () => {
+    await bringUnderTopBar(page, row, PARTLY_UNDER)
+    await twoFrames(page)
+    await twoFrames(page)
+    await expectPartlyUnderNotice(page, row)
+  }).toPass()
+}
+
+test('Undo in Movements, from a row partly behind the notice, moves the page only as much as the shorter notice needs', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+
+  // After the undo the sentence stays and the button goes, so the notice
+  // gets shorter. The row ends right under it, not a dozen pixels lower.
+  await routeMovements(page, watch)
+  await page.goto('/movements')
+  await expect(page.getByTestId('statement-row')).toHaveCount(STATEMENT_ROWS)
+  const line = statementRow(page, STATEMENT_FIRST_ID + 31)
+  await bringUnderTopBar(page, line)
+  await changeStatementCategory(line, GROCERIES.id)
+  await expect(page.getByTestId('statement-action-summary')).toContainText('Groceries')
+  await expectStuckUnderTopBar(page)
+  await leavePartlyUnderNotice(page, line)
+
+  await page.getByTestId('statement-action-undo').click()
+
+  await expect(page.getByTestId('statement-action-summary')).toContainText('Change undone')
+  await expect(page.getByTestId('statement-action-undo')).toHaveCount(0)
+  await twoFrames(page)
+  await expectRowClearOfNotice(page, line)
+  // Within a pixel: the page keeps whole pixels and the block rounds the overlap up.
+  expect(await gapUnderNotice(page, line)).toBeLessThan(1)
+
+  expectNothingUnforeseen(watch)
+})
+
+test('Undo of a category in Review, from a row partly behind the notice, leaves the row where it was', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+
+  // Undoing a category takes the notice away: nothing to keep clear any more, so the
+  // row stays where it was on the screen.
+  await routeReview(page, watch)
+  await page.goto('/review')
+  await expect(page.getByTestId('movement-row')).toHaveCount(REVIEW_ROWS)
+  const row = reviewRow(page, REVIEW_FIRST_ID + 30)
+  await bringUnderTopBar(page, row)
+  await reviewCategory(row).selectOption(String(GROCERIES.id))
+  await expect(page.getByTestId('action-summary')).toContainText('categorized as Groceries')
+  await expectStuckUnderTopBar(page)
+  await leavePartlyUnderNotice(page, row)
+  const before = await topOf(row)
+
+  await page.getByTestId('action-undo').click()
+
+  await expect(page.locator(BLOCK)).toHaveCount(0)
+  await expect(reviewCategory(row)).toHaveValue('')
+  await twoFrames(page)
+  expect(Math.abs((await topOf(row)) - before)).toBeLessThan(1)
+
+  expectNothingUnforeseen(watch)
+})
+
+test('opening the rule dialog in Review from a row partly behind the notice does not move the page', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+
+  await routeReview(page, watch)
+  await page.goto('/review')
+  await expect(page.getByTestId('movement-row')).toHaveCount(REVIEW_ROWS)
+  const first = reviewRow(page, REVIEW_FIRST_ID + 30)
+  await bringUnderTopBar(page, first)
+  await reviewCategory(first).selectOption(String(GROCERIES.id))
+  await expect(page.getByTestId('action-summary')).toContainText('categorized as Groceries')
+  await expectStuckUnderTopBar(page)
+  const other = reviewRow(page, REVIEW_FIRST_ID + 36)
+  await leavePartlyUnderNotice(page, other)
+  const reviewAt = await scrollY(page)
+
+  await other.getByTestId('movement-create-rule').click()
+
+  await expect(page.getByTestId('rule-dialog')).toBeVisible()
+  await twoFrames(page)
+  expect(await scrollY(page)).toBe(reviewAt)
+
+  expectNothingUnforeseen(watch)
+})
+
+test('opening the rule dialog in Movements from a line partly behind the notice does not move the page', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+
+  await routeMovements(page, watch)
+  // The dialog counts the pending movements without a category that its text would look
+  // at: none here, every line of the month already has one.
+  await page.route('**/api/movements?*', (route) => {
+    const query = new URL(route.request().url()).searchParams
+    if (route.request().method() !== 'GET' || query.get('uncategorized') !== 'true') {
+      return route.fallback()
+    }
+    return route.fulfill({
+      json: {
+        movements: [],
+        pagination: { page: 1, pageSize: 5, total: 0, totalPages: 0 },
+        totals: { income: '0.00', expense: '0.00', net: '0.00' },
+      },
+    })
+  })
+  await page.goto('/movements')
+  await expect(page.getByTestId('statement-row')).toHaveCount(STATEMENT_ROWS)
+  const line = statementRow(page, STATEMENT_FIRST_ID + 31)
+  await bringUnderTopBar(page, line)
+  await changeStatementCategory(line, GROCERIES.id)
+  await expect(page.getByTestId('statement-action-summary')).toContainText('Groceries')
+  await expectStuckUnderTopBar(page)
+  const otherLine = statementRow(page, STATEMENT_FIRST_ID + 37)
+  await bringUnderTopBar(page, otherLine, PARTLY_UNDER)
+  await otherLine.getByTestId('statement-row-category-button').click()
+  await expect(otherLine.getByTestId('row-create-rule')).toBeVisible()
+  await leavePartlyUnderNotice(page, otherLine)
+  const movementsAt = await scrollY(page)
+
+  await otherLine.getByTestId('row-create-rule').click()
+
+  await expect(page.getByTestId('rule-dialog')).toBeVisible()
+  await twoFrames(page)
+  expect(await scrollY(page)).toBe(movementsAt)
+
+  expectNothingUnforeseen(watch)
+})
+
+/** `POST /api/category-rules` answers 409 after a while: nothing is saved. */
+const rejectRuleSlowly = (page: Page): Promise<void> =>
+  page.route('**/api/category-rules', async (route) => {
+    if (route.request().method() !== 'POST') return route.fallback()
+    await new Promise((done) => setTimeout(done, 300))
+    return route.fulfill({
+      status: 409,
+      json: {
+        statusCode: 409,
+        code: 'CONFLICT',
+        message: 'Ya existe una regla con el texto «mercadona»',
+      },
+    })
+  })
+
+test('a rule that fails to save, from a row partly behind the notice, does not move the page', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+
+  await routeReview(page, watch)
+  await rejectRuleSlowly(page)
+  await page.goto('/review')
+  await expect(page.getByTestId('movement-row')).toHaveCount(REVIEW_ROWS)
+  const row = reviewRow(page, REVIEW_FIRST_ID + 30)
+  await bringUnderTopBar(page, row)
+  await reviewCategory(row).selectOption(String(GROCERIES.id))
+  await expect(page.getByTestId('action-summary')).toContainText('categorized as Groceries')
+  await expectStuckUnderTopBar(page)
+  await leavePartlyUnderNotice(page, row)
+  await row.getByTestId('movement-create-rule').click()
+  await expect(page.getByTestId('rule-dialog')).toBeVisible()
+  await twoFrames(page)
+  const reviewAt = await scrollY(page)
+
+  await page.getByTestId('rule-save').click()
+
+  await expect(page.getByTestId('rule-error')).toBeVisible()
+  await expect(page.getByTestId('rule-dialog')).toBeVisible()
+  await expect(page.getByTestId('action-summary')).toContainText('categorized as Groceries')
+  await twoFrames(page)
+  await twoFrames(page)
+  expect(await scrollY(page)).toBe(reviewAt)
+
+  expectNothingUnforeseen(watch, { rejection: true })
+})
+
+test('a rule that fails to save, from a line partly behind the notice in Movements, does not move the page', async ({
+  page,
+}) => {
+  const watch = watchPage(page)
+
+  await routeMovements(page, watch)
+  // The dialog counts the pending movements without a category that its text would look
+  // at: none here, every line of the month already has one.
+  await page.route('**/api/movements?*', (route) => {
+    const query = new URL(route.request().url()).searchParams
+    if (route.request().method() !== 'GET' || query.get('uncategorized') !== 'true') {
+      return route.fallback()
+    }
+    return route.fulfill({
+      json: {
+        movements: [],
+        pagination: { page: 1, pageSize: 5, total: 0, totalPages: 0 },
+        totals: { income: '0.00', expense: '0.00', net: '0.00' },
+      },
+    })
+  })
+  await rejectRuleSlowly(page)
+  await page.goto('/movements')
+  await expect(page.getByTestId('statement-row')).toHaveCount(STATEMENT_ROWS)
+  const line = statementRow(page, STATEMENT_FIRST_ID + 31)
+  await bringUnderTopBar(page, line)
+  await changeStatementCategory(line, GROCERIES.id)
+  await expect(page.getByTestId('statement-action-summary')).toContainText('Groceries')
+  await expectStuckUnderTopBar(page)
+  await line.getByTestId('statement-row-category-button').click()
+  await expect(line.getByTestId('row-create-rule')).toBeVisible()
+  await leavePartlyUnderNotice(page, line)
+  await line.getByTestId('row-create-rule').click()
+  await expect(page.getByTestId('rule-dialog')).toBeVisible()
+  await twoFrames(page)
+  const movementsAt = await scrollY(page)
+
+  await page.getByTestId('rule-save').click()
+
+  await expect(page.getByTestId('rule-error')).toBeVisible()
+  await expect(page.getByTestId('rule-dialog')).toBeVisible()
+  await twoFrames(page)
+  await twoFrames(page)
+  expect(await scrollY(page)).toBe(movementsAt)
+
+  expectNothingUnforeseen(watch, { rejection: true })
 })
