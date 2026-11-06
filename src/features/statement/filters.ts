@@ -73,12 +73,11 @@ export function monthQuery(
   const { from, to } = monthRange(month)
   const query: MovementQuery = { from, to, page, pageSize: STATEMENT_PAGE_SIZE }
 
-  // One switch, both parameters, in the same request as the filters: the two families
-  // are the same idea for the reader of the month (decisions.md 🔴 1, R2).
-  if (hideNoise) {
-    query.excluded = 'none'
-    query.transfer = 'none'
-  }
+  // One switch, one parameter, in the same request as the filters. Until 2026-11-06 it
+  // sent `excluded=none&transfer=none`, which also hid a marked or paired deposit
+  // maturity that still adds its interest; `hideNotCounted=true` (backend feature 68)
+  // keeps it in the list and in `totals`.
+  if (hideNoise) query.hideNotCounted = true
 
   if (filters.accountId !== null) query.accountId = filters.accountId
   if (filters.uncategorized) {

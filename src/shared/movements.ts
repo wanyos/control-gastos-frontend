@@ -178,6 +178,12 @@ export interface MovementQuery {
   excluded?: MovementScope
   /** Only the doubtful movements of own money (backend feature 62); absent filters nothing. */
   ownership?: 'doubtful'
+  /**
+   * Leaves out the marked and the paired movements, except the deposit movements that
+   * add something (backend feature 68). `totals` are the same as without it. Absent
+   * filters nothing.
+   */
+  hideNotCounted?: true
   page?: number
   pageSize?: number
 }
@@ -232,6 +238,7 @@ export function buildMovementsQuery(query: MovementQuery): string {
   add('excluded', query.excluded)
   add('transfer', query.transfer)
   add('ownership', query.ownership)
+  if (query.hideNotCounted === true) params.set('hideNotCounted', 'true')
   add('page', query.page)
   add('pageSize', query.pageSize)
 

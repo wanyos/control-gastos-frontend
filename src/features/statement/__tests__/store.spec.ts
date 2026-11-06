@@ -13,8 +13,10 @@ import {
   ACCOUNTS,
   CATEGORIES,
   CREATED_RULE,
+  DEPOSIT_DOUBTFUL,
   DEPOSIT_MATURITY,
   DEPOSIT_MONTH_PAGE,
+  DEPOSIT_OPENING,
   EXPENSE,
   EXPENSE_SAME_DAY,
   FOOD,
@@ -1381,7 +1383,7 @@ describe('useStatementStore', () => {
       expect(store.hiddenCount).toBeNull()
     })
 
-    it('on, it asks the month with both scopes and then counts, in that order (R2, R7)', async () => {
+    it('on, it asks the month with hideNotCounted and then counts, in that order (R2, R7)', async () => {
       const api = mockApi({
         movements: (query) =>
           (query.get('pageSize') === '1' ? json(COUNT_PAGE) : json(HIDDEN_MONTH_PAGE))(),
@@ -1391,7 +1393,7 @@ describe('useStatementStore', () => {
       await store.show('2026-09', EMPTY_FILTERS, true)
 
       expect(api.queries()).toEqual([
-        'from=2026-09-01&to=2026-09-30&excluded=none&transfer=none&page=1&pageSize=200',
+        'from=2026-09-01&to=2026-09-30&hideNotCounted=true&page=1&pageSize=200',
         'from=2026-09-01&to=2026-09-30&page=1&pageSize=1',
       ])
       expect(api.methods()).toEqual(['GET'])
@@ -1410,7 +1412,7 @@ describe('useStatementStore', () => {
       await store.show('2026-09', filters({ accountId: 2, uncategorized: true }), true)
 
       expect(api.queries()[0]).toBe(
-        'accountId=2&from=2026-09-01&to=2026-09-30&uncategorized=true&excluded=none&transfer=none&page=1&pageSize=200',
+        'accountId=2&from=2026-09-01&to=2026-09-30&uncategorized=true&hideNotCounted=true&page=1&pageSize=200',
       )
       // The count is measured against the same filters, without the scopes (R7).
       expect(api.queries()[1]).toBe(
@@ -1448,7 +1450,7 @@ describe('useStatementStore', () => {
       await store.loadMore()
 
       expect(api.queries().at(-1)).toBe(
-        'from=2026-09-01&to=2026-09-30&excluded=none&transfer=none&page=2&pageSize=200',
+        'from=2026-09-01&to=2026-09-30&hideNotCounted=true&page=2&pageSize=200',
       )
     })
 
@@ -1552,6 +1554,62 @@ describe('useStatementStore', () => {
       expect(store.hiddenCount).toBe(1)
     })
 
+    // Roadmap 37 (b), 2026-11-06: with `hideNotCounted=true` a marked AND paired maturity
+    // that adds its interest stays; with the two scopes it sent before, it went. The fake
+    // backend applies the contract's rule and only that parameter.
+    it('on, keeps a marked and paired maturity that adds its interest, and counts the rest', async () => {
+      const month = fakeMonth([
+        excluded(changed(DEPOSIT_MATURITY, { transferId: 'tr_2026_10_09_1' })),
+        excluded(DEPOSIT_DOUBTFUL),
+        DEPOSIT_OPENING,
+        EXPENSE,
+      ])
+      const api = mockApi({ movements: (query) => month.movements(query) })
+      const store = useStatementStore()
+
+      await store.show('2026-10', EMPTY_FILTERS, true)
+
+      expect(api.queries()[0]).toBe(
+        'from=2026-10-01&to=2026-10-31&hideNotCounted=true&page=1&pageSize=200',
+      )
+      expect(store.shownMovements.map((row) => row.id)).toEqual([DEPOSIT_MATURITY.id, EXPENSE.id])
+      // The doubtful one, by the backend, plus the opening, in the browser.
+      expect(store.hiddenCount).toBe(2)
+    })
+
+    // Cabo 37 (b): marking, with the switch on, a maturity that adds its interest does not
+    // take it off the list, not even when the read after the PATCH fails (the backend
+    // would still list it with `hideNotCounted=true`).
+    it.each([
+      ['the reload after it works', false],
+      ['the reload after it fails', true],
+    ])(
+      'on, marking a maturity that adds its interest keeps it on the list (%s)',
+      async (_label, reloadFails) => {
+        const month = fakeMonth([DEPOSIT_MATURITY, EXPENSE])
+        let patched = false
+        mockApi({
+          movements: (query) => (patched && reloadFails ? networkDown() : month.movements(query)),
+          bulkPatch: (body) => {
+            patched = true
+            return month.bulkPatch(body)
+          },
+        })
+        const store = useStatementStore()
+        await store.show('2026-10', EMPTY_FILTERS, true)
+        expect(store.shownMovements.map((row) => row.id)).toEqual([DEPOSIT_MATURITY.id, EXPENSE.id])
+        select(store, [DEPOSIT_MATURITY.id as number])
+
+        await store.setExcluded(true)
+
+        expect(patched).toBe(true)
+        expect(store.shownMovements.map((row) => row.id)).toEqual([DEPOSIT_MATURITY.id, EXPENSE.id])
+        expect(
+          store.shownMovements.find((row) => row.id === DEPOSIT_MATURITY.id)?.excludedFromTotals,
+        ).toBe(true)
+      },
+    )
+
     // Feature 29: the count read already carries the total of the month with nothing
     // hidden; the store keeps it so the view can tell an empty month from a hidden one.
     it('keeps the total of the month without hiding from the read it already makes', async () => {
@@ -1559,7 +1617,7 @@ describe('useStatementStore', () => {
       const api = mockApi({
         movements: (query) => {
           if (query.get('pageSize') === '1') return countAnswer()
-          return json(query.get('excluded') === 'none' ? HIDDEN_MONTH_PAGE : MONTH_PAGE)()
+          return json(query.get('hideNotCounted') === 'true' ? HIDDEN_MONTH_PAGE : MONTH_PAGE)()
         },
       })
       const store = useStatementStore()

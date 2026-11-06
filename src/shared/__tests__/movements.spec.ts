@@ -11,20 +11,60 @@ import {
 } from '@/shared/movements'
 import type { MovementQuery } from '@/shared/movements'
 
-// The two parameters the backend added in its feature 49 and the statement started
-// asking for in the feature 23. Everything else about `buildMovementsQuery` is covered
-// where it was born, in `features/review/__tests__/service.spec.ts` (which re-exports
-// it letter by letter); here only the pair that hides the noise.
-describe('buildMovementsQuery: the two scopes of the noise switch (R1, R2)', () => {
-  it('carries neither key when the switch is off: without them the backend filters nothing', () => {
+// The parameter the statement's switch sends since 2026-11-06 (backend feature 68),
+// and the two scopes of the backend's feature 49 that it sent before and that the
+// overview still sends. Everything else about `buildMovementsQuery` is covered where it
+// was born, in `features/review/__tests__/service.spec.ts` (which re-exports it letter
+// by letter).
+describe('buildMovementsQuery: the parameter of the noise switch (R1, R2)', () => {
+  it('carries no hiding key when the switch is off: without them the backend filters nothing', () => {
     const query = buildMovementsQuery({ from: '2026-07-01', to: '2026-07-31', page: 1 })
 
     expect(query).toBe('from=2026-07-01&to=2026-07-31&page=1')
+    expect(query).not.toContain('hideNotCounted')
     expect(query).not.toContain('excluded')
     expect(query).not.toContain('transfer')
   })
 
-  it('carries excluded=none AND transfer=none in the SAME request when it is on (R2)', () => {
+  it('carries hideNotCounted=true when it is on, and neither of the two scopes', () => {
+    const query = buildMovementsQuery({
+      from: '2026-07-01',
+      to: '2026-07-31',
+      hideNotCounted: true,
+      page: 1,
+      pageSize: 200,
+    })
+
+    expect(query).toBe('from=2026-07-01&to=2026-07-31&hideNotCounted=true&page=1&pageSize=200')
+    expect(query).not.toContain('excluded')
+    expect(query).not.toContain('transfer')
+  })
+
+  it('keeps it next to every other filter, not instead of them (R10)', () => {
+    const query = buildMovementsQuery({
+      accountId: 3,
+      from: '2026-07-01',
+      to: '2026-07-31',
+      uncategorized: true,
+      q: 'luz',
+      hideNotCounted: true,
+      page: 1,
+      pageSize: 200,
+    })
+
+    expect(query).toBe(
+      'accountId=3&from=2026-07-01&to=2026-07-31&uncategorized=true&q=luz&hideNotCounted=true&page=1&pageSize=200',
+    )
+  })
+
+  it('has no `false` to send: absent is what filters nothing', () => {
+    // @ts-expect-error `hideNotCounted=false` is the same as not sending it, so it cannot be written
+    const rejected: MovementQuery = { hideNotCounted: false }
+
+    expect(buildMovementsQuery(rejected)).toBe('')
+  })
+
+  it('still carries excluded=none AND transfer=none together when asked (the overview does)', () => {
     const query = buildMovementsQuery({
       from: '2026-07-01',
       to: '2026-07-31',
@@ -36,24 +76,6 @@ describe('buildMovementsQuery: the two scopes of the noise switch (R1, R2)', () 
 
     expect(query).toBe(
       'from=2026-07-01&to=2026-07-31&excluded=none&transfer=none&page=1&pageSize=200',
-    )
-  })
-
-  it('keeps them next to every other filter, not instead of them (R10)', () => {
-    const query = buildMovementsQuery({
-      accountId: 3,
-      from: '2026-07-01',
-      to: '2026-07-31',
-      uncategorized: true,
-      q: 'luz',
-      excluded: 'none',
-      transfer: 'none',
-      page: 1,
-      pageSize: 200,
-    })
-
-    expect(query).toBe(
-      'accountId=3&from=2026-07-01&to=2026-07-31&uncategorized=true&q=luz&excluded=none&transfer=none&page=1&pageSize=200',
     )
   })
 

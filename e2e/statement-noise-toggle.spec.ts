@@ -192,7 +192,7 @@ async function prepare(page: Page, ambiguousCount = 2) {
   await page.route('**/api/movements*', (route) => {
     const query = new URL(route.request().url()).searchParams
     const month = (query.get('from') ?? '').slice(0, 7)
-    const hidden = query.get('excluded') === 'none' && query.get('transfer') === 'none'
+    const hidden = query.get('hideNotCounted') === 'true'
     // The sidebar's own count asks with a status; the switch's count asks without one.
     if (query.get('pageSize') === '1' && query.get('status') !== null) {
       return route.fulfill({ json: SIDEBAR_COUNT })
@@ -249,6 +249,7 @@ test('turning it on hides the noise, says how many, and moves no figure', async 
   // Off at the door: the five rows and no scope in the request (R1).
   await expect(page.getByTestId('statement-row')).toHaveCount(5)
   await expect(page.getByTestId('statement-hidden-count')).toHaveCount(0)
+  expect(monthQueries(watch)[0]).not.toContain('hideNotCounted')
   expect(monthQueries(watch)[0]).not.toContain('excluded')
   const before = await page.getByTestId('statement-totals-in').textContent()
 
@@ -262,7 +263,9 @@ test('turning it on hides the noise, says how many, and moves no figure', async 
   await expect(page.getByTestId('statement-hidden-count')).not.toContainText('€')
   // The three figures did not move: they never included what was hidden (R6, design §1).
   await expect(page.getByTestId('statement-totals-in')).toHaveText(before ?? '')
-  expect(monthQueries(watch).at(-1)).toContain('excluded=none&transfer=none')
+  expect(monthQueries(watch).at(-1)).toContain('hideNotCounted=true')
+  // Not the two scopes it sent until 2026-11-06 (roadmap 37 b).
+  expect(monthQueries(watch).at(-1)).not.toMatch(/excluded=|transfer=/)
 
   await page.getByTestId('statement-noise-switch').locator('input').uncheck()
 
@@ -353,7 +356,9 @@ test('an empty month with the checkbox on says it has no movements', async ({ pa
     .map((request) => new URL(request.url()))
     .filter((url) => url.pathname === '/api/movements' && url.searchParams.get('status') === null)
   expect(reads.map((url) => url.searchParams.get('pageSize'))).toEqual(['200', '1'])
-  expect(reads[0]?.search).toContain('excluded=none&transfer=none')
+  expect(reads[0]?.search).toContain('hideNotCounted=true')
+  expect(reads[0]?.search).not.toMatch(/excluded=|transfer=/)
+  expect(reads[1]?.search).not.toContain('hideNotCounted')
   expect(reads[1]?.search).not.toContain('excluded')
   expect(onlyGet(watch)).toEqual(['GET'])
   expect(watch.pageErrors).toEqual([])

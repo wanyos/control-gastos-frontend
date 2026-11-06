@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
+import { buildMovementsQuery } from '@/shared/movements'
+
 import {
   EMPTY_FILTERS,
   filterScopeLine,
@@ -214,13 +216,14 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
   it('asks for nothing extra while it is off: the whole month comes back', () => {
     const query = monthQuery('2026-07', filters({ accountId: 8127 }))
 
+    expect(query).not.toHaveProperty('hideNotCounted')
     expect(query).not.toHaveProperty('excluded')
     expect(query).not.toHaveProperty('transfer')
     // And the same thing said out loud, because off is the default (R1).
     expect(monthQuery('2026-07', EMPTY_FILTERS, 1, false)).toEqual(monthQuery('2026-07'))
   })
 
-  it('adds excluded=none AND transfer=none to the filters already there (R2, R10)', () => {
+  it('adds hideNotCounted=true to the filters already there, and neither scope (R2, R10)', () => {
     expect(monthQuery('2026-07', filters({ accountId: 8127, q: 'luz' }), 1, true)).toEqual({
       from: '2026-07-01',
       to: '2026-07-31',
@@ -228,17 +231,26 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
       pageSize: 200,
       accountId: 8127,
       q: 'luz',
-      excluded: 'none',
-      transfer: 'none',
+      hideNotCounted: true,
     })
+  })
+
+  it('no longer sends excluded=none nor transfer=none with the switch on (roadmap 37 b)', () => {
+    // They hid a marked or paired deposit maturity that still adds its interest.
+    const query = monthQuery('2026-07', filters({ accountId: 8127, q: 'luz' }), 1, true)
+
+    expect(query).not.toHaveProperty('excluded')
+    expect(query).not.toHaveProperty('transfer')
+    expect(buildMovementsQuery(query)).toBe(
+      'accountId=8127&from=2026-07-01&to=2026-07-31&q=luz&hideNotCounted=true&page=1&pageSize=200',
+    )
   })
 
   it('carries the switch to the later pages of the same month too (R2)', () => {
     const query = monthQuery('2026-07', EMPTY_FILTERS, 3, true)
 
     expect(query.page).toBe(3)
-    expect(query.excluded).toBe('none')
-    expect(query.transfer).toBe('none')
+    expect(query.hideNotCounted).toBe(true)
   })
 
   it('is not a filter of the bar: `Clear filters` and the empty sentence ignore it (C5)', () => {
@@ -261,9 +273,10 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
       })
     })
 
-    it('never carries the two scopes: it is the total the switch is measured against', () => {
+    it('never carries the switch: it is the total the switch is measured against', () => {
       const query = hiddenCountQuery('2026-07', EMPTY_FILTERS)
 
+      expect(query).not.toHaveProperty('hideNotCounted')
       expect(query).not.toHaveProperty('excluded')
       expect(query).not.toHaveProperty('transfer')
       expect(query.pageSize).toBe(1)
@@ -310,7 +323,7 @@ describe('the noise switch (feature 23: R1, R2, R4, R5, R7, C5)', () => {
 
         expect(read.hideNoise).toBe(false)
         expect(monthQuery(read.month, read.filters, 1, read.hideNoise)).not.toHaveProperty(
-          'excluded',
+          'hideNotCounted',
         )
       },
     )

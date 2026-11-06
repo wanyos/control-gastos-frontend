@@ -379,12 +379,16 @@ export const useStatementStore = defineStore('statement', () => {
     const known = rowOf(answer.id)
     const updated = withKnownOwnership(withKnownDeposit(answer, known?.deposit), known?.ownership)
     // Three ways of no longer belonging to what is on screen: the category filter of the
-    // F21 and — since the F23 — the switch, when what was just marked is exactly what
-    // the switch promises to hide, or (F31) a deposit opening or cancellation. The Undo
-    // of the notice line brings it back (R13).
+    // F21 and — since the F23 — the switch, when the row is now marked or paired and is
+    // not a deposit movement that adds something (the rule of `hideNotCounted=true`,
+    // backend feature 68: a maturity that adds its interest stays, cabo 37 b), or (F31)
+    // a deposit opening or cancellation. The Undo of the notice line brings it back (R13).
+    const addsSomething = updated.deposit != null && updated.deposit.countedAmount !== '0.00'
     const gone =
       (hasCategoryFilter(filters.value) && !matchesCategoryFilter(updated, filters.value)) ||
-      (hideNoise.value && (updated.excludedFromTotals || updated.transferId !== null)) ||
+      (hideNoise.value &&
+        (updated.excludedFromTotals || updated.transferId !== null) &&
+        !addsSomething) ||
       (hideNoise.value && hiddenBySwitch(updated))
     const rows = result.value?.movements
     const at = rows?.findIndex((row) => row.id === updated.id) ?? -1

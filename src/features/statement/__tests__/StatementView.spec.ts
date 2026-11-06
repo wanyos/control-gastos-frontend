@@ -833,7 +833,7 @@ describe('StatementView', () => {
     const hidden: Answers = {
       movements: (query) => {
         if (query.get('pageSize') === '1') return json(COUNT_PAGE)()
-        return json(query.get('excluded') === 'none' ? HIDDEN_MONTH_PAGE : MONTH_PAGE)()
+        return json(query.get('hideNotCounted') === 'true' ? HIDDEN_MONTH_PAGE : MONTH_PAGE)()
       },
     }
 
@@ -866,8 +866,10 @@ describe('StatementView', () => {
         q: 'luz',
       })
       expect(api.queries().at(-2)).toBe(
-        'accountId=1&from=2026-09-01&to=2026-09-30&uncategorized=true&q=luz&excluded=none&transfer=none&page=1&pageSize=200',
+        'accountId=1&from=2026-09-01&to=2026-09-30&uncategorized=true&q=luz&hideNotCounted=true&page=1&pageSize=200',
       )
+      // Not the two scopes it sent until 2026-11-06 (roadmap 37 b), in no read.
+      expect(api.queries().join('|')).not.toMatch(/excluded=|transfer=/)
       expect(api.methods()).toEqual(['GET'])
     })
 
@@ -889,7 +891,7 @@ describe('StatementView', () => {
 
       expect(box(wrapper).element.checked).toBe(true)
       expect(api.queries()[0]).toBe(
-        'from=2026-09-01&to=2026-09-30&excluded=none&transfer=none&page=1&pageSize=200',
+        'from=2026-09-01&to=2026-09-30&hideNotCounted=true&page=1&pageSize=200',
       )
       expect(wrapper.findAll('[data-test="statement-row"]')).toHaveLength(4)
     })
@@ -898,6 +900,7 @@ describe('StatementView', () => {
       const { api, wrapper } = await mountView(`/movements?month=2026-09&hide=${raw}`, hidden)
 
       expect(box(wrapper).element.checked).toBe(false)
+      expect(api.queries()[0]).not.toContain('hideNotCounted')
       expect(api.queries()[0]).not.toContain('excluded')
     })
 
@@ -986,7 +989,7 @@ describe('StatementView', () => {
         )
 
         expect(api.queries()).toEqual([
-          'from=2026-10-01&to=2026-10-31&excluded=none&transfer=none&page=1&pageSize=200',
+          'from=2026-10-01&to=2026-10-31&hideNotCounted=true&page=1&pageSize=200',
           'from=2026-10-01&to=2026-10-31&page=1&pageSize=1',
         ])
         expect(wrapper.get('[data-test="statement-empty"]').text()).toBe(
@@ -1117,7 +1120,7 @@ describe('StatementView', () => {
         const on = await mountView('/movements?month=2026-10&hide=true', emptyWith(countOf(0)))
 
         expect(on.api.queries()).toEqual([
-          'from=2026-10-01&to=2026-10-31&excluded=none&transfer=none&page=1&pageSize=200',
+          'from=2026-10-01&to=2026-10-31&hideNotCounted=true&page=1&pageSize=200',
           'from=2026-10-01&to=2026-10-31&page=1&pageSize=1',
         ])
         expect(on.api.calls.filter((call) => call.path === '/api/movements')).toHaveLength(2)
@@ -1345,7 +1348,7 @@ describe('StatementView', () => {
       expect(on.wrapper.text()).not.toContain('Deposit cancellation')
       // Nothing new is asked: the same two reads as before the feature.
       expect(on.api.queries()).toEqual([
-        'from=2026-10-01&to=2026-10-31&excluded=none&transfer=none&page=1&pageSize=200',
+        'from=2026-10-01&to=2026-10-31&hideNotCounted=true&page=1&pageSize=200',
         'from=2026-10-01&to=2026-10-31&page=1&pageSize=1',
       ])
     })
@@ -1452,7 +1455,7 @@ describe('StatementView', () => {
       expect(on.wrapper.get('[data-test="statement-row-ownership"]').text()).toMatch(/^Doubtful/)
       // Nothing new is asked: the same two reads as before the feature.
       expect(on.api.queries()).toEqual([
-        'from=2026-11-01&to=2026-11-30&excluded=none&transfer=none&page=1&pageSize=200',
+        'from=2026-11-01&to=2026-11-30&hideNotCounted=true&page=1&pageSize=200',
         'from=2026-11-01&to=2026-11-30&page=1&pageSize=1',
       ])
     })

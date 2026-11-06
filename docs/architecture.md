@@ -158,8 +158,9 @@ src/
                           # vuelve a poner en la línea el `ownership` de la última lectura
       months.ts           # todo lo puro del mes: rango, salto, URL, agrupación por día y textos
       filters.ts          # los cuatro filtros ↔ querystring de la API y de la URL (#20);
-                          # el interruptor `hideNoise` (`hide=true` en la URL, `excluded=none`
-                          # y `transfer=none` en la API), `hiddenCountQuery`,
+                          # el interruptor `hideNoise` (`hide=true` en la URL,
+                          # `hideNotCounted=true` en la API desde el 2026-11-06; antes
+                          # `excluded=none` y `transfer=none`), `hiddenCountQuery`,
                           # `hiddenCountLine` y `nothingLeftLine` (#23); `nothingShownLine`,
                           # la frase de la lista vacía mientras no se sabe por qué (#29)
       actions.ts          # filtro de categoría, textos del aviso y de los errores, puras (#21)
@@ -475,8 +476,11 @@ src/
 > `shared/components/StickyBelowTopBar.vue`.)
 >
 > **El interruptor del ruido no escribe (feature #23).** Es de **solo lectura**: cambia
-> la pregunta que se le hace a `GET /api/movements` —`excluded=none` y `transfer=none`
-> juntos, un solo interruptor— y nada más. Esconder se hace en el servidor, nunca
+> la pregunta que se le hace a `GET /api/movements` —hasta el 2026-11-06 `excluded=none` y
+> `transfer=none` juntos; desde entonces `hideNotCounted=true` (feature 68 del backend),
+> que esconde lo mismo salvo los movimientos de depósito que suman algo, para que un
+> vencimiento marcado o emparejado no se vaya de la lista ni de las cifras (cabo 37 b
+> de `docs/roadmap.md`)— y nada más. Esconder se hace en el servidor, nunca
 > filtrando aquí la lista ya descargada, para que `pagination.total`, el `Load more` y
 > las tres cifras sigan siendo del backend. Lo escondido se dice **en número** (la resta
 > de dos `pagination.total`) y **nunca en importe**: con `excluded=only` o

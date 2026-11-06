@@ -478,13 +478,22 @@ export function fakeMonth(seed: readonly Record<string, unknown>[] = MONTH_PAGE.
 
   return {
     rows,
-    // Feature 23: it also honours the two scopes of the switch, so a test can watch a
+    // Feature 23: it also honours the parameter of the switch, so a test can watch a
     // row leave the month the way the backend would take it out — and the count read
-    // (`pageSize=1`, no scopes) gets the total of the WHOLE month, as the contract says.
+    // (`pageSize=1`, no parameter) gets the total of the WHOLE month, as the contract
+    // says. Since 2026-11-06 that parameter is `hideNotCounted=true` (backend feature
+    // 68): marked or paired rows go, except a deposit movement that adds something.
+    // `excluded=none&transfer=none` hides nothing here on purpose: a switch that went
+    // back to them would leave every row on screen and its test would see it.
     movements: (query?: URLSearchParams): Promise<Response> => {
-      const hidden = query?.get('excluded') === 'none' && query?.get('transfer') === 'none'
+      const hidden = query?.get('hideNotCounted') === 'true'
+      const counts = (row: Record<string, unknown>): boolean => {
+        const deposit = row.deposit as { countedAmount?: unknown } | null | undefined
+        return deposit != null && deposit.countedAmount !== '0.00'
+      }
       const movements = [...rows.values()].filter(
-        (row) => !hidden || (row.excludedFromTotals !== true && row.transferId === null),
+        (row) =>
+          !hidden || (row.excludedFromTotals !== true && row.transferId === null) || counts(row),
       )
       const pageSize = Number(query?.get('pageSize') ?? 200)
       return Promise.resolve(
