@@ -12,6 +12,8 @@ ideas de mejora de la aplicación, en `../docs/ideas-de-mejora.md`.
 
 ## Correcciones del humano
 
+- 2026-11-07 · leader: redactó un encargo al backend con la «cascada» y la evolución con rentabilidad dentro de `Net Worth`, aunque el humano ya había dicho que todo lo de ganancias y pérdidas de inversiones va en `Investments`; y usó la palabra «cascada», que no está aprobada (venía de `ideas.md`). El humano quería: `Net Worth` como está, sin nada que pedir, y ningún término sin aprobar.
+
 ## Cambios pendientes en proyecto hermano `gastos-backend`
 
-Ninguno. (El del cabo 37 (b) lo hizo el backend en su feature 68 el 2026-11-06.)
+Ninguno. (El del cabo 37 (b) lo hizo el backend en su feature 68 el 2026-11-06. Los cabos 3 y 4 los cerró el humano el 2026-11-07 sin pedir nada al backend.)
